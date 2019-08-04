@@ -18,6 +18,7 @@ import { injectable } from 'inversify';
 import { ILogger, Disposable, DisposableCollection, Emitter, Event, MaybePromise } from '@theia/core/lib/common/';
 import { TaskManager } from './task-manager';
 import { TaskInfo, TaskExitedEvent, TaskConfiguration, TaskOutputEvent } from '../common/task-protocol';
+import { MessageConnection } from 'vscode-jsonrpc';
 
 export interface TaskOptions {
     label: string;
@@ -47,6 +48,19 @@ export abstract class Task implements Disposable {
 
     /** Terminates the task. */
     abstract kill(): Promise<void>;
+
+    /**
+     * Initializes a connection between this task and the client.
+     *
+     * The connection may be used to provide feedback and progress monitoring
+     * to the client.  It can also be used to send  data from the client to the executing
+     * task.  Tasks do not need to create a connection with the client.
+     */
+    initClientConnection(connection: MessageConnection): void {
+        // By default, no feedback through a client connection is provided.
+        // For an example implementation of this function, see ProcessTask which
+        // connects a task based on a Process to the client.
+    }
 
     get onExit(): Event<TaskExitedEvent> {
         return this.exitEmitter.event;

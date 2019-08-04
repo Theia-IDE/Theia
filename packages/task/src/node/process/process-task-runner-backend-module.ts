@@ -19,6 +19,8 @@ import { ProcessTask, TaskFactory, TaskProcessOptions } from './process-task';
 import { ProcessTaskRunner } from './process-task-runner';
 import { ProcessTaskRunnerContribution } from './process-task-runner-contribution';
 import { TaskRunnerContribution } from '../task-runner';
+import { TaskBackendMessagingContribution } from './task-backend-messaging-contribution';
+import { MessagingService } from '@theia/core/lib/node/messaging/messaging-service';
 
 export function bindProcessTaskRunnerModule(bind: interfaces.Bind) {
 
@@ -34,4 +36,6 @@ export function bindProcessTaskRunnerModule(bind: interfaces.Bind) {
     bind(ProcessTaskRunner).toSelf().inSingletonScope();
     bind(ProcessTaskRunnerContribution).toSelf().inSingletonScope();
     bind(TaskRunnerContribution).toService(ProcessTaskRunnerContribution);
+
+    bind(MessagingService.Contribution).to(TaskBackendMessagingContribution).inSingletonScope();
 }

@@ -44,7 +44,14 @@ import { ProvidedTaskConfigurations } from './provided-task-configurations';
 import { TaskDefinitionRegistry } from './task-definition-registry';
 import { ProblemMatcherRegistry } from './task-problem-matcher-registry';
 import { Range } from 'vscode-languageserver-types';
+import { IProcessExitEvent } from '@theia/process/lib/node/process';
 import URI from '@theia/core/lib/common/uri';
+
+import { WebSocketConnectionProvider } from '@theia/core/lib/browser';
+import { MessageConnection } from 'vscode-jsonrpc';
+import { Deferred } from '@theia/core/lib/common/promise-util';
+import { tasksPath } from '../common/task-protocol';
+import { DisposableCollection } from '@theia/core';
 
 @injectable()
 export class TaskService implements TaskConfigurationClient {
@@ -117,6 +124,11 @@ export class TaskService implements TaskConfigurationClient {
     @inject(TaskProviderRegistry)
     protected readonly taskProviderRegistry: TaskProviderRegistry;
 
+    @inject(WebSocketConnectionProvider)
+    protected readonly webSocketConnectionProvider: WebSocketConnectionProvider;
+
+    protected readonly toDispose = new DisposableCollection();
+
     @postConstruct()
     protected init(): void {
         this.workspaceService.onWorkspaceChanged(async roots => {
@@ -135,6 +147,11 @@ export class TaskService implements TaskConfigurationClient {
         this.taskWatcher.onTaskCreated((event: TaskInfo) => {
             if (this.isEventForThisClient(event.ctx)) {
                 const task = event.config;
+
+                if (this.isCustomFeedbackProvided(task)) {
+                    return;
+                }
+
                 let taskIdentifier = event.taskId.toString();
                 if (task) {
                     taskIdentifier = !!this.taskDefinitionRegistry.getDefinition(task) ? `${task._source}: ${task.label}` : `${task.type}: ${task.label}`;
@@ -179,6 +196,10 @@ export class TaskService implements TaskConfigurationClient {
             }
 
             const taskConfiguration = event.config;
+            if (this.isCustomFeedbackProvided(taskConfiguration)) {
+                return;
+            }
+
             let taskIdentifier = event.taskId.toString();
             if (taskConfiguration) {
                 taskIdentifier = !!this.taskDefinitionRegistry.getDefinition(taskConfiguration)
@@ -191,14 +212,18 @@ export class TaskService implements TaskConfigurationClient {
                 if (event.code === 0) {
                     this.messageService.info(message);
                 } else {
-                    this.messageService.error(message);
+                    console.error('Invalid TaskExitedEvent received, neither code nor signal is set.');
                 }
-            } else if (event.signal !== undefined) {
-                this.messageService.info(`Task ${taskIdentifier} was terminated by signal ${event.signal}.`);
-            } else {
-                console.error('Invalid TaskExitedEvent received, neither code nor signal is set.');
             }
         });
+    }
+
+    protected isCustomFeedbackProvided(taskConfiguration: TaskConfiguration | undefined): boolean {
+        if (taskConfiguration) {
+            const provider = this.taskProviderRegistry.getProvider(taskConfiguration.source);
+            return provider !== undefined && provider.attach !== undefined;
+        }
+        return false;
     }
 
     /** Returns an array of the task configurations configured in tasks.json and provided by the extensions. */
@@ -393,8 +418,57 @@ export class TaskService implements TaskConfigurationClient {
         this.logger.debug(`Task created. Task id: ${taskInfo.taskId}`);
 
         // open terminal widget if the task is based on a terminal process (type: shell)
+        // or attach to process output processor if a raw process (type: process)
         if (taskInfo.terminalId !== undefined) {
-            this.attach(taskInfo.terminalId, taskInfo.taskId);
+            if (taskInfo.config.type === 'shell') {
+                this.attach(taskInfo.terminalId, taskInfo.taskId);
+            } else {
+                this.attachProcess(taskInfo);
+            }
+        }
+    }
+
+    protected waitForConnection: Deferred<MessageConnection> | undefined;
+
+    protected async attachProcess(taskInfo: TaskInfo): Promise<void> {
+        const { processId, config } = taskInfo;
+        const { source } = config;
+
+        const provider = this.taskProviderRegistry.getProvider(source);
+        if (provider && provider.attach) {
+            const waitForConnection = this.waitForConnection = new Deferred<MessageConnection>();
+
+            const doKill = async () => {
+                const connection = await waitForConnection.promise;
+                connection.sendRequest('kill');
+            };
+
+            const lineProcessor = await provider.attach(taskInfo, doKill);
+
+            this.webSocketConnectionProvider.listen({
+                path: `${tasksPath}/${processId}`,
+                onConnection: connection => {
+                    connection.onNotification('onLine', (data: string) => lineProcessor.processLine(data));
+                    connection.onNotification('onStart', () => lineProcessor.notifyStart(taskInfo.taskId, taskInfo.config));
+                    connection.onNotification('onExit', (event: IProcessExitEvent) => lineProcessor.notifyExit(
+                        {
+                            taskId: taskInfo.taskId,
+                            config: taskInfo.config,
+                            ctx: taskInfo.ctx,
+                            ...event
+                        }
+                    ));
+                    connection.onDispose(() => lineProcessor.close());
+
+                    this.toDispose.push(connection);
+                    connection.listen();
+                    if (waitForConnection) {
+                        waitForConnection.resolve(connection);
+                    }
+                }
+            }, { reconnecting: false });
+        } else {
+            this.logger.error(`TaskProvider implementation missing for ${source}.`);
         }
     }
 

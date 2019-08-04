@@ -16,7 +16,7 @@
 
 import { injectable, postConstruct } from 'inversify';
 import { Disposable } from '@theia/core/lib/common/disposable';
-import { TaskConfiguration } from '../common/task-protocol';
+import { TaskInfo, TaskConfiguration, TaskExitedEvent } from '../common/task-protocol';
 
 export const TaskContribution = Symbol('TaskContribution');
 
@@ -31,9 +31,24 @@ export interface TaskResolver {
     resolveTask(taskConfig: TaskConfiguration): Promise<TaskConfiguration>;
 }
 
+export interface ProcessOutputLines {
+    /** Called for each line from the process written to stdout */
+    processLine(line: string): void;
+    /** Called before output starts, typically used to show a 'start' message */
+    notifyStart(taskId: number, config: TaskConfiguration): void;
+    /** Called after the process has exited, typically used to show a 'completed' message */
+    notifyExit(event: TaskExitedEvent): void;
+    /** Always called last */
+    close(): void;
+}
+
 export interface TaskProvider {
     /** Returns the Task Configurations which are provides programmatically to the system. */
     provideTasks(): Promise<TaskConfiguration[]>;
+
+    /** Attaches a process to its frontend UI components */
+    attach?(taskInfo: TaskInfo, doKill?: () => Promise<void>): Promise<ProcessOutputLines>;
+
 }
 
 @injectable()

@@ -18,6 +18,7 @@ import { JsonRpcServer } from '@theia/core/lib/common/messaging/proxy-factory';
 import { ProblemMatcher, ProblemMatch, WatchingPattern } from './problem-matcher-protocol';
 
 export const taskPath = '/services/task';
+export const tasksPath = '/services/tasks';
 
 export const TaskServer = Symbol('TaskServer');
 export const TaskClient = Symbol('TaskClient');

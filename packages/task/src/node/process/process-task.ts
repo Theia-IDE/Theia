@@ -20,6 +20,8 @@
 *--------------------------------------------------------------------------------------------*/
 
 import { injectable, inject, named } from 'inversify';
+import { MessageConnection } from 'vscode-jsonrpc';
+import * as readline from 'readline';
 import { ILogger } from '@theia/core/lib/common/';
 import { Process, IProcessExitEvent } from '@theia/process/lib/node';
 import { Task, TaskOptions } from '../task';
@@ -117,6 +119,17 @@ export class ProcessTask extends Task {
             signal: evt.signal,
             config: this.options.config
         };
+    }
+
+    initClientConnection(connection: MessageConnection): void {
+        const process = this.options.process;
+        const outputReadline = readline.createInterface({ input: process.outputStream, crlfDelay: Infinity });
+        outputReadline.on('line', (data: string) => connection.sendNotification('onLine', data));
+
+        connection.sendNotification('onStart');
+        process.onExit(event => connection.sendNotification('onExit', event));
+
+        connection.listen();
     }
 
     getRuntimeInfo(): ProcessTaskInfo {
