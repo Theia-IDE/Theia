@@ -16,28 +16,18 @@
 
 import { injectable, inject } from 'inversify';
 import URI from '@theia/core/lib/common/uri';
-import { environment } from '@theia/application-package/lib/environment';
-import { MaybePromise, SelectionService, isCancelled } from '@theia/core/lib/common';
-import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common/command';
+import { MaybePromise } from '@theia/core/lib/common';
+import { CommandContribution, CommandRegistry } from '@theia/core/lib/common/command';
 import {
     FrontendApplicationContribution, ApplicationShell,
     NavigatableWidget, NavigatableWidgetOptions,
-    Saveable, WidgetManager, StatefulWidget, FrontendApplication, ExpandableTreeNode
+    Saveable, WidgetManager, StatefulWidget, FrontendApplication
 } from '@theia/core/lib/browser';
 import { FileSystemWatcher, FileChangeEvent, FileMoveEvent, FileChangeType } from './filesystem-watcher';
 import { MimeService } from '@theia/core/lib/browser/mime-service';
-import { TreeWidgetSelection } from '@theia/core/lib/browser/tree/tree-widget-selection';
 import { FileSystemPreferences } from './filesystem-preferences';
-import { FileSelection } from './file-selection';
-import { FileUploadService } from './file-upload-service';
 
 export namespace FileSystemCommands {
-
-    export const UPLOAD: Command = {
-        id: 'file.upload',
-        category: 'File',
-        label: 'Upload Files...'
-    };
 
 }
 
@@ -59,12 +49,6 @@ export class FileSystemFrontendContribution implements FrontendApplicationContri
     @inject(FileSystemPreferences)
     protected readonly preferences: FileSystemPreferences;
 
-    @inject(SelectionService)
-    protected readonly selectionService: SelectionService;
-
-    @inject(FileUploadService)
-    protected readonly uploadService: FileUploadService;
-
     initialize(): void {
         this.fileSystemWatcher.onFilesChanged(event => this.run(() => this.updateWidgets(event)));
         this.fileSystemWatcher.onDidMove(event => this.run(() => this.moveWidgets(event)));
@@ -80,30 +64,7 @@ export class FileSystemFrontendContribution implements FrontendApplicationContri
     }
 
     registerCommands(commands: CommandRegistry): void {
-        commands.registerCommand(FileSystemCommands.UPLOAD, new FileSelection.CommandHandler(this.selectionService, {
-            multi: false,
-            isEnabled: selection => this.canUpload(selection),
-            isVisible: selection => this.canUpload(selection),
-            execute: selection => this.upload(selection)
-        }));
-    }
 
-    protected canUpload({ fileStat }: FileSelection): boolean {
-        return !environment.electron.is() && fileStat.isDirectory;
-    }
-
-    protected async upload(selection: FileSelection): Promise<void> {
-        try {
-            const source = TreeWidgetSelection.getSource(this.selectionService.selection);
-            await this.uploadService.upload(selection.fileStat.uri);
-            if (ExpandableTreeNode.is(selection) && source) {
-                await source.model.expandNode(selection);
-            }
-        } catch (e) {
-            if (!isCancelled(e)) {
-                console.error(e);
-            }
-        }
     }
 
     protected pendingOperation = Promise.resolve();

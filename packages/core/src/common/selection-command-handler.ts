@@ -28,17 +28,25 @@ export class SelectionCommandHandler<S> implements CommandHandler {
 
     execute(...args: any[]): Object | undefined {
         const selection = this.getSelection(...args);
-        return selection ? (this.options.execute as any)(selection, ...args) : undefined;
+        return selection ? (this.options.execute as any)(selection, ...args) : (this.options.execute as any)(undefined);
     }
 
     isVisible(...args: any[]): boolean {
         const selection = this.getSelection(...args);
-        return !!selection && (!this.options.isVisible || (this.options.isVisible as any)(selection as any, ...args));
+        if (!this.options.isVisible) {
+            return !!selection;
+        } else {
+            return (this.options.isVisible as any)(selection as any, ...args);
+        }
     }
 
     isEnabled(...args: any[]): boolean {
         const selection = this.getSelection(...args);
-        return !!selection && (!this.options.isEnabled || (this.options.isEnabled as any)(selection as any, ...args));
+        if (!this.options.isEnabled) {
+            return !!selection;
+        } else {
+            return (this.options.isEnabled as any)(selection as any, ...args);
+        }
     }
 
     protected isMulti(): boolean {

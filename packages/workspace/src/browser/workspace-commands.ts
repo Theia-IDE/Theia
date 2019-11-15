@@ -33,7 +33,6 @@ import { WorkspaceDuplicateHandler } from './workspace-duplicate-handler';
 import { FileSystemUtils } from '@theia/filesystem/lib/common';
 import { WorkspaceCompareHandler } from './workspace-compare-handler';
 import { FileDownloadCommands } from '@theia/filesystem/lib/browser/download/file-download-command-contribution';
-import { FileSystemCommands } from '@theia/filesystem/lib/browser/filesystem-frontend-contribution';
 
 const validFilename: (arg: string) => boolean = require('valid-filename');
 
@@ -131,6 +130,11 @@ export namespace WorkspaceCommands {
         category: 'File',
         label: 'Save As...',
     };
+    export const UPLOAD: Command = {
+        id: 'file.upload',
+        category: 'File',
+        label: 'Upload Files...'
+    };
 }
 
 @injectable()
@@ -145,7 +149,7 @@ export class FileMenuContribution implements MenuContribution {
         });
         const downloadUploadMenu = [...CommonMenus.FILE, '4_downloadupload'];
         registry.registerMenuAction(downloadUploadMenu, {
-            commandId: FileSystemCommands.UPLOAD.id,
+            commandId: WorkspaceCommands.UPLOAD.id,
             order: 'a'
         });
         registry.registerMenuAction(downloadUploadMenu, {
