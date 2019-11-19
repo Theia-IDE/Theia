@@ -44,6 +44,11 @@ export const corePreferenceSchema: PreferenceSchema = {
             default: 50,
             minimum: 0,
             description: 'Controls the number of recently used commands to keep in history for the command palette. Set to 0 to disable command history.'
+        },
+        'breadcrumbs.enabled': {
+            'type': 'boolean',
+            'default': true,
+            'description': 'Enable/disable navigation breadcrumbs.'
         }
     }
 };
@@ -52,6 +57,7 @@ export interface CoreConfiguration {
     'application.confirmExit': 'never' | 'ifRequired' | 'always';
     'workbench.list.openMode': 'singleClick' | 'doubleClick';
     'workbench.commandPalette.history': number;
+    'breadcrumbs.enabled': boolean;
 }
 
 export const CorePreferences = Symbol('CorePreferences');

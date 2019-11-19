@@ -1,0 +1,104 @@
+/********************************************************************************
+ * Copyright (C) 2019 TypeFox and others.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v. 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * This Source Code may also be made available under the following Secondary
+ * Licenses when the conditions for such availability set forth in the Eclipse
+ * Public License v. 2.0 are satisfied: GNU General Public License, version 2
+ * with the GNU Classpath Exception which is available at
+ * https://www.gnu.org/software/classpath/license.html.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
+ ********************************************************************************/
+
+.theia-breadcrumbs {
+    position: relative;
+    user-select: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    outline-style: none;
+    margin: .5rem;
+    list-style-type: none;
+    overflow: hidden;
+}
+
+.theia-breadcrumbs .ps__thumb-x {
+    /* Same scrollbar height than in tab bar. */
+    height: var(--theia-private-horizontal-tab-scrollbar-height) !important;
+}
+
+.theia-breadcrumbs .theia-breadcrumb-item {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    white-space: nowrap;
+    align-self: center;
+    height: 100%;
+    outline: none;
+    padding: .25rem .3rem .25rem .25rem;
+}
+
+.theia-breadcrumbs .theia-breadcrumb-item::before {
+    font-family: FontAwesome;
+    font-size: calc(var(--theia-content-font-size) * 0.8);
+    content: "\F0DA";
+    display: flex;
+    align-items: center;
+    width: .8em;
+    text-align: right;
+}
+
+.theia-breadcrumb-item-haspopup:hover {
+    background: var(--theia-accent-color3);
+    cursor: pointer;
+}
+
+#theia-breadcrumbs-popups-overlay {
+    height: 0px;
+}
+
+.theia-breadcrumbs-popup {
+    position: fixed;
+    width: 300px;
+    max-height: 200px;
+    z-index: 10000;
+    padding: 0px;
+    background: var(--theia-menu-color1);
+    font-size: var(--theia-ui-font-size1);
+    color: var(--theia-ui-font-color1);
+    box-shadow: 0px 1px 6px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.theia-breadcrumbs-popup:focus {
+    outline-width: 0;
+    outline-style: none;
+}
+
+.theia-breadcrumbs-popup ul {
+    display: flex;
+    flex-direction: column;
+    outline-style: none;
+    list-style-type: none;
+    padding-inline-start: 0px;
+    margin: 0 0 0 4px;
+}
+
+.theia-breadcrumbs-popup ul li {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: none;
+    padding: .25rem .25rem .25rem .25rem;
+}
+
+.theia-breadcrumbs-popup ul li:hover {
+    background: var(--theia-accent-color3);
+}

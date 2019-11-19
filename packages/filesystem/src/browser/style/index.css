@@ -16,6 +16,7 @@
 
 @import './file-dialog.css';
 @import './file-icons.css';
+@import './filepath-breadcrumbs.css';
 
 .theia-file-tree-drag-image {
   position: absolute;

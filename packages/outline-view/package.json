@@ -3,7 +3,9 @@
   "version": "0.12.0",
   "description": "Theia - Outline View Extension",
   "dependencies": {
-    "@theia/core": "^0.12.0"
+    "@theia/core": "^0.12.0",
+    "@theia/editor": "^0.12.0",
+    "perfect-scrollbar": "^1.3.0"
   },
   "publishConfig": {
     "access": "public"

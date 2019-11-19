@@ -61,8 +61,10 @@ export class OutlineViewService implements WidgetFactory {
     publish(roots: OutlineSymbolInformationNode[]): void {
         if (this.widget) {
             this.widget.setOutlineTree(roots);
-            this.onDidChangeOutlineEmitter.fire(roots);
         }
+        // onDidChangeOutline needs to be fired even when the outline view widget is closed
+        // in order to udpate breadcrumbs.
+        this.onDidChangeOutlineEmitter.fire(roots);
     }
 
     createWidget(): Promise<Widget> {

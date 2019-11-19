@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (C) 2018 TypeFox and others.
+ * Copyright (C) 2019 TypeFox and others.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0 which is available at
@@ -14,29 +14,10 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { Disposable } from '../../common';
-import { injectable } from 'inversify';
-
-@injectable()
-export class ReactRenderer implements Disposable {
-    readonly host: HTMLElement;
-    constructor(
-        host?: HTMLElement
-    ) {
-        this.host = host || document.createElement('div');
-    }
-
-    dispose(): void {
-        ReactDOM.unmountComponentAtNode(this.host);
-    }
-
-    render(): void {
-        ReactDOM.render(<React.Fragment>{this.doRender()}</React.Fragment>, this.host);
-    }
-
-    protected doRender(): React.ReactNode {
-        return undefined;
-    }
-}
+export * from './breadcrumb-popup-container';
+export * from './breadcrumb-renderer';
+export * from './breadcrumb';
+export * from './breadcrumbs-contribution';
+export * from './breadcrumbs-renderer';
+export * from './breadcrumbs-service';
+export * from './breadcrumbs';

@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (C) 2018 TypeFox and others.
+ * Copyright (C) 2019 TypeFox and others.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0 which is available at
@@ -14,29 +14,21 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { Disposable } from '../../common';
-import { injectable } from 'inversify';
+/** A single breadcrumb in the breadcrumbs bar. */
+export interface Breadcrumb {
 
-@injectable()
-export class ReactRenderer implements Disposable {
-    readonly host: HTMLElement;
-    constructor(
-        host?: HTMLElement
-    ) {
-        this.host = host || document.createElement('div');
-    }
+    /** An ID of this breadcrumb that should be unique in the breadcrumbs bar. */
+    readonly id: string
 
-    dispose(): void {
-        ReactDOM.unmountComponentAtNode(this.host);
-    }
+    /** The breadcrumb type. Should be the same as the contribution type `BreadcrumbsContribution#type`. */
+    readonly type: symbol
 
-    render(): void {
-        ReactDOM.render(<React.Fragment>{this.doRender()}</React.Fragment>, this.host);
-    }
+    /** The text that will be rendered as label. */
+    readonly label: string
 
-    protected doRender(): React.ReactNode {
-        return undefined;
-    }
+    /** A longer text that will be used as tooltip text. */
+    readonly longLabel: string
+
+    /** A CSS class for the icon. */
+    readonly iconClass?: string
 }

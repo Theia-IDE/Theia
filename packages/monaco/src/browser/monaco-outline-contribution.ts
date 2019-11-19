@@ -33,7 +33,6 @@ import debounce = require('lodash.debounce');
 @injectable()
 export class MonacoOutlineContribution implements FrontendApplicationContribution {
 
-    protected readonly toDisposeOnClose = new DisposableCollection();
     protected readonly toDisposeOnEditor = new DisposableCollection();
     protected roots: MonacoOutlineSymbolInformationNode[] | undefined;
     protected canUpdateOutline: boolean = true;
@@ -42,20 +41,17 @@ export class MonacoOutlineContribution implements FrontendApplicationContributio
     @inject(EditorManager) protected readonly editorManager: EditorManager;
 
     onStart(app: FrontendApplication): void {
-        this.outlineViewService.onDidChangeOpenState(async open => {
-            if (open) {
-                this.toDisposeOnClose.push(this.toDisposeOnEditor);
-                this.toDisposeOnClose.push(DocumentSymbolProviderRegistry.onDidChange(
-                    debounce(() => this.updateOutline())
-                ));
-                this.toDisposeOnClose.push(this.editorManager.onCurrentEditorChanged(
-                    debounce(() => this.handleCurrentEditorChanged(), 50)
-                ));
-                this.handleCurrentEditorChanged();
-            } else {
-                this.toDisposeOnClose.dispose();
-            }
-        });
+
+        // updateOutline and handleCurrentEditorChanged need to be called even when the outline view widget is closed
+        // in order to udpate breadcrumbs.
+        DocumentSymbolProviderRegistry.onDidChange(
+            debounce(() => this.updateOutline())
+        );
+        this.editorManager.onCurrentEditorChanged(
+            debounce(() => this.handleCurrentEditorChanged(), 50)
+        );
+        this.handleCurrentEditorChanged();
+
         this.outlineViewService.onDidSelect(async node => {
             if (MonacoOutlineSymbolInformationNode.is(node) && node.parent) {
                 const options: EditorOpenerOptions = {
@@ -89,10 +85,6 @@ export class MonacoOutlineContribution implements FrontendApplicationContributio
 
     protected handleCurrentEditorChanged(): void {
         this.toDisposeOnEditor.dispose();
-        if (this.toDisposeOnClose.disposed) {
-            return;
-        }
-        this.toDisposeOnClose.push(this.toDisposeOnEditor);
         this.toDisposeOnEditor.push(Disposable.create(() => this.roots = undefined));
         const editor = this.editorManager.currentEditor;
         if (editor) {

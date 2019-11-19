@@ -27,7 +27,8 @@ import {
     defaultTreeProps,
     TreeDecoratorService,
     TreeModel,
-    TreeModelImpl
+    TreeModelImpl,
+    BreadcrumbsContribution
 } from '@theia/core/lib/browser';
 import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { OutlineViewWidgetFactory, OutlineViewWidget } from './outline-view-widget';
@@ -35,6 +36,7 @@ import '../../src/browser/styles/index.css';
 import { bindContributionProvider } from '@theia/core/lib/common/contribution-provider';
 import { OutlineDecoratorService, OutlineTreeDecorator } from './outline-decorator-service';
 import { OutlineViewTreeModel } from './outline-view-tree';
+import { OutlineBreadcrumbsContribution } from './outline-breadcrumbs-contribution';
 
 export default new ContainerModule(bind => {
     bind(OutlineViewWidgetFactory).toFactory(ctx =>
@@ -47,6 +49,9 @@ export default new ContainerModule(bind => {
     bindViewContribution(bind, OutlineViewContribution);
     bind(FrontendApplicationContribution).toService(OutlineViewContribution);
     bind(TabBarToolbarContribution).toService(OutlineViewContribution);
+
+    bind(OutlineBreadcrumbsContribution).toSelf().inSingletonScope();
+    bind(BreadcrumbsContribution).toService(OutlineBreadcrumbsContribution);
 });
 
 /**

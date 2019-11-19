@@ -44,6 +44,8 @@ import { WorkspaceDuplicateHandler } from './workspace-duplicate-handler';
 import { WorkspaceUtils } from './workspace-utils';
 import { WorkspaceCompareHandler } from './workspace-compare-handler';
 import { DiffService } from './diff-service';
+import { WorkspaceBreadcrumbsContribution } from './workspace-breadcrumbs-contribution';
+import { FilepathBreadcrumbsContribution } from '@theia/filesystem/lib/browser/breadcrumbs/filepath-breadcrumbs-contribution';
 
 export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
     bindWorkspacePreferences(bind);
@@ -89,4 +91,6 @@ export default new ContainerModule((bind: interfaces.Bind, unbind: interfaces.Un
     bind(QuickOpenWorkspace).toSelf().inSingletonScope();
 
     bind(WorkspaceUtils).toSelf().inSingletonScope();
+
+    rebind(FilepathBreadcrumbsContribution).to(WorkspaceBreadcrumbsContribution).inSingletonScope();
 });

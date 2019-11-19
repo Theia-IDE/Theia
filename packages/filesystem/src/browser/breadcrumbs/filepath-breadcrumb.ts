@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (C) 2018 TypeFox and others.
+ * Copyright (C) 2019 TypeFox and others.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0 which is available at
@@ -14,29 +14,29 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import { Disposable } from '../../common';
-import { injectable } from 'inversify';
+import { Breadcrumb } from '@theia/core/lib/browser/breadcrumbs/breadcrumb';
+import { FilepathBreadcrumbType } from './filepath-breadcrumbs-contribution';
+import URI from '@theia/core/lib/common/uri';
 
-@injectable()
-export class ReactRenderer implements Disposable {
-    readonly host: HTMLElement;
+export class FilepathBreadcrumb implements Breadcrumb {
     constructor(
-        host?: HTMLElement
-    ) {
-        this.host = host || document.createElement('div');
+        readonly uri: URI,
+        readonly label: string,
+        readonly longLabel: string,
+        readonly iconClass: string
+    ) { }
+
+    get id(): string {
+        return this.type.toString() + '_' + this.uri.toString();
     }
 
-    dispose(): void {
-        ReactDOM.unmountComponentAtNode(this.host);
+    get type(): symbol {
+        return FilepathBreadcrumbType;
     }
+}
 
-    render(): void {
-        ReactDOM.render(<React.Fragment>{this.doRender()}</React.Fragment>, this.host);
-    }
-
-    protected doRender(): React.ReactNode {
-        return undefined;
+export namespace FilepathBreadcrumb {
+    export function is(breadcrumb: Breadcrumb): breadcrumb is FilepathBreadcrumb {
+        return 'uri' in breadcrumb;
     }
 }
