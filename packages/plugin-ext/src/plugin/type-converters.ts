@@ -20,10 +20,11 @@ import URI from 'vscode-uri';
 import * as rpc from '../common/plugin-api-rpc';
 import { DecorationOptions, EditorPosition, PickOpenItem, Plugin, Position, ResourceFileEditDto, ResourceTextEditDto, Selection, TaskDto, WorkspaceEditDto } from '../common/plugin-api-rpc';
 import * as model from '../common/plugin-api-rpc-model';
-import { LanguageFilter, LanguageSelector, RelativePattern } from './languages';
+import { LanguageFilter, LanguageSelector } from './languages';
 import { isMarkdownString, MarkdownString } from './markdown-string';
 import { Item } from './quick-open';
 import * as types from './types-impl';
+import { IRelativePattern } from '../common/glob';
 
 const SIDE_GROUP = -2;
 const ACTIVE_GROUP = -1;
@@ -226,7 +227,7 @@ export function fromDocumentSelector(selector: theia.DocumentSelector | undefine
 
 }
 
-export function fromGlobPattern(pattern: theia.GlobPattern): string | RelativePattern {
+export function fromGlobPattern(pattern: theia.GlobPattern): string | IRelativePattern {
     if (typeof pattern === 'string') {
         return pattern;
     }
@@ -305,9 +306,31 @@ export function toCompletionItemKind(kind?: model.CompletionItemKind): types.Com
     return types.CompletionItemKind.Property;
 }
 
+export namespace EndOfLine {
+
+    export function from(eol: theia.EndOfLine): monaco.editor.EndOfLineSequence | undefined {
+        if (eol === types.EndOfLine.CRLF) {
+            return monaco.editor.EndOfLineSequence.CRLF;
+        } else if (eol === types.EndOfLine.LF) {
+            return monaco.editor.EndOfLineSequence.LF;
+        }
+        return undefined;
+    }
+
+    export function to(eol: monaco.editor.EndOfLineSequence): theia.EndOfLine | undefined {
+        if (eol === monaco.editor.EndOfLineSequence.CRLF) {
+            return types.EndOfLine.CRLF;
+        } else if (eol === monaco.editor.EndOfLineSequence.LF) {
+            return types.EndOfLine.LF;
+        }
+        return undefined;
+    }
+}
+
 export function fromTextEdit(edit: theia.TextEdit): model.TextEdit {
     return {
         text: edit.newText,
+        eol: edit.newEol && EndOfLine.from(edit.newEol),
         range: fromRange(edit.range)
     };
 }
@@ -504,7 +527,7 @@ export function fromWorkspaceEdit(value: theia.WorkspaceEdit, documents?: any): 
         const [uri, uriOrEdits] = entry;
         if (Array.isArray(uriOrEdits)) {
             // text edits
-            const doc = documents ? documents.getDocument(uri.toString()) : undefined;
+            const doc = documents && uri ? documents.getDocument(uri.toString()) : undefined;
             result.edits.push(<ResourceTextEditDto>{ resource: uri, modelVersionId: doc && doc.version, edits: uriOrEdits.map(fromTextEdit) });
         } else {
             // resource edits
@@ -619,11 +642,11 @@ export function fromTask(task: theia.Task): TaskDto | undefined {
         return taskDto;
     }
 
-    if (taskDefinition.type === 'shell' || types.ShellExecution.is(execution)) {
+    if (taskDefinition.type === 'shell' || execution instanceof types.ShellExecution) {
         return fromShellExecution(<theia.ShellExecution>execution, taskDto);
     }
 
-    if (taskDefinition.type === 'process' || types.ProcessExecution.is(execution)) {
+    if (taskDefinition.type === 'process' || execution instanceof types.ProcessExecution) {
         return fromProcessExecution(<theia.ProcessExecution>execution, taskDto);
     }
 
@@ -659,8 +682,7 @@ export function toTask(taskDto: TaskDto): theia.Task {
         result.execution = getProcessExecution(taskDto);
     }
 
-    const execution = { command, args, options };
-    if (taskType === 'shell' || types.ShellExecution.is(execution)) {
+    if (taskType === 'shell' || !!taskDto.command || !!taskDto.commandLine) {
         result.execution = getShellExecution(taskDto);
     }
 

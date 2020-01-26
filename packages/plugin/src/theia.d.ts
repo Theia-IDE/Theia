@@ -36,6 +36,7 @@ declare module '@theia/plugin' {
          */
         dispose(): void;
 
+        /** @deprecated use new Disposable(() => {}) */
         static create(func: () => void): Disposable;
 
         /**
@@ -5815,7 +5816,7 @@ declare module '@theia/plugin' {
          * *Note* that the eol-sequence will be applied to the
          * whole document.
          */
-        newEol: EndOfLine;
+        newEol?: EndOfLine;
 
         /**
          * Create a new TextEdit.

@@ -14,14 +14,14 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 import { QuickOpenExt, PLUGIN_RPC_CONTEXT as Ext, QuickOpenMain, TransferInputBox, Plugin, TransferQuickPick, QuickInputTitleButtonHandle } from '../common/plugin-api-rpc';
-import { QuickPickOptions, QuickPickItem, InputBoxOptions, InputBox, QuickPick, QuickInput } from '@theia/plugin';
+import { QuickPickOptions, QuickPickItem, InputBoxOptions, InputBox, QuickPick, QuickInput, QuickInputButton } from '@theia/plugin';
 import { CancellationToken } from '@theia/core/lib/common/cancellation';
 import { RPCProtocol } from '../common/rpc-protocol';
 import { anyPromise } from '../common/async-util';
 import { hookCancellationToken } from '../common/async-util';
 import { Emitter, Event } from '@theia/core/lib/common/event';
 import { DisposableCollection } from '@theia/core/lib/common/disposable';
-import { QuickInputButtons, QuickInputButton, ThemeIcon } from './types-impl';
+import { QuickInputButtons, ThemeIcon } from './types-impl';
 import URI from 'vscode-uri';
 import * as path from 'path';
 import { quickPickItemToPickOpenItem } from './type-converters';
@@ -321,7 +321,7 @@ export class QuickInputExt implements QuickInput {
         this.dispose();
     }
 
-    protected convertURL(iconPath: URI | { light: string | URI; dark: string | URI } | ThemeIcon): URI | { light: string | URI; dark: string | URI } | ThemeIcon {
+    protected convertURL(iconPath: QuickInputButton['iconPath']): URI | { light: string | URI; dark: string | URI } | ThemeIcon {
         const toUrl = (arg: string | URI) => {
             arg = arg instanceof URI && arg.scheme === 'file' ? arg.fsPath : arg;
             if (typeof arg !== 'string') {

@@ -104,3 +104,21 @@ export function startsWithIgnoreCase(str: string, candidate: string): boolean {
 
     return doEqualsIgnoreCase(str, candidate, candidateLength);
 }
+
+export function startsWith(haystack: string, needle: string): boolean {
+    if (haystack.length < needle.length) {
+        return false;
+    }
+
+    if (haystack === needle) {
+        return true;
+    }
+
+    for (let i = 0; i < needle.length; i++) {
+        if (haystack[i] !== needle[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}

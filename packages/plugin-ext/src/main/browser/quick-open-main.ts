@@ -33,11 +33,11 @@ import {
     QuickInputTitleButtonHandle,
     TransferQuickPick
 } from '../../common/plugin-api-rpc';
+import * as theia from '@theia/plugin';
 import { MonacoQuickOpenService } from '@theia/monaco/lib/browser/monaco-quick-open-service';
 import { QuickInputService, LabelProvider } from '@theia/core/lib/browser';
 import { PluginSharedStyle } from './plugin-shared-style';
 import URI from 'vscode-uri';
-import { ThemeIcon, QuickInputButton } from '../../plugin/types-impl';
 import { QuickPickService, QuickPickItem, QuickPickValue } from '@theia/core/lib/common/quick-pick-service';
 import { QuickTitleBar } from '@theia/core/lib/browser/quick-open/quick-title-bar';
 import { DisposableCollection, Disposable } from '@theia/core/lib/common/disposable';
@@ -166,12 +166,12 @@ export class QuickOpenMainImpl implements QuickOpenMain, QuickOpenModel, Disposa
         return this.quickInput.open(options);
     }
 
-    protected convertQuickInputButton(quickInputButton: QuickInputButton, index: number, toDispose: DisposableCollection): QuickInputTitleButtonHandle {
+    protected convertQuickInputButton(quickInputButton: theia.QuickInputButton, index: number, toDispose: DisposableCollection): QuickInputTitleButtonHandle {
         const currentIconPath = quickInputButton.iconPath;
         let newIcon = '';
         let newIconClass = '';
-        if ('id' in currentIconPath || currentIconPath instanceof ThemeIcon) {
-            newIconClass = this.resolveIconClassFromThemeIcon(currentIconPath);
+        if ('id' in currentIconPath) {
+            newIconClass = this.resolveIconClassFromThemeIcon(currentIconPath['id']);
         } else if (currentIconPath instanceof URI) {
             newIcon = currentIconPath.toString();
         } else {
@@ -185,7 +185,7 @@ export class QuickOpenMainImpl implements QuickOpenMain, QuickOpenModel, Disposa
             newIconClass = reference.object.iconClass;
         }
 
-        const isDefaultQuickInputButton = 'id' in quickInputButton.iconPath && quickInputButton.iconPath.id === 'Back' ? true : false;
+        const isDefaultQuickInputButton = 'id' in quickInputButton.iconPath && quickInputButton.iconPath['id'] === 'Back' ? true : false;
         return {
             icon: newIcon,
             iconClass: newIconClass,
@@ -195,8 +195,8 @@ export class QuickOpenMainImpl implements QuickOpenMain, QuickOpenModel, Disposa
         };
     }
 
-    private resolveIconClassFromThemeIcon(themeIconID: ThemeIcon): string {
-        switch (themeIconID.id) {
+    private resolveIconClassFromThemeIcon(themeIconID: string): string {
+        switch (themeIconID) {
             case 'folder': {
                 return this.labelProvider.folderIcon;
             }

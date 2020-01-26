@@ -64,8 +64,6 @@ import {
     DiagnosticSeverity,
     DiagnosticTag,
     Location,
-    Progress,
-    ProgressOptions,
     ProgressLocation,
     ParameterInformation,
     SignatureInformation,
@@ -370,8 +368,8 @@ export function createAPIFactory(
                 return treeViewsExt.createTreeView(plugin, viewId, options);
             },
             withProgress<R>(
-                options: ProgressOptions,
-                task: (progress: Progress<{ message?: string; increment?: number }>, token: theia.CancellationToken) => PromiseLike<R>
+                options: theia.ProgressOptions,
+                task: (progress: theia.Progress<{ message?: string; increment?: number }>, token: theia.CancellationToken) => PromiseLike<R>
             ): PromiseLike<R> {
                 return notificationExt.withProgress(options, task);
             },
@@ -815,8 +813,6 @@ export function createAPIFactory(
             CompletionTriggerKind,
             TextEdit,
             ProgressLocation,
-            ProgressOptions,
-            Progress,
             ParameterInformation,
             SignatureInformation,
             SignatureHelp,

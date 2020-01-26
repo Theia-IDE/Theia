@@ -34,7 +34,7 @@ import { DocumentsExtImpl } from './documents';
 import { PluginModel } from '../common/plugin-protocol';
 import { Disposable } from './types-impl';
 import URI from 'vscode-uri/lib/umd';
-import { match as matchGlobPattern } from '../common/glob';
+import { match as matchGlobPattern, IRelativePattern } from '../common/glob';
 import { UriComponents } from '../common/uri-components';
 import {
     CompletionContext,
@@ -584,15 +584,10 @@ function serializeIndentation(indentationRules?: theia.IndentationRule): Seriali
     };
 }
 
-export interface RelativePattern {
-    base: string;
-    pattern: string;
-    pathToRelative(from: string, to: string): string;
-}
 export interface LanguageFilter {
     language?: string;
     scheme?: string;
-    pattern?: string | RelativePattern;
+    pattern?: string | IRelativePattern;
     hasAccessToAllModels?: boolean;
 }
 export type LanguageSelector = string | LanguageFilter | (string | LanguageFilter)[];

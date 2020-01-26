@@ -26,8 +26,7 @@ import {
     EndOfLine,
     OverviewRulerLane,
     IndentAction,
-    FileOperationOptions,
-    QuickInputButton
+    IFileOperationOptions
 } from '../plugin/types-impl';
 import { UriComponents } from './uri-components';
 import { ConfigurationTarget } from '../plugin/types-impl';
@@ -451,7 +450,7 @@ export interface TransferInputBox extends TransferQuickInput {
     value: string;
     placeholder: string | undefined;
     password: boolean;
-    buttons: ReadonlyArray<QuickInputButton>;
+    buttons: ReadonlyArray<theia.QuickInputButton>;
     prompt: string | undefined;
     validationMessage: string | undefined;
     validateInput(value: string): MaybePromise<string | undefined>;
@@ -460,7 +459,7 @@ export interface TransferInputBox extends TransferQuickInput {
 export interface TransferQuickPick<T extends theia.QuickPickItem> extends TransferQuickInput {
     value: string;
     placeholder: string | undefined;
-    buttons: ReadonlyArray<QuickInputButton>;
+    buttons: ReadonlyArray<theia.QuickInputButton>;
     items: PickOpenItem[];
     canSelectMany: boolean;
     matchOnDescription: boolean;
@@ -1081,7 +1080,7 @@ export interface CodeActionDto {
 export interface ResourceFileEditDto {
     oldUri: UriComponents;
     newUri: UriComponents;
-    options: FileOperationOptions;
+    options: IFileOperationOptions;
 }
 
 export interface ResourceTextEditDto {

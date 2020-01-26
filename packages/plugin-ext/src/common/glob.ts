@@ -22,6 +22,7 @@
 
 import * as strings from './strings';
 import * as paths from './paths';
+import * as pathsUtil from './paths-util';
 import { CharCode } from './char-code';
 /* tslint:disable:no-null-keyword no-shadowed-variable one-variable-per-declaration */
 export interface IExpression {
@@ -32,7 +33,6 @@ export interface IExpression {
 export interface IRelativePattern {
     base: string;
     pattern: string;
-    pathToRelative(from: string, to: string): string;
 }
 
 export function getEmptyExpression(): IExpression {
@@ -364,7 +364,7 @@ function wrapRelativePattern(parsedPattern: ParsedStringPattern, arg2: string | 
             return null!;
         }
 
-        return parsedPattern(paths.normalize(arg2.pathToRelative(arg2.base, path)), basename);
+        return parsedPattern(pathsUtil.relative(arg2.base, path), basename);
     };
 }
 
@@ -552,7 +552,7 @@ function listToMap(list: string[]): Record<string, true> {
 export function isRelativePattern(obj: any): obj is IRelativePattern {
     const rp = obj as IRelativePattern;
 
-    return rp && typeof rp.base === 'string' && typeof rp.pattern === 'string' && typeof rp.pathToRelative === 'function';
+    return rp && typeof rp.base === 'string' && typeof rp.pattern === 'string';
 }
 
 /**
