@@ -15,94 +15,18 @@
  ********************************************************************************/
 
 import { Emitter, Event } from '@theia/core';
-import { injectable, inject, postConstruct } from 'inversify';
 import { OutputPreferences } from './output-preferences';
-import { Disposable, DisposableCollection } from 'vscode-ws-jsonrpc';
 
-@injectable()
-export class OutputChannelManager implements Disposable {
-    protected readonly channels = new Map<string, OutputChannel>();
-    protected selectedChannelValue: OutputChannel | undefined;
+export const OutputChannelManager = Symbol('OutputChannelManager');
 
-    protected readonly channelDeleteEmitter = new Emitter<{ channelName: string }>();
-    protected readonly channelAddedEmitter = new Emitter<OutputChannel>();
-    protected readonly selectedChannelEmitter: Emitter<void> = new Emitter<void>();
-    protected readonly listOrSelectionEmitter: Emitter<void> = new Emitter<void>();
-    readonly onChannelDelete = this.channelDeleteEmitter.event;
-    readonly onChannelAdded = this.channelAddedEmitter.event;
-    readonly onSelectedChannelChange = this.selectedChannelEmitter.event;
-    readonly onListOrSelectionChange = this.listOrSelectionEmitter.event;
+export interface OutputChannelManager {
+    getChannel(name: string, options?: { group: string }): OutputChannel;
+    deleteChannel(name: string): void;
+    getChannels(): OutputChannel[];
+}
 
-    protected toDispose = new DisposableCollection();
-
-    @inject(OutputPreferences)
-    protected readonly preferences: OutputPreferences;
-
-    @postConstruct()
-    protected init(): void {
-        this.getChannels().forEach(this.registerListener.bind(this));
-        this.toDispose.push(this.onChannelAdded(channel => {
-            this.listOrSelectionEmitter.fire(undefined);
-            this.registerListener(channel);
-        }));
-        this.toDispose.push(this.onChannelDelete(event => {
-            this.listOrSelectionEmitter.fire(undefined);
-            if (this.selectedChannel && this.selectedChannel.name === event.channelName) {
-                this.selectedChannel = this.getVisibleChannels()[0];
-            }
-        }));
-    }
-
-    protected registerListener(outputChannel: OutputChannel): void {
-        if (!this.selectedChannel) {
-            this.selectedChannel = outputChannel;
-        }
-        this.toDispose.push(outputChannel.onVisibilityChange(event => {
-            if (event.visible) {
-                this.selectedChannel = outputChannel;
-            } else if (outputChannel === this.selectedChannel) {
-                this.selectedChannel = this.getVisibleChannels()[0];
-            }
-        }));
-    }
-
-    getChannel(name: string): OutputChannel {
-        const existing = this.channels.get(name);
-        if (existing) {
-            return existing;
-        }
-        const channel = new OutputChannel(name, this.preferences);
-        this.channels.set(name, channel);
-        this.channelAddedEmitter.fire(channel);
-        return channel;
-    }
-
-    deleteChannel(name: string): void {
-        this.channels.delete(name);
-        this.channelDeleteEmitter.fire({ channelName: name });
-    }
-
-    getChannels(): OutputChannel[] {
-        return Array.from(this.channels.values());
-    }
-
-    getVisibleChannels(): OutputChannel[] {
-        return this.getChannels().filter(channel => channel.isVisible);
-    }
-
-    public dispose(): void {
-        this.toDispose.dispose();
-    }
-
-    get selectedChannel(): OutputChannel | undefined {
-        return this.selectedChannelValue;
-    }
-
-    set selectedChannel(channel: OutputChannel | undefined) {
-        this.selectedChannelValue = channel;
-        this.selectedChannelEmitter.fire(undefined);
-        this.listOrSelectionEmitter.fire(undefined);
-    }
+export interface OutputOptions {
+    group: string
 }
 
 export class OutputChannel {
@@ -116,7 +40,7 @@ export class OutputChannel {
     readonly onVisibilityChange: Event<{ visible: boolean }> = this.visibilityChangeEmitter.event;
     readonly onContentChange: Event<OutputChannel> = this.contentChangeEmitter.event;
 
-    constructor(readonly name: string, readonly preferences: OutputPreferences) { }
+    constructor(readonly name: string, readonly preferences: OutputPreferences, readonly options: OutputOptions = { group: 'default' }) { }
 
     append(value: string): void {
         if (this.currentLine === undefined) {
@@ -162,5 +86,9 @@ export class OutputChannel {
 
     get isVisible(): boolean {
         return this.visible;
+    }
+
+    get group(): string {
+        return this.options.group;
     }
 }

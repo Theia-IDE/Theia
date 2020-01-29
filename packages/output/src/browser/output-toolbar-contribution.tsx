@@ -16,7 +16,7 @@
 
 import { inject, injectable } from 'inversify';
 import { OutputWidget } from './output-widget';
-import { OutputChannelManager } from '../common/output-channel';
+import { OutputChannelReaders } from './output-channel-readers';
 import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { OutputCommands } from './output-contribution';
 import * as React from 'react';
@@ -24,15 +24,15 @@ import * as React from 'react';
 @injectable()
 export class OutputToolbarContribution implements TabBarToolbarContribution {
 
-    @inject(OutputChannelManager)
-    protected readonly outputChannelManager: OutputChannelManager;
+    @inject(OutputChannelReaders)
+    protected readonly outputChannelManager: OutputChannelReaders;
 
     async registerToolbarItems(toolbarRegistry: TabBarToolbarRegistry): Promise<void> {
         toolbarRegistry.registerItem({
             id: 'channels',
             render: () => this.renderChannelSelector(),
             isVisible: widget => (widget instanceof OutputWidget),
-            onDidChange: this.outputChannelManager.onListOrSelectionChange
+            onDidChange: this.outputChannelManager.onDidChangeListOrSelection
         });
 
         toolbarRegistry.registerItem({
@@ -47,8 +47,17 @@ export class OutputToolbarContribution implements TabBarToolbarContribution {
 
     protected renderChannelSelector(): React.ReactNode {
         const channelOptionElements: React.ReactNode[] = [];
-        this.outputChannelManager.getVisibleChannels().forEach(channel => {
+        const channels = this.outputChannelManager.getVisibleChannels();
+        channels.sort((channel1, channel2) =>
+            channel1.group.localeCompare(channel2.group)
+        );
+        let groupOfPreviousChannel: string | undefined = undefined;
+        channels.forEach(channel => {
+            if (groupOfPreviousChannel && groupOfPreviousChannel !== channel.group) {
+                channelOptionElements.push(<option value='SEPARATOR' disabled={true} key={`group:${channel.name}`}>─────────</option>);
+            }
             channelOptionElements.push(<option value={channel.name} key={channel.name}>{channel.name}</option>);
+            groupOfPreviousChannel = channel.group;
         });
         if (channelOptionElements.length === 0) {
             channelOptionElements.push(<option key={this.NONE} value={this.NONE}>{this.NONE}</option>);
@@ -58,8 +67,14 @@ export class OutputToolbarContribution implements TabBarToolbarContribution {
             id={OutputWidget.IDs.CHANNEL_LIST}
             key={OutputWidget.IDs.CHANNEL_LIST}
             value={this.outputChannelManager.selectedChannel ? this.outputChannelManager.selectedChannel.name : this.NONE}
-            onChange={this.changeChannel}
-        >
+            onChange={
+                async event => {
+                    const channelName = (event.target as HTMLSelectElement).value;
+                    if (channelName !== this.NONE) {
+                        this.outputChannelManager.selectedChannel = this.outputChannelManager.getChannel(channelName);
+                    }
+                }
+            }>
             {channelOptionElements}
         </select>;
     }

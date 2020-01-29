@@ -16,7 +16,8 @@
 
 import { inject, injectable, postConstruct } from 'inversify';
 import { Message } from '@theia/core/lib/browser';
-import { OutputChannelManager, OutputChannel } from '../common/output-channel';
+import { OutputChannel } from '../common/output-channel';
+import { OutputChannelReaders } from './output-channel-readers';
 import { ReactWidget } from '@theia/core/lib/browser/widgets/react-widget';
 import * as React from 'react';
 
@@ -27,8 +28,8 @@ export const OUTPUT_WIDGET_KIND = 'outputView';
 @injectable()
 export class OutputWidget extends ReactWidget {
 
-    @inject(OutputChannelManager)
-    protected readonly outputChannelManager: OutputChannelManager;
+    @inject(OutputChannelReaders)
+    protected readonly outputChannelManager: OutputChannelReaders;
 
     constructor() {
         super();
@@ -43,12 +44,13 @@ export class OutputWidget extends ReactWidget {
 
     @postConstruct()
     protected init(): void {
-        this.outputChannelManager.getChannels().forEach(this.registerListener.bind(this));
-        this.toDispose.push(this.outputChannelManager.onChannelAdded(channel => {
+        const channels = this.outputChannelManager.getChannels();
+        channels.forEach(this.registerNameAndGroup.bind(this));
+        this.toDispose.push(this.outputChannelManager.onDidAddChannel(channel => {
             this.registerListener(channel);
             this.update();
         }));
-        this.toDispose.push(this.outputChannelManager.onSelectedChannelChange(event => {
+        this.toDispose.push(this.outputChannelManager.onDidChangeSelection(event => {
             this.update();
         }));
         this.update();
@@ -62,6 +64,11 @@ export class OutputWidget extends ReactWidget {
         } else {
             this.node.focus();
         }
+    }
+
+    protected registerNameAndGroup(channelInfo: { name: string, group: string }): void {
+        const channel: OutputChannel = this.outputChannelManager.getChannel(channelInfo.name);
+        this.registerListener(channel);
     }
 
     protected registerListener(outputChannel: OutputChannel): void {
@@ -78,7 +85,7 @@ export class OutputWidget extends ReactWidget {
         </React.Fragment>;
     }
 
-    public clear(): void {
+    clear(): void {
         if (this.outputChannelManager.selectedChannel) {
             this.outputChannelManager.selectedChannel.clear();
         }

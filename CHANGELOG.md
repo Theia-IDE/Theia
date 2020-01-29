@@ -3,6 +3,7 @@
 ## v0.15.0
 
 - [terminal] always open terminal links on touchevents (e.g. when tapping a link on iPad) [#6875](https://github.com/eclipse-theia/theia/pull/6875)
+- [electron] send log output to the output view (desktop version only) [#5039](https://github.com/theia-ide/theia/pull/5039)
 
 Breaking changes:
 
@@ -76,6 +77,7 @@ Breaking changes:
   Before these attributes have to be computed for all nodes and stored as a part of the layout.
   From now on they will be computed only on demand for visible nodes.
   It decreases requirements to the local storage and allows to invalidate node appearance by simply rerendering a tree.
+- [output] functions to read channel contents moved from OutputChannelManager to OutputChannelReaders [#5039](https://github.com/theia-ide/theia/pull/5039)
 - [application-manager] `ApplicationPackageManager.start*` methods return an instance of a server child process instead of promise.
 - [cli] Generated webpack config is renamed to `gen-webpack.config.js`.
   `webpack.config.js` is generated only once. It can be edited by users to custoimze bundling,
