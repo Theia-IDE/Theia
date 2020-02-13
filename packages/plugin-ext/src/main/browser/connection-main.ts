@@ -15,23 +15,34 @@
  ********************************************************************************/
 
 import { Disposable, DisposableCollection } from '@theia/core/lib/common/disposable';
-import { MAIN_RPC_CONTEXT, ConnectionMain, ConnectionExt } from '../../common/plugin-api-rpc';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { MAIN_RPC_CONTEXT, ConnectionMain, ConnectionExt, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import { PluginConnection } from '../../common/connection';
 import { PluginMessageReader } from '../../common/plugin-message-reader';
 import { PluginMessageWriter } from '../../common/plugin-message-writer';
+import { injectable, inject, postConstruct } from 'inversify';
+import { RPCProtocolServiceProvider } from './main-context';
 
 /**
  * Implementation of connection system of the plugin API.
  * Creates holds the connections to the plugins. Allows to send a message to the plugin by getting already created connection via id.
  */
-export class ConnectionMainImpl implements ConnectionMain, Disposable {
+@injectable()
+export class ConnectionMainImpl implements ConnectionMain, Disposable, RPCProtocolServiceProvider {
 
-    private readonly proxy: ConnectionExt;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.CONNECTION_MAIN;
+
+    private proxy: ConnectionExt;
     private readonly connections = new Map<string, PluginConnection>();
     private readonly toDispose = new DisposableCollection();
-    constructor(rpc: RPCProtocol) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.CONNECTION_EXT);
+
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
+
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.CONNECTION_EXT);
     }
 
     dispose(): void {

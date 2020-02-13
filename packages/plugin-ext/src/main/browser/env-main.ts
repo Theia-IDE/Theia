@@ -14,20 +14,23 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces } from 'inversify';
+import { inject, injectable } from 'inversify';
 import { EnvVariablesServer } from '@theia/core/lib/common/env-variables';
-import { RPCProtocol } from '../../common/rpc-protocol';
-import { EnvMain } from '../../common/plugin-api-rpc';
+import { EnvMain, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
 import { QueryParameters } from '../../common/env';
 import { isWindows, isOSX } from '@theia/core';
 import { OperatingSystem } from '../../plugin/types-impl';
+import { RPCProtocolServiceProvider } from './main-context';
+import { ProxyIdentifier } from '../../common/rpc-protocol';
 
-export class EnvMainImpl implements EnvMain {
+@injectable()
+export class EnvMainImpl implements EnvMain, RPCProtocolServiceProvider {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.ENV_MAIN;
+
+    @inject(EnvVariablesServer)
     private envVariableServer: EnvVariablesServer;
-
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.envVariableServer = container.get(EnvVariablesServer);
-    }
 
     $getEnvVariable(envVarName: string): Promise<string | undefined> {
         return this.envVariableServer.getValue(envVarName).then(result => result ? result.value : undefined);

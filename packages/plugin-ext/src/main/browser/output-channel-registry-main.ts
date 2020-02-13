@@ -18,10 +18,15 @@ import { injectable, inject } from 'inversify';
 import { OutputWidget } from '@theia/output/lib/browser/output-widget';
 import { OutputContribution } from '@theia/output/lib/browser/output-contribution';
 import { OutputChannel, OutputChannelManager } from '@theia/output/lib/common/output-channel';
-import { OutputChannelRegistryMain, PluginInfo } from '../../common/plugin-api-rpc';
+import { OutputChannelRegistryMain, PLUGIN_RPC_CONTEXT, PluginInfo } from '../../common/plugin-api-rpc';
+import { RPCProtocolServiceProvider } from './main-context';
+import { ProxyIdentifier } from '../../common/rpc-protocol';
 
 @injectable()
-export class OutputChannelRegistryMainImpl implements OutputChannelRegistryMain {
+export class OutputChannelRegistryMainImpl implements OutputChannelRegistryMain, RPCProtocolServiceProvider {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.OUTPUT_CHANNEL_REGISTRY_MAIN;
 
     @inject(OutputChannelManager)
     private outputChannelManager: OutputChannelManager;

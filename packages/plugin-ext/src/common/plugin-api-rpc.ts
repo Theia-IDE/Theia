@@ -16,7 +16,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { createProxyIdentifier, ProxyIdentifier, RPCProtocol } from './rpc-protocol';
+import { createProxyIdentifier, ProxyIdentifier } from './rpc-protocol';
 import * as theia from '@theia/plugin';
 import { PluginLifecycle, PluginModel, PluginMetadata, PluginPackage, IconUrl } from './plugin-protocol';
 import { QueryParameters } from './env';
@@ -1197,16 +1197,6 @@ export interface LanguagesExt {
     $resolveRenameLocation(handle: number, resource: UriComponents, position: Position, token: CancellationToken): PromiseLike<RenameLocation | undefined>;
     $provideRootDefinition(handle: number, resource: UriComponents, location: Position, token: CancellationToken): Promise<CallHierarchyDefinition | undefined>;
     $provideCallers(handle: number, definition: CallHierarchyDefinition, token: CancellationToken): Promise<CallHierarchyReference[] | undefined>;
-}
-
-export const LanguagesMainFactory = Symbol('LanguagesMainFactory');
-export interface LanguagesMainFactory {
-    (proxy: RPCProtocol): LanguagesMain;
-}
-
-export const OutputChannelRegistryFactory = Symbol('OutputChannelRegistryFactory');
-export interface OutputChannelRegistryFactory {
-    (): OutputChannelRegistryMain;
 }
 
 export interface LanguagesMain {

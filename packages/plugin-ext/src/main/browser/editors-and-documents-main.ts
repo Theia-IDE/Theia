@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces } from 'inversify';
+import { injectable, postConstruct, inject } from 'inversify';
 import { RPCProtocol } from '../../common/rpc-protocol';
 import { TextEditorService } from './text-editor-service';
 import {
@@ -33,14 +33,13 @@ import { TextEditorMain } from './text-editor-main';
 import { Emitter } from '@theia/core';
 import { DisposableCollection } from '@theia/core';
 
+@injectable()
 export class EditorsAndDocumentsMain implements Disposable {
 
-    private readonly proxy: EditorsAndDocumentsExt;
+    private proxy: EditorsAndDocumentsExt;
 
-    private readonly stateComputer: EditorAndDocumentStateComputer;
+    private stateComputer: EditorAndDocumentStateComputer;
     private readonly textEditors = new Map<string, TextEditorMain>();
-
-    private readonly modelService: EditorModelService;
 
     private readonly onTextEditorAddEmitter = new Emitter<TextEditorMain[]>();
     private readonly onTextEditorRemoveEmitter = new Emitter<string[]>();
@@ -56,13 +55,20 @@ export class EditorsAndDocumentsMain implements Disposable {
         Disposable.create(() => this.textEditors.clear())
     );
 
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.EDITORS_AND_DOCUMENTS_EXT);
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
 
-        const editorService = container.get(TextEditorService);
-        this.modelService = container.get(EditorModelService);
+    @inject(TextEditorService)
+    private readonly editorService: TextEditorService;
 
-        this.stateComputer = new EditorAndDocumentStateComputer(d => this.onDelta(d), editorService, this.modelService);
+    @inject(EditorModelService)
+    private readonly modelService: EditorModelService;
+
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.EDITORS_AND_DOCUMENTS_EXT);
+
+        this.stateComputer = new EditorAndDocumentStateComputer(d => this.onDelta(d), this.editorService, this.modelService);
         this.toDispose.push(this.stateComputer);
         this.toDispose.push(this.onTextEditorAddEmitter);
         this.toDispose.push(this.onTextEditorRemoveEmitter);

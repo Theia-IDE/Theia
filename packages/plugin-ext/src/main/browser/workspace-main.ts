@@ -15,9 +15,9 @@
  ********************************************************************************/
 
 import * as theia from '@theia/plugin';
-import { interfaces, injectable } from 'inversify';
-import { WorkspaceExt, StorageExt, MAIN_RPC_CONTEXT, WorkspaceMain, WorkspaceFolderPickOptionsMain } from '../../common/plugin-api-rpc';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { injectable, inject, postConstruct } from 'inversify';
+import { WorkspaceExt, StorageExt, MAIN_RPC_CONTEXT, WorkspaceMain, WorkspaceFolderPickOptionsMain, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import Uri from 'vscode-uri';
 import { UriComponents } from '../../common/uri-components';
 import { QuickOpenModel, QuickOpenItem, QuickOpenMode } from '@theia/core/lib/browser/quick-open/quick-open-model';
@@ -26,48 +26,56 @@ import { FileStat } from '@theia/filesystem/lib/common';
 import { FileSearchService } from '@theia/file-search/lib/common/file-search-service';
 import URI from '@theia/core/lib/common/uri';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
-import { Resource } from '@theia/core/lib/common/resource';
 import { Disposable, DisposableCollection } from '@theia/core/lib/common/disposable';
-import { Emitter, Event, ResourceResolver } from '@theia/core';
 import { FileWatcherSubscriberOptions } from '../../common/plugin-api-rpc-model';
 import { InPluginFileSystemWatcherManager } from './in-plugin-filesystem-watcher-manager';
 import { PluginServer } from '../../common/plugin-protocol';
 import { FileSystemPreferences } from '@theia/filesystem/lib/browser';
+import { TextContentResourceResolver } from './text-content-resource';
+import { RPCProtocolServiceProvider } from './main-context';
 
-export class WorkspaceMainImpl implements WorkspaceMain, Disposable {
+@injectable()
+export class WorkspaceMainImpl implements WorkspaceMain, Disposable, RPCProtocolServiceProvider {
 
-    private readonly proxy: WorkspaceExt;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.WORKSPACE_MAIN;
+
+    private proxy: WorkspaceExt;
 
     private storageProxy: StorageExt;
 
+    @inject(MonacoQuickOpenService)
     private quickOpenService: MonacoQuickOpenService;
 
+    @inject(FileSearchService)
     private fileSearchService: FileSearchService;
 
+    @inject(InPluginFileSystemWatcherManager)
     private inPluginFileSystemWatcherManager: InPluginFileSystemWatcherManager;
 
     private roots: FileStat[];
 
+    @inject(TextContentResourceResolver)
     private resourceResolver: TextContentResourceResolver;
 
+    @inject(PluginServer)
     private pluginServer: PluginServer;
 
+    @inject(WorkspaceService)
     private workspaceService: WorkspaceService;
 
+    @inject(FileSystemPreferences)
     private fsPreferences: FileSystemPreferences;
+
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
 
     protected readonly toDispose = new DisposableCollection();
 
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.WORKSPACE_EXT);
-        this.storageProxy = rpc.getProxy(MAIN_RPC_CONTEXT.STORAGE_EXT);
-        this.quickOpenService = container.get(MonacoQuickOpenService);
-        this.fileSearchService = container.get(FileSearchService);
-        this.resourceResolver = container.get(TextContentResourceResolver);
-        this.pluginServer = container.get(PluginServer);
-        this.workspaceService = container.get(WorkspaceService);
-        this.fsPreferences = container.get(FileSystemPreferences);
-        this.inPluginFileSystemWatcherManager = container.get(InPluginFileSystemWatcherManager);
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.WORKSPACE_EXT);
+        this.storageProxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.STORAGE_EXT);
 
         this.processWorkspaceFoldersChanged(this.workspaceService.tryGetRoots());
         this.toDispose.push(this.workspaceService.onWorkspaceChanged(roots => {
@@ -221,113 +229,6 @@ export class WorkspaceMainImpl implements WorkspaceMain, Disposable {
 
     async $updateWorkspaceFolders(start: number, deleteCount?: number, ...rootsToAdd: string[]): Promise<void> {
         await this.workspaceService.spliceRoots(start, deleteCount, ...rootsToAdd.map(root => new URI(root)));
-    }
-
-}
-
-/**
- * Text content provider for resources with custom scheme.
- */
-export interface TextContentResourceProvider {
-
-    /**
-     * Provides resource for given URI
-     */
-    provideResource(uri: URI): Resource;
-
-}
-
-@injectable()
-export class TextContentResourceResolver implements ResourceResolver {
-
-    // Resource providers for different schemes
-    private providers = new Map<string, TextContentResourceProvider>();
-
-    // Opened resources
-    private resources = new Map<string, TextContentResource>();
-
-    async resolve(uri: URI): Promise<Resource> {
-        const provider = this.providers.get(uri.scheme);
-        if (provider) {
-            return provider.provideResource(uri);
-        }
-
-        throw new Error(`Unable to find Text Content Resource Provider for scheme '${uri.scheme}'`);
-    }
-
-    registerContentProvider(scheme: string, proxy: WorkspaceExt): void {
-        if (this.providers.has(scheme)) {
-            throw new Error(`Text Content Resource Provider for scheme '${scheme}' is already registered`);
-        }
-
-        const instance = this;
-        this.providers.set(scheme, {
-            provideResource: (uri: URI): Resource => {
-                let resource = instance.resources.get(uri.toString());
-                if (resource) {
-                    return resource;
-                }
-
-                resource = new TextContentResource(uri, proxy, {
-                    dispose(): void {
-                        instance.resources.delete(uri.toString());
-                    }
-                });
-
-                instance.resources.set(uri.toString(), resource);
-                return resource;
-            }
-        });
-    }
-
-    unregisterContentProvider(scheme: string): void {
-        if (!this.providers.delete(scheme)) {
-            throw new Error(`Text Content Resource Provider for scheme '${scheme}' has not been registered`);
-        }
-    }
-
-    onContentChange(uri: string, content: string): void {
-        const resource = this.resources.get(uri);
-        if (resource) {
-            resource.setContent(content);
-        }
-    }
-
-}
-
-export class TextContentResource implements Resource {
-
-    private onDidChangeContentsEmitter: Emitter<void> = new Emitter<void>();
-    readonly onDidChangeContents: Event<void> = this.onDidChangeContentsEmitter.event;
-
-    // cached content
-    cache: string | undefined;
-
-    constructor(public uri: URI, private proxy: WorkspaceExt, protected disposable: Disposable) {
-    }
-
-    async readContents(options?: { encoding?: string }): Promise<string> {
-        if (this.cache) {
-            const content = this.cache;
-            this.cache = undefined;
-            return content;
-        } else {
-            const content = await this.proxy.$provideTextDocumentContent(this.uri.toString());
-            if (content) {
-                return content;
-            }
-        }
-
-        return Promise.reject(new Error(`Unable to get content for '${this.uri.toString()}'`));
-    }
-
-    dispose(): void {
-        this.disposable.dispose();
-    }
-
-    setContent(content: string): void {
-        this.cache = content;
-        this.onDidChangeContentsEmitter.fire(undefined);
     }
 
 }

@@ -14,30 +14,41 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces } from 'inversify';
+import { injectable, inject, postConstruct } from 'inversify';
 import { ApplicationShell, WidgetOpenerOptions } from '@theia/core/lib/browser';
 import { TerminalOptions } from '@theia/plugin';
 import { TerminalWidget } from '@theia/terminal/lib/browser/base/terminal-widget';
 import { TerminalService } from '@theia/terminal/lib/browser/base/terminal-service';
-import { TerminalServiceMain, TerminalServiceExt, MAIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { TerminalServiceMain, TerminalServiceExt, MAIN_RPC_CONTEXT, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import { Disposable, DisposableCollection } from '@theia/core/lib/common/disposable';
+import { RPCProtocolServiceProvider } from './main-context';
 
 /**
  * Plugin api service allows working with terminal emulator.
  */
-export class TerminalServiceMainImpl implements TerminalServiceMain, Disposable {
+@injectable()
+export class TerminalServiceMainImpl implements TerminalServiceMain, Disposable, RPCProtocolServiceProvider {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.TERMINAL_MAIN;
+
+    @inject(TerminalService)
     private readonly terminals: TerminalService;
+
+    @inject(ApplicationShell)
     private readonly shell: ApplicationShell;
-    private readonly extProxy: TerminalServiceExt;
+
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
+
+    private extProxy: TerminalServiceExt;
 
     private readonly toDispose = new DisposableCollection();
 
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.terminals = container.get(TerminalService);
-        this.shell = container.get(ApplicationShell);
-        this.extProxy = rpc.getProxy(MAIN_RPC_CONTEXT.TERMINAL_EXT);
+    @postConstruct()
+    protected init(): void {
+        this.extProxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.TERMINAL_EXT);
         this.toDispose.push(this.terminals.onDidCreateTerminal(terminal => this.trackTerminal(terminal)));
         for (const terminal of this.terminals.all) {
             this.trackTerminal(terminal);

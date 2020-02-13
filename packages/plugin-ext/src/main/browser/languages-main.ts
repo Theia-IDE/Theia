@@ -32,14 +32,15 @@ import {
     LanguagesExt,
     WorkspaceEditDto,
     ResourceTextEditDto,
-    PluginInfo
+    PluginInfo,
+    PLUGIN_RPC_CONTEXT
 } from '../../common/plugin-api-rpc';
-import { injectable, inject } from 'inversify';
+import { injectable, inject, postConstruct } from 'inversify';
 import {
     SerializedDocumentFilter, MarkerData, Range, WorkspaceSymbolProvider, RelatedInformation,
     MarkerSeverity, DocumentLink, WorkspaceSymbolParams, CodeAction
 } from '../../common/plugin-api-rpc-model';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import { fromLanguageSelector } from '../../plugin/type-converters';
 import { DocumentFilter, MonacoModelIdentifier, testGlob } from 'monaco-languageclient/lib';
 import { MonacoLanguages } from '@theia/monaco/lib/browser/monaco-languages';
@@ -55,9 +56,13 @@ import { LanguageSelector } from '@theia/languages/lib/common/language-selector'
 import { CallHierarchyService, CallHierarchyServiceProvider, Caller, Definition } from '@theia/callhierarchy/lib/browser';
 import { toDefinition, toUriComponents, fromDefinition, fromPosition, toCaller } from './callhierarchy/callhierarchy-type-converters';
 import { Position, DocumentUri } from 'vscode-languageserver-types';
+import { RPCProtocolServiceProvider } from './main-context';
 
 @injectable()
-export class LanguagesMainImpl implements LanguagesMain, Disposable {
+export class LanguagesMainImpl implements LanguagesMain, Disposable, RPCProtocolServiceProvider {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.LANGUAGES_MAIN;
 
     @inject(MonacoLanguages)
     private readonly monacoLanguages: MonacoLanguages;
@@ -68,12 +73,16 @@ export class LanguagesMainImpl implements LanguagesMain, Disposable {
     @inject(CallHierarchyServiceProvider)
     private readonly callHierarchyServiceContributionRegistry: CallHierarchyServiceProvider;
 
-    private readonly proxy: LanguagesExt;
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
+
+    private proxy: LanguagesExt;
     private readonly services = new Map<number, Disposable>();
     private readonly toDispose = new DisposableCollection();
 
-    constructor(@inject(RPCProtocol) rpc: RPCProtocol) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.LANGUAGES_EXT);
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.LANGUAGES_EXT);
     }
 
     dispose(): void {
@@ -892,4 +901,22 @@ export function toMonacoWorkspaceEdit(data: WorkspaceEditDto | undefined): monac
             }
         })
     };
+}
+
+@injectable()
+export class LanguagesMainServiceProvider implements RPCProtocolServiceProvider {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    class: any;
+
+    @inject(LanguagesMainImpl)
+    private readonly languagesMainImpl: LanguagesMainImpl;
+
+    @postConstruct()
+    protected init(): void {
+        this.identifier = PLUGIN_RPC_CONTEXT.LANGUAGES_MAIN;
+        this.class = this.languagesMainImpl;
+    }
 }

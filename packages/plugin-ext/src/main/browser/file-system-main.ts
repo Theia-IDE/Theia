@@ -14,24 +14,31 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces, injectable } from 'inversify';
-import Uri from 'vscode-uri';
-import { Disposable, ResourceResolver, DisposableCollection } from '@theia/core';
-import { Resource } from '@theia/core/lib/common/resource';
-import URI from '@theia/core/lib/common/uri';
-import { MAIN_RPC_CONTEXT, FileSystemMain, FileSystemExt } from '../../common/plugin-api-rpc';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { injectable, inject, postConstruct } from 'inversify';
 
+import { Disposable, DisposableCollection } from '@theia/core';
+
+import { MAIN_RPC_CONTEXT, FileSystemMain, FileSystemExt, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
+import { FSResourceResolver } from './fs-resource-resolver';
+import { RPCProtocolServiceProvider } from './main-context';
+
+@injectable()
 export class FileSystemMainImpl implements FileSystemMain, Disposable {
 
-    private readonly proxy: FileSystemExt;
+    private proxy: FileSystemExt;
+
+    @inject(FSResourceResolver)
     private readonly resourceResolver: FSResourceResolver;
     private readonly providers = new Map<number, Disposable>();
     private readonly toDispose = new DisposableCollection();
 
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.FILE_SYSTEM_EXT);
-        this.resourceResolver = container.get(FSResourceResolver);
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
+
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.FILE_SYSTEM_EXT);
     }
 
     dispose(): void {
@@ -57,73 +64,19 @@ export class FileSystemMainImpl implements FileSystemMain, Disposable {
 }
 
 @injectable()
-export class FSResourceResolver implements ResourceResolver, Disposable {
+export class FileSystemMainServiceProvider implements RPCProtocolServiceProvider {
 
-    // resource providers by schemas
-    private providers = new Map<string, FSResourceProvider>();
-    private toDispose = new DisposableCollection();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    class: any;
 
-    resolve(uri: URI): Resource {
-        const provider = this.providers.get(uri.scheme);
-        if (provider) {
-            return provider.get(uri);
-        }
-        throw new Error(`Unable to find a Resource Provider for scheme '${uri.scheme}'`);
+    @inject(FileSystemMainImpl)
+    private readonly fileSystemMain: FileSystemMain;
+
+    @postConstruct()
+    protected init(): void {
+        this.identifier = PLUGIN_RPC_CONTEXT.FILE_SYSTEM_MAIN;
+        this.class = this.fileSystemMain;
     }
-
-    dispose(): void {
-        this.toDispose.dispose();
-    }
-
-    registerResourceProvider(handle: number, scheme: string, proxy: FileSystemExt): Disposable {
-        if (this.providers.has(scheme)) {
-            throw new Error(`Resource Provider for scheme '${scheme}' is already registered`);
-        }
-
-        const provider = new FSResourceProvider(handle, proxy);
-        this.providers.set(scheme, provider);
-
-        const disposable = Disposable.create(() => {
-            provider.dispose();
-            this.providers.delete(scheme);
-        });
-        this.toDispose.push(disposable);
-        return disposable;
-    }
-}
-
-class FSResourceProvider implements Disposable {
-
-    private resourceCache = new Map<string, FSResource>();
-
-    constructor(private handle: number, private proxy: FileSystemExt) { }
-
-    get(uri: URI): Resource {
-        let resource = this.resourceCache.get(uri.toString());
-        if (!resource) {
-            resource = new FSResource(this.handle, uri, this.proxy);
-            this.resourceCache.set(uri.toString(), resource);
-        }
-        return resource;
-    }
-
-    dispose(): void {
-        this.resourceCache.clear();
-    }
-}
-
-/** Resource that delegates reading/saving a content to a plugin's FileSystemProvider. */
-export class FSResource implements Resource {
-
-    constructor(private handle: number, public uri: URI, private proxy: FileSystemExt) { }
-
-    readContents(options?: { encoding?: string }): Promise<string> {
-        return this.proxy.$readFile(this.handle, Uri.parse(this.uri.toString()), options);
-    }
-
-    saveContents(content: string, options?: { encoding?: string }): Promise<void> {
-        return this.proxy.$writeFile(this.handle, Uri.parse(this.uri.toString()), content, options);
-    }
-
-    dispose(): void { }
 }

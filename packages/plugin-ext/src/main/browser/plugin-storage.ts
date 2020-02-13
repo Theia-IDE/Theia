@@ -14,21 +14,25 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces } from 'inversify';
-import { StorageMain } from '../../common/plugin-api-rpc';
+import { injectable, inject } from 'inversify';
+import { StorageMain, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
 import { PluginServer, PluginStorageKind } from '../../common/plugin-protocol';
 import { KeysToAnyValues, KeysToKeysToAnyValue } from '../../common/types';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
+import { RPCProtocolServiceProvider } from './main-context';
+import { ProxyIdentifier } from '../../common/rpc-protocol';
 
-export class StorageMainImpl implements StorageMain {
+@injectable()
+export class StorageMainImpl implements StorageMain, RPCProtocolServiceProvider {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.STORAGE_MAIN;
+
+    @inject(PluginServer)
     private readonly pluginServer: PluginServer;
-    private readonly workspaceService: WorkspaceService;
 
-    constructor(container: interfaces.Container) {
-        this.pluginServer = container.get(PluginServer);
-        this.workspaceService = container.get(WorkspaceService);
-    }
+    @inject(WorkspaceService)
+    private readonly workspaceService: WorkspaceService;
 
     $set(key: string, value: KeysToAnyValues, isGlobal: boolean): Promise<boolean> {
         return this.pluginServer.setStorageValue(key, value, this.toKind(isGlobal));

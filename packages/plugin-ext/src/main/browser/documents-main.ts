@@ -13,12 +13,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
-import { DocumentsMain, MAIN_RPC_CONTEXT, DocumentsExt } from '../../common/plugin-api-rpc';
+import { DocumentsMain, MAIN_RPC_CONTEXT, DocumentsExt, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
 import { UriComponents } from '../../common/uri-components';
 import { EditorsAndDocumentsMain } from './editors-and-documents-main';
 import { DisposableCollection, Disposable } from '@theia/core';
 import { MonacoEditorModel } from '@theia/monaco/lib/browser/monaco-editor-model';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import { EditorModelService } from './text-editor-model-service';
 import { createUntitledResource } from './editor/untitled-resource';
 import { EditorManager, EditorOpenerOptions } from '@theia/editor/lib/browser';
@@ -30,6 +30,8 @@ import { Range } from 'vscode-languageserver-types';
 import { OpenerService } from '@theia/core/lib/browser/opener-service';
 import { Reference } from '@theia/core/lib/common/reference';
 import { dispose } from '../../common/disposable-util';
+import { inject, postConstruct, injectable } from 'inversify';
+import { RPCProtocolServiceProvider } from './main-context';
 
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
@@ -76,9 +78,13 @@ export class ModelReferenceCollection {
     }
 }
 
-export class DocumentsMainImpl implements DocumentsMain, Disposable {
+@injectable()
+export class DocumentsMainImpl implements DocumentsMain, Disposable, RPCProtocolServiceProvider {
 
-    private readonly proxy: DocumentsExt;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.DOCUMENTS_MAIN;
+
+    private proxy: DocumentsExt;
     private readonly syncedModels = new Map<string, Disposable>();
     private readonly modelReferenceCache = new ModelReferenceCollection();
 
@@ -86,25 +92,37 @@ export class DocumentsMainImpl implements DocumentsMain, Disposable {
 
     private readonly toDispose = new DisposableCollection(this.modelReferenceCache);
 
-    constructor(
-        editorsAndDocuments: EditorsAndDocumentsMain,
-        private readonly modelService: EditorModelService,
-        rpc: RPCProtocol,
-        private editorManager: EditorManager,
-        private openerService: OpenerService,
-        private shell: ApplicationShell
-    ) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.DOCUMENTS_EXT);
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
 
-        this.toDispose.push(editorsAndDocuments);
-        this.toDispose.push(editorsAndDocuments.onDocumentAdd(documents => documents.forEach(this.onModelAdded, this)));
-        this.toDispose.push(editorsAndDocuments.onDocumentRemove(documents => documents.forEach(this.onModelRemoved, this)));
-        this.toDispose.push(modelService.onModelModeChanged(this.onModelChanged, this));
+    @inject(EditorsAndDocumentsMain)
+    private readonly editorsAndDocuments: EditorsAndDocumentsMain;
 
-        this.toDispose.push(modelService.onModelSaved(m => {
+    @inject(EditorModelService)
+    private readonly modelService: EditorModelService;
+
+    @inject(EditorManager)
+    private readonly editorManager: EditorManager;
+
+    @inject(OpenerService)
+    private readonly openerService: OpenerService;
+
+    @inject(ApplicationShell)
+    private readonly shell: ApplicationShell;
+
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.DOCUMENTS_EXT);
+
+        this.toDispose.push(this.editorsAndDocuments);
+        this.toDispose.push(this.editorsAndDocuments.onDocumentAdd(documents => documents.forEach(this.onModelAdded, this)));
+        this.toDispose.push(this.editorsAndDocuments.onDocumentRemove(documents => documents.forEach(this.onModelRemoved, this)));
+        this.toDispose.push(this.modelService.onModelModeChanged(this.onModelChanged, this));
+
+        this.toDispose.push(this.modelService.onModelSaved(m => {
             this.proxy.$acceptModelSaved(m.textEditorModel.uri);
         }));
-        this.toDispose.push(modelService.onModelWillSave(onWillSaveModelEvent => {
+        this.toDispose.push(this.modelService.onModelWillSave(onWillSaveModelEvent => {
             onWillSaveModelEvent.waitUntil(new Promise<monaco.editor.IIdentifiedSingleEditOperation[]>(async (resolve, reject) => {
                 setTimeout(() => reject(new Error(`Aborted onWillSaveTextDocument-event after ${this.saveTimeout}ms`)), this.saveTimeout);
                 const edits = await this.proxy.$acceptModelWillSave(onWillSaveModelEvent.model.textEditorModel.uri, onWillSaveModelEvent.reason, this.saveTimeout);
@@ -128,7 +146,7 @@ export class DocumentsMainImpl implements DocumentsMain, Disposable {
                 resolve(editOperations);
             }));
         }));
-        this.toDispose.push(modelService.onModelDirtyChanged(m => {
+        this.toDispose.push(this.modelService.onModelDirtyChanged(m => {
             this.proxy.$acceptDirtyStateChanged(m.textEditorModel.uri, m.dirty);
         }));
     }

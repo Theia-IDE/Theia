@@ -20,19 +20,21 @@ import {
     PreferenceScope,
     PreferenceProviderProvider
 } from '@theia/core/lib/browser/preferences';
-import { interfaces } from 'inversify';
+import { injectable, inject, postConstruct } from 'inversify';
 import {
     MAIN_RPC_CONTEXT,
     PreferenceRegistryExt,
     PreferenceRegistryMain,
     PreferenceData,
     PreferenceChangeExt,
+    PLUGIN_RPC_CONTEXT,
 } from '../../common/plugin-api-rpc';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import { ConfigurationTarget } from '../../plugin/types-impl';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { FileStat } from '@theia/filesystem/lib/common/filesystem';
 import { Disposable, DisposableCollection } from '@theia/core/lib/common/disposable';
+import { RPCProtocolServiceProvider } from './main-context';
 
 export function getPreferences(preferenceProviderProvider: PreferenceProviderProvider, rootFolders: FileStat[]): PreferenceData {
     const folders = rootFolders.map(root => root.uri.toString());
@@ -52,24 +54,39 @@ export function getPreferences(preferenceProviderProvider: PreferenceProviderPro
     }, {} as PreferenceData);
 }
 
-export class PreferenceRegistryMainImpl implements PreferenceRegistryMain, Disposable {
-    private readonly proxy: PreferenceRegistryExt;
+@injectable()
+export class PreferenceRegistryMainImpl implements PreferenceRegistryMain, Disposable, RPCProtocolServiceProvider {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.PREFERENCE_REGISTRY_MAIN;
+
+    private proxy: PreferenceRegistryExt;
+
+    @inject(PreferenceService)
     private readonly preferenceService: PreferenceService;
+
+    @inject(PreferenceProviderProvider)
+    private readonly preferenceProviderProvider: PreferenceProviderProvider;
+
+    @inject(PreferenceServiceImpl)
+    protected readonly preferenceServiceImpl: PreferenceServiceImpl;
+
+    @inject(WorkspaceService)
+    protected readonly workspaceService: WorkspaceService;
+
+    @inject(RPCProtocol)
+    protected readonly rpc: RPCProtocol;
 
     protected readonly toDispose = new DisposableCollection();
 
-    constructor(prc: RPCProtocol, container: interfaces.Container) {
-        this.proxy = prc.getProxy(MAIN_RPC_CONTEXT.PREFERENCE_REGISTRY_EXT);
-        this.preferenceService = container.get(PreferenceService);
-        const preferenceProviderProvider = container.get<PreferenceProviderProvider>(PreferenceProviderProvider);
-        const preferenceServiceImpl = container.get(PreferenceServiceImpl);
-        const workspaceService = container.get(WorkspaceService);
-
-        this.toDispose.push(preferenceServiceImpl.onPreferencesChanged(changes => {
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.PREFERENCE_REGISTRY_EXT);
+        this.toDispose.push(this.preferenceServiceImpl.onPreferencesChanged(changes => {
             // it HAS to be synchronous to propagate changes before update/remove response
 
-            const roots = workspaceService.tryGetRoots();
-            const data = getPreferences(preferenceProviderProvider, roots);
+            const roots = this.workspaceService.tryGetRoots();
+            const data = getPreferences(this.preferenceProviderProvider, roots);
             const eventData: PreferenceChangeExt[] = [];
             for (const preferenceName of Object.keys(changes)) {
                 const { newValue } = changes[preferenceName];

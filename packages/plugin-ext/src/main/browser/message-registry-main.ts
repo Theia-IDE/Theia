@@ -14,17 +14,21 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces } from 'inversify';
+import { injectable, inject } from 'inversify';
 import { MessageService } from '@theia/core/lib/common/message-service';
-import { MessageRegistryMain, MainMessageType, MainMessageOptions } from '../../common/plugin-api-rpc';
+import { MessageRegistryMain, MainMessageType, MainMessageOptions, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
 import { ModalNotification, MessageType } from './dialogs/modal-notification';
+import { RPCProtocolServiceProvider } from './main-context';
+import { ProxyIdentifier } from '../../common/rpc-protocol';
 
-export class MessageRegistryMainImpl implements MessageRegistryMain {
+@injectable()
+export class MessageRegistryMainImpl implements MessageRegistryMain, RPCProtocolServiceProvider {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.MESSAGE_REGISTRY_MAIN;
+
+    @inject(MessageService)
     private readonly messageService: MessageService;
-
-    constructor(container: interfaces.Container) {
-        this.messageService = container.get(MessageService);
-    }
 
     async $showMessage(type: MainMessageType, message: string, options: MainMessageOptions, actions: string[]): Promise<number | undefined> {
         const action = await this.doShowMessage(type, message, options, actions);

@@ -16,9 +16,9 @@
 
 import debounce = require('lodash.debounce');
 import URI from 'vscode-uri';
-import { interfaces } from 'inversify';
-import { WebviewsMain, MAIN_RPC_CONTEXT, WebviewsExt, WebviewPanelViewState } from '../../common/plugin-api-rpc';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { inject, injectable, postConstruct } from 'inversify';
+import { WebviewsMain, MAIN_RPC_CONTEXT, WebviewsExt, WebviewPanelViewState, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import { WebviewOptions, WebviewPanelOptions, WebviewPanelShowOptions } from '@theia/plugin';
 import { ApplicationShell } from '@theia/core/lib/browser/shell/application-shell';
 import { WebviewWidget, WebviewWidgetIdentifier } from './webview/webview';
@@ -29,22 +29,36 @@ import { JSONExt } from '@phosphor/coreutils/lib/json';
 import { Mutable } from '@theia/core/lib/common/types';
 import { HostedPluginSupport } from '../../hosted/browser/hosted-plugin';
 import { IconUrl } from '../../common/plugin-protocol';
+import { RPCProtocolServiceProvider } from './main-context';
 
-export class WebviewsMainImpl implements WebviewsMain, Disposable {
+@injectable()
+export class WebviewsMainImpl implements WebviewsMain, Disposable, RPCProtocolServiceProvider {
 
-    private readonly proxy: WebviewsExt;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.WEBVIEWS_MAIN;
+
+    private proxy: WebviewsExt;
+
+    @inject(ApplicationShell)
     protected readonly shell: ApplicationShell;
+
+    @inject(WidgetManager)
     protected readonly widgets: WidgetManager;
+
+    @inject(HostedPluginSupport)
     protected readonly pluginService: HostedPluginSupport;
+
+    @inject(ViewColumnService)
     protected readonly viewColumnService: ViewColumnService;
+
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
+
     private readonly toDispose = new DisposableCollection();
 
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.WEBVIEWS_EXT);
-        this.shell = container.get(ApplicationShell);
-        this.viewColumnService = container.get(ViewColumnService);
-        this.widgets = container.get(WidgetManager);
-        this.pluginService = container.get(HostedPluginSupport);
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.WEBVIEWS_EXT);
         this.toDispose.push(this.shell.onDidChangeActiveWidget(() => this.updateViewStates()));
         this.toDispose.push(this.shell.onDidChangeCurrentWidget(() => this.updateViewStates()));
         this.toDispose.push(this.viewColumnService.onViewColumnChanged(() => this.updateViewStates()));

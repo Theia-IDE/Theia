@@ -14,30 +14,46 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces } from 'inversify';
+import { injectable, inject, postConstruct } from 'inversify';
 import { CommandRegistry } from '@theia/core/lib/common/command';
 import * as theia from '@theia/plugin';
 import { Disposable, DisposableCollection } from '@theia/core/lib/common/disposable';
 import { CommandRegistryMain, CommandRegistryExt, MAIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import { KeybindingRegistry } from '@theia/core/lib/browser';
 import { PluginContributionHandler } from './plugin-contribution-handler';
+import { RPCProtocolServiceProvider } from './main-context';
+import {
+    PLUGIN_RPC_CONTEXT
+} from '../../common/plugin-api-rpc';
 
-export class CommandRegistryMainImpl implements CommandRegistryMain, Disposable {
-    private readonly proxy: CommandRegistryExt;
+@injectable()
+export class CommandRegistryMainImpl implements CommandRegistryMain, Disposable, RPCProtocolServiceProvider {
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.COMMAND_REGISTRY_MAIN;
+
+    private proxy: CommandRegistryExt;
     private readonly commands = new Map<string, Disposable>();
     private readonly handlers = new Map<string, Disposable>();
+
+    @inject(CommandRegistry)
     private readonly delegate: CommandRegistry;
+
+    @inject(KeybindingRegistry)
     private readonly keyBinding: KeybindingRegistry;
+
+    @inject(PluginContributionHandler)
     private readonly contributions: PluginContributionHandler;
+
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
 
     protected readonly toDispose = new DisposableCollection();
 
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.COMMAND_REGISTRY_EXT);
-        this.delegate = container.get(CommandRegistry);
-        this.keyBinding = container.get(KeybindingRegistry);
-        this.contributions = container.get(PluginContributionHandler);
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.COMMAND_REGISTRY_EXT);
     }
 
     dispose(): void {
@@ -108,3 +124,21 @@ export class CommandRegistryMainImpl implements CommandRegistryMain, Disposable 
     }
 
 }
+
+// @injectable()
+// export class CommandRegistryMainServiceProvider implements RPCProtocolServiceProvider {
+
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     identifier: ProxyIdentifier<any>;
+//     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+//     class: any;
+
+//     @inject(CommandRegistryMainImpl)
+//     private readonly commandRegistryMain: CommandRegistryMain;
+
+//     @postConstruct()
+//     protected init(): void {
+//         this.identifier = PLUGIN_RPC_CONTEXT.COMMAND_REGISTRY_MAIN;
+//         this.class = this.commandRegistryMain;
+//     }
+// }

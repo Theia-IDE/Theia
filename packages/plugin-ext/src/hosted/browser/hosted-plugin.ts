@@ -28,14 +28,14 @@ import { PluginWorker } from '../../main/browser/plugin-worker';
 import { PluginMetadata, getPluginId, HostedPluginServer, DeployedPlugin } from '../../common/plugin-protocol';
 import { HostedPluginWatcher } from './hosted-plugin-watcher';
 import { MAIN_RPC_CONTEXT, PluginManagerExt } from '../../common/plugin-api-rpc';
-import { setUpPluginApi } from '../../main/browser/main-context';
+import { RPCProtocolPluginAPIFactory } from '../../main/browser/main-context';
 import { RPCProtocol, RPCProtocolImpl } from '../../common/rpc-protocol';
 import {
     Disposable, DisposableCollection,
     ILogger, ContributionProvider, CommandRegistry, WillExecuteCommandEvent,
     CancellationTokenSource, JsonRpcProxy, ProgressService
 } from '@theia/core';
-import { PreferenceServiceImpl, PreferenceProviderProvider } from '@theia/core/lib/browser/preferences';
+import { PreferenceServiceImpl, PreferenceProviderProvider } from '@theia/core/lib/browser';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { PluginContributionHandler } from '../../main/browser/plugin-contribution-handler';
 import { getQueryParameters } from '../../main/browser/env-main';
@@ -135,6 +135,9 @@ export class HostedPluginSupport {
 
     @inject(TerminalService)
     protected readonly terminalService: TerminalService;
+
+    @inject(RPCProtocolPluginAPIFactory)
+    protected readonly rpcProtocolPluginAPIFactory: RPCProtocolPluginAPIFactory;
 
     private theiaReadyPromise: Promise<any>;
 
@@ -427,7 +430,7 @@ export class HostedPluginSupport {
 
     protected initRpc(host: PluginHost, pluginId: string): RPCProtocol {
         const rpc = host === 'frontend' ? new PluginWorker().rpc : this.createServerRpc(pluginId, host);
-        setUpPluginApi(rpc, this.container);
+        this.rpcProtocolPluginAPIFactory(rpc).initialize();
         this.mainPluginApiProviders.getContributions().forEach(p => p.initialize(rpc, this.container));
         return rpc;
     }

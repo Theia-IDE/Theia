@@ -14,11 +14,11 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces } from 'inversify';
+import { injectable, inject } from 'inversify';
 import {
-    LanguagesContributionMain, MAIN_RPC_CONTEXT
+    LanguagesContributionMain, MAIN_RPC_CONTEXT, PLUGIN_RPC_CONTEXT
 } from '../../common/plugin-api-rpc';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import * as theia from '@theia/plugin';
 import { Workspace, Languages, MessageReader, MessageWriter } from '@theia/languages/lib/browser/language-client-services';
 import { LanguageClientFactory, BaseLanguageClientContribution } from '@theia/languages/lib/browser';
@@ -30,22 +30,49 @@ import { ConnectionMainImpl } from './connection-main';
 import { Deferred } from '@theia/core/lib/common/promise-util';
 import { Disposable, DisposableCollection } from '@theia/core/lib/common/disposable';
 import { LanguageClientContributionProvider } from './language-provider/language-client-contribution-provider';
+import { RPCProtocolServiceProvider } from './main-context';
 
 /**
  * Implementation of languages contribution system of the plugin API.
  * Uses for registering new language server which was described in the plug-in.
  */
-export class LanguagesContributionMainImpl implements LanguagesContributionMain, Disposable {
+@injectable()
+export class LanguagesContributionMainImpl implements LanguagesContributionMain, Disposable, RPCProtocolServiceProvider {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.LANGUAGES_CONTRIBUTION_MAIN;
+
+    @inject(LanguageClientContributionProvider)
     private readonly languageClientContributionProvider: LanguageClientContributionProvider;
+
+    @inject(ConnectionMainImpl)
+    private readonly connectionMain: ConnectionMainImpl;
+
+    @inject(Workspace)
+    private readonly workspace: Workspace;
+
+    @inject(Languages)
+    private readonly languages: Languages;
+
+    @inject(LanguageClientFactory)
+    private readonly languageClientFactory: LanguageClientFactory;
+
+    @inject(MessageService)
+    private readonly messageService: MessageService;
+
+    @inject(CommandRegistry)
+    private readonly commandRegistry: CommandRegistry;
+
+    @inject(WorkspaceService)
+    private readonly workspaceService: WorkspaceService;
+
+    @inject(WebSocketConnectionProvider)
+    private readonly webSocketConnectionProvider: WebSocketConnectionProvider;
+
+    @inject(RPCProtocol)
+    private readonly rpc: RPCProtocol;
+
     private readonly toDispose = new DisposableCollection();
-
-    constructor(protected readonly rpc: RPCProtocol,
-        protected readonly container: interfaces.Container,
-        protected readonly connectionMain: ConnectionMainImpl) {
-
-        this.languageClientContributionProvider = container.get(LanguageClientContributionProvider);
-    }
 
     dispose(): void {
         this.toDispose.dispose();
@@ -57,17 +84,17 @@ export class LanguagesContributionMainImpl implements LanguagesContributionMain,
      * @param languageServerInfo an information about the registered language server
      */
     $registerLanguageServerProvider(languageServerInfo: theia.LanguageServerInfo): void {
-        const newLanguageContribution = new PluginLanguageClientContribution(this.container.get(Workspace),
-            this.container.get(Languages),
-            this.container.get(LanguageClientFactory),
+        const newLanguageContribution = new PluginLanguageClientContribution(this.workspace,
+            this.languages,
+            this.languageClientFactory,
             this.connectionMain,
             languageServerInfo,
             this.rpc);
 
-        newLanguageContribution.messageService = this.container.get(MessageService);
-        newLanguageContribution.registry = this.container.get(CommandRegistry);
-        newLanguageContribution.workspaceService = this.container.get(WorkspaceService);
-        newLanguageContribution.connectionProvider = this.container.get(WebSocketConnectionProvider);
+        newLanguageContribution.messageService = this.messageService;
+        newLanguageContribution.registry = this.commandRegistry;
+        newLanguageContribution.workspaceService = this.workspaceService;
+        newLanguageContribution.connectionProvider = this.webSocketConnectionProvider;
 
         newLanguageContribution.id = languageServerInfo.id;
         newLanguageContribution.name = languageServerInfo.name;

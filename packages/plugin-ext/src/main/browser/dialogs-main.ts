@@ -14,32 +14,36 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { interfaces } from 'inversify';
-import { RPCProtocol } from '../../common/rpc-protocol';
-import { OpenDialogOptionsMain, SaveDialogOptionsMain, DialogsMain, UploadDialogOptionsMain } from '../../common/plugin-api-rpc';
+import { OpenDialogOptionsMain, SaveDialogOptionsMain, DialogsMain, UploadDialogOptionsMain, PLUGIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
+import { injectable, inject } from 'inversify';
 import { DirNode, OpenFileDialogProps, SaveFileDialogProps, OpenFileDialogFactory, SaveFileDialogFactory } from '@theia/filesystem/lib/browser';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { FileSystem, FileStat } from '@theia/filesystem/lib/common';
 import { UriSelection } from '@theia/core/lib/common/selection';
+import { RPCProtocolServiceProvider } from './main-context';
+import { ProxyIdentifier } from '../../common/rpc-protocol';
 import { FileUploadService } from '@theia/filesystem/lib/browser/file-upload-service';
 
-export class DialogsMainImpl implements DialogsMain {
+@injectable()
+export class DialogsMainImpl implements DialogsMain, RPCProtocolServiceProvider {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.DIALOGS_MAIN;
+
+    @inject(WorkspaceService)
     private workspaceService: WorkspaceService;
+
+    @inject(FileSystem)
     private fileSystem: FileSystem;
 
+    @inject(OpenFileDialogFactory)
     private openFileDialogFactory: OpenFileDialogFactory;
+
+    @inject(SaveFileDialogFactory)
     private saveFileDialogFactory: SaveFileDialogFactory;
+
+    @inject(FileUploadService)
     private uploadService: FileUploadService;
-
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.workspaceService = container.get(WorkspaceService);
-        this.fileSystem = container.get(FileSystem);
-
-        this.openFileDialogFactory = container.get(OpenFileDialogFactory);
-        this.saveFileDialogFactory = container.get(SaveFileDialogFactory);
-        this.uploadService = container.get(FileUploadService);
-    }
 
     protected async getRootUri(defaultUri: string | undefined): Promise<FileStat | undefined> {
         let rootStat;

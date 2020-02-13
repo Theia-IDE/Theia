@@ -15,14 +15,14 @@
  ********************************************************************************/
 
 import { InputBoxOptions, QuickPickItem as QuickPickItemExt } from '@theia/plugin';
-import { interfaces } from 'inversify';
+import { injectable, inject, postConstruct } from 'inversify';
 import {
     QuickOpenModel,
     QuickOpenItem,
     QuickOpenMode,
     QuickOpenItemOptions
 } from '@theia/core/lib/browser/quick-open/quick-open-model';
-import { RPCProtocol } from '../../common/rpc-protocol';
+import { RPCProtocol, ProxyIdentifier } from '../../common/rpc-protocol';
 import {
     QuickOpenExt,
     QuickOpenMain,
@@ -31,7 +31,8 @@ import {
     PickOpenItem,
     TransferInputBox,
     QuickInputTitleButtonHandle,
-    TransferQuickPick
+    TransferQuickPick,
+    PLUGIN_RPC_CONTEXT
 } from '../../common/plugin-api-rpc';
 import { MonacoQuickOpenService } from '@theia/monaco/lib/browser/monaco-quick-open-service';
 import { QuickInputService, LabelProvider } from '@theia/core/lib/browser';
@@ -42,33 +43,46 @@ import { QuickPickService, QuickPickItem, QuickPickValue } from '@theia/core/lib
 import { QuickTitleBar } from '@theia/core/lib/browser/quick-open/quick-title-bar';
 import { DisposableCollection, Disposable } from '@theia/core/lib/common/disposable';
 import { QuickTitleButtonSide, QuickOpenGroupItem } from '@theia/core/lib/common/quick-open-model';
+import { RPCProtocolServiceProvider } from './main-context';
 
-export class QuickOpenMainImpl implements QuickOpenMain, QuickOpenModel, Disposable {
+@injectable()
+export class QuickOpenMainImpl implements QuickOpenMain, QuickOpenModel, Disposable, RPCProtocolServiceProvider {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    identifier: ProxyIdentifier<any> = PLUGIN_RPC_CONTEXT.QUICK_OPEN_MAIN;
+
+    @inject(QuickInputService)
     private quickInput: QuickInputService;
+
+    @inject(QuickPickService)
     private quickPick: QuickPickService;
+
+    @inject(QuickTitleBar)
     private quickTitleBar: QuickTitleBar;
     private doResolve: (value?: number | number[] | PromiseLike<number | number[]> | undefined) => void;
     private proxy: QuickOpenExt;
+
+    @inject(MonacoQuickOpenService)
     private delegate: MonacoQuickOpenService;
     private acceptor: ((items: QuickOpenItem[]) => void) | undefined;
     private items: QuickOpenItem[] | undefined;
 
-    private readonly sharedStyle: PluginSharedStyle;
+    @inject(LabelProvider)
     private readonly labelProvider: LabelProvider;
+
+    @inject(PluginSharedStyle)
+    private sharedStyle: PluginSharedStyle;
+
+    @inject(RPCProtocol)
+    protected readonly rpc: RPCProtocol;
 
     private activeElement: HTMLElement | undefined;
 
     protected readonly toDispose = new DisposableCollection();
 
-    constructor(rpc: RPCProtocol, container: interfaces.Container) {
-        this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.QUICK_OPEN_EXT);
-        this.delegate = container.get(MonacoQuickOpenService);
-        this.quickInput = container.get(QuickInputService);
-        this.quickTitleBar = container.get(QuickTitleBar);
-        this.quickPick = container.get(QuickPickService);
-        this.sharedStyle = container.get(PluginSharedStyle);
-        this.labelProvider = container.get(LabelProvider);
+    @postConstruct()
+    protected init(): void {
+        this.proxy = this.rpc.getProxy(MAIN_RPC_CONTEXT.QUICK_OPEN_EXT);
     }
 
     dispose(): void {
