@@ -18,7 +18,7 @@ import { enableJSDOM } from '@theia/core/lib/browser/test/jsdom';
 let disableJSDOM = enableJSDOM();
 
 import { Container } from 'inversify';
-import { WorkspaceService } from './workspace-service';
+import { WorkspaceService, WorkspaceFolder, UriWorkspaceFolderData } from './workspace-service';
 import { FileSystem, FileStat } from '@theia/filesystem/lib/common';
 import { FrontendApplicationConfigProvider } from '@theia/core/lib/browser/frontend-application-config-provider';
 import { FileSystemNode } from '@theia/filesystem/lib/node/node-filesystem';
@@ -45,12 +45,14 @@ const expect = chai.expect;
 disableJSDOM();
 const track = temp.track();
 
-const folderA = Object.freeze(<FileStat>{
+const folderA = Object.freeze(<WorkspaceFolder>{
+    name: 'folderA',
     uri: 'file:///home/folderA',
     lastModification: 0,
     isDirectory: true
 });
-const folderB = Object.freeze(<FileStat>{
+const folderB = Object.freeze(<WorkspaceFolder>{
+    name: 'folderB',
     uri: 'file:///home/folderB',
     lastModification: 0,
     isDirectory: true
@@ -406,7 +408,8 @@ describe('WorkspaceService', () => {
 
     describe('close() function', () => {
         it('should reset the exposed roots and workspace, and set the most recently used workspace empty through the server', async () => {
-            const stat = <FileStat>{
+            const stat = <WorkspaceFolder>{
+                name: 'folder',
                 uri: 'file:///home/folder',
                 lastModification: 0,
                 isDirectory: true
@@ -462,7 +465,8 @@ describe('WorkspaceService', () => {
         });
 
         it('should do nothing if the added uri is already part of the current workspace', async () => {
-            const stat = <FileStat>{
+            const stat = <WorkspaceFolder>{
+                name: 'folder',
                 uri: 'file:///home/folder',
                 lastModification: 0,
                 isDirectory: true
@@ -559,12 +563,14 @@ describe('WorkspaceService', () => {
                 lastModification: 0,
                 isDirectory: false
             };
-            const folder1 = <FileStat>{
+            const folder1 = <WorkspaceFolder>{
+                name: 'folder1',
                 uri: 'file:///home/thirdFolder/folder1',
                 lastModification: 0,
                 isDirectory: true
             };
-            const folder2 = <FileStat>{
+            const folder2 = <WorkspaceFolder>{
+                name: 'folder2',
                 uri: 'file:///home/newFolder/folder2',
                 lastModification: 0,
                 isDirectory: true
@@ -723,13 +729,13 @@ describe('WorkspaceService', () => {
 
     describe('spliceRoots', () => {
         const workspace = <FileStat>{ uri: 'file:///workspace.theia-workspace', isDirectory: false };
-        const fooDir = <FileStat>{ uri: 'file:///foo', isDirectory: true };
+        const fooDir = <WorkspaceFolder>{ name: 'foo', uri: 'file:///foo', isDirectory: true };
         const workspaceService: WorkspaceService = new WorkspaceService();
         workspaceService['getUntitledWorkspace'] = async () => new URI('file:///untitled.theia-workspace');
         workspaceService['save'] = async () => { };
-        workspaceService['getWorkspaceDataFromFile'] = async () => ({ folders: [] });
+        workspaceService['readWorkspaceData'] = async () => ({ folders: [] });
         workspaceService['writeWorkspaceFile'] = async (_, data) => {
-            workspaceService['_roots'] = data.folders.map(({ path }) => <FileStat>{ uri: path });
+            workspaceService['_roots'] = (data.folders as UriWorkspaceFolderData[]).map(({ uri, name }) => <WorkspaceFolder>{ uri, name });
             return undefined;
         };
         const assertRemoved = (removed: URI[], ...roots: string[]) =>
@@ -786,7 +792,8 @@ describe('WorkspaceService', () => {
         });
 
         it('should return the closest root folder uri that the file belongs to', () => {
-            const home = Object.freeze(<FileStat>{
+            const home = Object.freeze(<WorkspaceFolder>{
+                name: 'home',
                 uri: 'file:///home',
                 lastModification: 0,
                 isDirectory: true
@@ -800,12 +807,14 @@ describe('WorkspaceService', () => {
     it('should emit roots in the current workspace when initialized', done => {
         const rootA = 'file:///folderA';
         const rootB = 'file:///folderB';
-        const statA = <FileStat>{
+        const statA = <WorkspaceFolder>{
+            name: 'folderA',
             uri: rootA,
             lastModification: 0,
             isDirectory: true
         };
-        const statB = <FileStat>{
+        const statB = <WorkspaceFolder>{
+            name: 'folderB',
             uri: rootB,
             lastModification: 0,
             isDirectory: true

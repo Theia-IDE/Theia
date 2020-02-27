@@ -17,7 +17,7 @@
 import { inject, injectable } from 'inversify';
 import URI from '@theia/core/lib/common/uri';
 import { PreferenceScope } from '@theia/core/lib/browser/preferences';
-import { WorkspaceService, WorkspaceData } from '@theia/workspace/lib/browser/workspace-service';
+import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { AbstractResourcePreferenceProvider } from './abstract-resource-preference-provider';
 
 @injectable()
@@ -44,8 +44,8 @@ export class WorkspaceFilePreferenceProvider extends AbstractResourcePreferenceP
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected parse(content: string): any {
         const data = super.parse(content);
-        if (WorkspaceData.is(data)) {
-            return data.settings || {};
+        if (data && 'settings' in data && data['settings'] && typeof data['settings'] === 'object') {
+            return data.settings;
         }
         return {};
     }

@@ -483,6 +483,11 @@ export interface QuickOpenMain {
     $refreshQuickInput(): void;
 }
 
+export interface WorkspaceFolderData {
+    uri: UriComponents
+    name: string
+}
+
 export interface WorkspaceMain {
     $pickWorkspaceFolder(options: WorkspaceFolderPickOptionsMain): Promise<theia.WorkspaceFolder | undefined>;
     $startFileSearch(includePattern: string, includeFolder: string | undefined, excludePatternOrDisregardExcludes: string | false,
@@ -492,7 +497,7 @@ export interface WorkspaceMain {
     $onTextDocumentContentChange(uri: string, content: string): void;
     $registerFileSystemWatcher(options: FileWatcherSubscriberOptions): Promise<string>;
     $unregisterFileSystemWatcher(watcherId: string): Promise<void>;
-    $updateWorkspaceFolders(start: number, deleteCount?: number, ...rootsToAdd: string[]): Promise<void>;
+    $updateWorkspaceFolders(start: number, deleteCount?: number, ...rootsToAdd: WorkspaceFolderData[]): Promise<void>;
 }
 
 export interface WorkspaceExt {

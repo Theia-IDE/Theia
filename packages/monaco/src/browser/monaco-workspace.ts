@@ -21,9 +21,9 @@ import { injectable, inject, postConstruct } from 'inversify';
 import { ProtocolToMonacoConverter, MonacoToProtocolConverter, testGlob } from 'monaco-languageclient';
 import URI from '@theia/core/lib/common/uri';
 import { DisposableCollection } from '@theia/core/lib/common';
-import { FileSystem, FileStat, } from '@theia/filesystem/lib/common';
+import { FileSystem } from '@theia/filesystem/lib/common';
 import { FileChangeType, FileSystemWatcher } from '@theia/filesystem/lib/browser';
-import { WorkspaceService } from '@theia/workspace/lib/browser';
+import * as workspace from '@theia/workspace/lib/browser';
 import { EditorManager, EditorOpenerOptions } from '@theia/editor/lib/browser';
 import * as lang from '@theia/languages/lib/browser';
 import { Emitter, TextDocumentWillSaveEvent, TextEdit } from '@theia/languages/lib/browser';
@@ -165,8 +165,8 @@ export class MonacoWorkspace implements lang.Workspace {
     @inject(FileSystem)
     protected readonly fileSystem: FileSystem;
 
-    @inject(WorkspaceService)
-    protected readonly workspaceService: WorkspaceService;
+    @inject(workspace.WorkspaceService)
+    protected readonly workspaceService: workspace.WorkspaceService;
 
     @inject(FileSystemWatcher)
     protected readonly fileSystemWatcher: FileSystemWatcher;
@@ -210,21 +210,19 @@ export class MonacoWorkspace implements lang.Workspace {
         this.textModelService.onDidCreate(model => this.fireDidOpen(model));
     }
 
-    protected updateWorkspaceFolders(newRootDirs: FileStat[]): void {
+    protected updateWorkspaceFolders(newRootDirs: workspace.WorkspaceFolder[]): void {
         const oldWorkspaceUris = this.workspaceFolders.map(folder => folder.uri.toString());
         const newWorkspaceUris = newRootDirs.map(folder => folder.uri);
-        const added = newWorkspaceUris.filter(uri => oldWorkspaceUris.indexOf(uri) < 0).map((dir, index) => this.toWorkspaceFolder(dir, index));
-        const removed = oldWorkspaceUris.filter(uri => newWorkspaceUris.indexOf(uri) < 0).map((dir, index) => this.toWorkspaceFolder(dir, index));
-        this._workspaceFolders = newWorkspaceUris.map(this.toWorkspaceFolder);
+        const added = newRootDirs.filter(dir => oldWorkspaceUris.indexOf(dir.uri) < 0).map((dir, index) => this.toWorkspaceFolder(dir, index));
+        const removed = this.workspaceFolders.filter(dir => newWorkspaceUris.indexOf(dir.uri.toString()) < 0).map(dir => dir);
+        this._workspaceFolders = newRootDirs.map(this.toWorkspaceFolder);
         this.onDidChangeWorkspaceFoldersEmitter.fire({ added, removed });
     }
 
-    protected toWorkspaceFolder(uriString: string, index: number): WorkspaceFolder {
-        const uri = Uri.parse(uriString);
-        const path = uri.path;
+    protected toWorkspaceFolder(root: workspace.WorkspaceFolder, index: number): WorkspaceFolder {
         return {
-            uri,
-            name: path.substring(path.lastIndexOf('/') + 1),
+            uri: Uri.parse(root.uri),
+            name: root.name,
             index
         };
     }

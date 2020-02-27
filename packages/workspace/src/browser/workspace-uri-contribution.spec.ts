@@ -28,15 +28,16 @@ import { DefaultUriLabelProviderContribution } from '@theia/core/lib/browser/lab
 import { WorkspaceUriLabelProviderContribution } from './workspace-uri-contribution';
 import URI from '@theia/core/lib/common/uri';
 import { WorkspaceVariableContribution } from './workspace-variable-contribution';
-import { WorkspaceService } from './workspace-service';
+import { WorkspaceService, WorkspaceFolder } from './workspace-service';
 
 after(() => disableJSDOM());
 
 let container: Container;
 let labelProvider: WorkspaceUriLabelProviderContribution;
-let roots: FileStat[];
+let roots: WorkspaceFolder[];
 beforeEach(() => {
     roots = [{
+        name: 'workspace',
         uri: 'file:///workspace',
         lastModification: 0,
         isDirectory: true

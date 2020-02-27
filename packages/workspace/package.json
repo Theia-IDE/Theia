@@ -6,7 +6,6 @@
     "@theia/core": "^0.15.0",
     "@theia/filesystem": "^0.15.0",
     "@theia/variable-resolver": "^0.15.0",
-    "ajv": "^6.5.3",
     "jsonc-parser": "^2.0.2",
     "moment": "^2.21.0",
     "valid-filename": "^2.0.1"

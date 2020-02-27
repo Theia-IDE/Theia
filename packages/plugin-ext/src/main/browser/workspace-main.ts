@@ -16,7 +16,7 @@
 
 import * as theia from '@theia/plugin';
 import { interfaces, injectable } from 'inversify';
-import { WorkspaceExt, StorageExt, MAIN_RPC_CONTEXT, WorkspaceMain, WorkspaceFolderPickOptionsMain } from '../../common/plugin-api-rpc';
+import { WorkspaceExt, StorageExt, MAIN_RPC_CONTEXT, WorkspaceMain, WorkspaceFolderPickOptionsMain, WorkspaceFolderData } from '../../common/plugin-api-rpc';
 import { RPCProtocol } from '../../common/rpc-protocol';
 import Uri from 'vscode-uri';
 import { UriComponents } from '../../common/uri-components';
@@ -25,7 +25,7 @@ import { MonacoQuickOpenService } from '@theia/monaco/lib/browser/monaco-quick-o
 import { FileStat } from '@theia/filesystem/lib/common';
 import { FileSearchService } from '@theia/file-search/lib/common/file-search-service';
 import URI from '@theia/core/lib/common/uri';
-import { WorkspaceService } from '@theia/workspace/lib/browser';
+import { WorkspaceService, WorkspaceFolder } from '@theia/workspace/lib/browser';
 import { Resource } from '@theia/core/lib/common/resource';
 import { Disposable, DisposableCollection } from '@theia/core/lib/common/disposable';
 import { Emitter, Event, ResourceResolver } from '@theia/core';
@@ -79,12 +79,14 @@ export class WorkspaceMainImpl implements WorkspaceMain, Disposable {
         this.toDispose.dispose();
     }
 
-    protected async processWorkspaceFoldersChanged(roots: FileStat[]): Promise<void> {
+    protected async processWorkspaceFoldersChanged(roots: WorkspaceFolder[]): Promise<void> {
         if (this.isAnyRootChanged(roots) === false) {
             return;
         }
         this.roots = roots;
-        this.proxy.$onWorkspaceFoldersChanged({ roots });
+        this.proxy.$onWorkspaceFoldersChanged({
+            roots: roots.map(({ uri, name }, index) => ({ uri: Uri.parse(uri), name, index }))
+        });
 
         const keyValueStorageWorkspacesData = await this.pluginServer.getAllStorageValues({
             workspace: this.workspaceService.workspace,
@@ -219,8 +221,11 @@ export class WorkspaceMainImpl implements WorkspaceMain, Disposable {
         this.resourceResolver.onContentChange(uri, content);
     }
 
-    async $updateWorkspaceFolders(start: number, deleteCount?: number, ...rootsToAdd: string[]): Promise<void> {
-        await this.workspaceService.spliceRoots(start, deleteCount, ...rootsToAdd.map(root => new URI(root)));
+    async $updateWorkspaceFolders(start: number, deleteCount?: number, ...rootsToAdd: WorkspaceFolderData[]): Promise<void> {
+        await this.workspaceService.spliceRoots(start, deleteCount, ...rootsToAdd.map(root => ({
+            uri: new URI(Uri.revive(root.uri).toString()),
+            name: root.name
+        })));
     }
 
 }

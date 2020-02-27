@@ -16,7 +16,6 @@
 
 import * as theia from '@theia/plugin';
 import { UriComponents } from './uri-components';
-import { FileStat } from '@theia/filesystem/lib/common';
 import { SymbolInformation } from 'vscode-languageserver-types';
 
 // Should contains internal Plugin API types
@@ -425,7 +424,7 @@ export interface DocumentSymbol {
 }
 
 export interface WorkspaceRootsChangeEvent {
-    roots: FileStat[];
+    roots: WorkspaceFolder[];
 }
 
 export interface WorkspaceFolder {

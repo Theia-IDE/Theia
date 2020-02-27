@@ -36,7 +36,6 @@ import { WorkspaceRootsChangeEvent, FileChangeEvent, FileMoveEvent, FileWillMove
 import { EditorsAndDocumentsExtImpl } from './editors-and-documents';
 import { InPluginFileSystemWatcherProxy } from './in-plugin-filesystem-watcher-proxy';
 import URI from 'vscode-uri';
-import { FileStat } from '@theia/filesystem/lib/common';
 import { normalize } from '@theia/languages/lib/common/language-selector/paths';
 import { relative } from '../common/paths-util';
 import { Schemes } from '../common/uri-components';
@@ -80,39 +79,29 @@ export class WorkspaceExtImpl implements WorkspaceExt {
 
     $onWorkspaceFoldersChanged(event: WorkspaceRootsChangeEvent): void {
         const newRoots = event.roots || [];
-        const newFolders = newRoots.map((root, index) => this.toWorkspaceFolder(root, index));
-        const delta = this.deltaFolders(this.folders, newFolders);
+        const newFolders = newRoots.map(({ uri, name, index }) => ({ uri: URI.revive(uri), name, index }));
+        const delta = this.deltaFolders(this.folders, newFolders, f => f.uri.toString());
 
         this.folders = newFolders;
 
         this.workspaceFoldersChangedEmitter.fire(delta);
     }
 
-    private deltaFolders(currentFolders: theia.WorkspaceFolder[] = [], newFolders: theia.WorkspaceFolder[] = []): {
+    private deltaFolders(currentFolders: theia.WorkspaceFolder[] = [], newFolders: theia.WorkspaceFolder[] = [], toKey: (folder: theia.WorkspaceFolder) => string): {
         added: theia.WorkspaceFolder[]
         removed: theia.WorkspaceFolder[]
     } {
-        const added = this.foldersDiff(newFolders, currentFolders);
-        const removed = this.foldersDiff(currentFolders, newFolders);
+        const added = this.foldersDiff(newFolders, currentFolders, toKey);
+        const removed = this.foldersDiff(currentFolders, newFolders, toKey);
         return { added, removed };
     }
 
-    private foldersDiff(folder1: theia.WorkspaceFolder[] = [], folder2: theia.WorkspaceFolder[] = []): theia.WorkspaceFolder[] {
+    private foldersDiff(folder1: theia.WorkspaceFolder[] = [], folder2: theia.WorkspaceFolder[] = [], toKey: (folder: theia.WorkspaceFolder) => string): theia.WorkspaceFolder[] {
         const map = new Map();
-        folder1.forEach(folder => map.set(folder.uri.toString(), folder));
-        folder2.forEach(folder => map.delete(folder.uri.toString()));
+        folder1.forEach(folder => map.set(toKey(folder), folder));
+        folder2.forEach(folder => map.delete(toKey(folder)));
 
-        return folder1.filter(folder => map.has(folder.uri.toString()));
-    }
-
-    private toWorkspaceFolder(root: FileStat, index: number): theia.WorkspaceFolder {
-        const uri = URI.parse(root.uri);
-        const path = new Path(uri.path);
-        return {
-            uri: uri,
-            name: path.base,
-            index: index
-        };
+        return folder1.filter(folder => map.has(toKey(folder)));
     }
 
     pickWorkspaceFolder(options?: theia.WorkspaceFolderPickOptions): PromiseLike<theia.WorkspaceFolder | undefined> {
@@ -297,12 +286,16 @@ export class WorkspaceExtImpl implements WorkspaceExt {
     }
 
     updateWorkspaceFolders(start: number, deleteCount: number, ...workspaceFoldersToAdd: { uri: theia.Uri, name?: string }[]): boolean {
-        const rootsToAdd = new Set<string>();
+        const rootsToAdd = new Map<string, { uri: theia.Uri, name: string }>();
         if (Array.isArray(workspaceFoldersToAdd)) {
             workspaceFoldersToAdd.forEach(folderToAdd => {
-                const uri = URI.isUri(folderToAdd.uri) && folderToAdd.uri.toString();
-                if (uri && !rootsToAdd.has(uri)) {
-                    rootsToAdd.add(uri);
+                const uri = folderToAdd.uri;
+                if (URI.isUri(uri)) {
+                    const key = uri.toString();
+                    if (!rootsToAdd.has(key)) {
+                        const name = folderToAdd.name || paths.basename(uri.path) || uri.authority;
+                        rootsToAdd.set(key, { uri, name });
+                    }
                 }
             });
         }
@@ -322,7 +315,7 @@ export class WorkspaceExtImpl implements WorkspaceExt {
 
         // Simulate the updateWorkspaceFolders method on our data to do more validation
         const newWorkspaceFolders = currentWorkspaceFolders.slice(0);
-        newWorkspaceFolders.splice(start, deleteCount, ...[...rootsToAdd].map(uri => ({ uri: URI.parse(uri), name: undefined!, index: undefined! })));
+        newWorkspaceFolders.splice(start, deleteCount, ...[...rootsToAdd.values()].map(({ uri, name }) => ({ uri, name, index: undefined! /* fixed later */ })));
 
         for (let i = 0; i < newWorkspaceFolders.length; i++) {
             const folder = newWorkspaceFolders[i];
@@ -331,13 +324,17 @@ export class WorkspaceExtImpl implements WorkspaceExt {
             }
         }
 
-        const { added, removed } = this.deltaFolders(currentWorkspaceFolders, newWorkspaceFolders);
+        newWorkspaceFolders.forEach((f, index) => Object.assign(f, { index })); // fix index
+        const { added, removed } = this.deltaFolders(currentWorkspaceFolders, newWorkspaceFolders,
+            // different if any property is changed, not only uri, i.e. workspace folder was renamed
+            f => JSON.stringify({ ...f, uri: f.uri.toString() })
+        );
         if (added.length === 0 && removed.length === 0) {
             return false; // nothing actually changed
         }
 
         // Trigger on main side
-        this.proxy.$updateWorkspaceFolders(start, deleteCount, ...rootsToAdd).then(undefined, error =>
+        this.proxy.$updateWorkspaceFolders(start, deleteCount, ...rootsToAdd.values()).then(undefined, error =>
             this.messageService.showMessage(MainMessageType.Error, `Failed to update workspace folders: ${error}`)
         );
 
