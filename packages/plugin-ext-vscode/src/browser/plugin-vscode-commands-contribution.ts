@@ -48,6 +48,8 @@ import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
 import { inject, injectable } from 'inversify';
 import { Position } from '@theia/plugin-ext/lib/common/plugin-api-rpc';
 import URI from 'vscode-uri';
+import { FileSystem, FileStat } from '@theia/filesystem/lib/common';
+import { MessageClient, MessageType } from '@theia/core/lib/common';
 
 export namespace VscodeCommands {
     export const OPEN: Command = {
@@ -89,6 +91,10 @@ export class PluginVscodeCommandsContribution implements CommandContribution {
     protected readonly quickOpen: PrefixQuickOpenService;
     @inject(WorkspaceService)
     protected readonly workspaceService: WorkspaceService;
+    @inject(FileSystem)
+    protected readonly fileSystem: FileSystem;
+    @inject(MessageClient)
+    protected readonly messages: MessageClient;
 
     registerCommands(commands: CommandRegistry): void {
         commands.registerCommand(VscodeCommands.OPEN, {
@@ -97,22 +103,39 @@ export class PluginVscodeCommandsContribution implements CommandContribution {
                 if (!resource) {
                     throw new Error(`${VscodeCommands.OPEN.id} command requires at least URI argument.`);
                 }
+
                 if (!URI.isUri(resource)) {
                     throw new Error(`Invalid argument for ${VscodeCommands.OPEN.id} command with URI argument. Found ${resource}`);
                 }
-
-                let options: TextDocumentShowOptions | undefined;
-                if (typeof columnOrOptions === 'number') {
-                    options = {
-                        viewColumn: columnOrOptions
-                    };
-                } else if (columnOrOptions) {
-                    options = {
-                        ...columnOrOptions
-                    };
+                if (await this.shouldCreateBeforeOpen(resource)) {
+                    const uri = new TheiaURI(resource);
+                    const msg = `Unable to open '${uri.displayName}': Unable to read file '${uri.path}'`;
+                    const createButton = 'Create File';
+                    this.messages.showMessage({ type: MessageType.Error, text: msg, actions: [`${createButton}`] })
+                        .then(res => {
+                            if (res === createButton) {
+                                this.getOrCreateDirectory(uri.parent).then(parent => {
+                                    if (parent) {
+                                        this.fileSystem.createFile(resource.toString()).then(async () => {
+                                            await this.openEditor(resource, columnOrOptions);
+                                        }).catch(error => {
+                                            this.messages.showMessage({
+                                                type: MessageType.Error,
+                                                text: `Unable to write file '${uri.path}'`
+                                            });
+                                        });
+                                    }
+                                }).catch(error => {
+                                    this.messages.showMessage({
+                                        type: MessageType.Error,
+                                        text: `Unable to write file '${uri.path}'`
+                                    });
+                                });
+                            }
+                        });
+                } else {
+                    await this.openEditor(resource, columnOrOptions);
                 }
-                const editorOptions = DocumentsMainImpl.toEditorOpenerOptions(this.shell, options);
-                await open(this.openerService, new TheiaURI(resource), editorOptions);
             }
         });
 
@@ -450,5 +473,40 @@ export class PluginVscodeCommandsContribution implements CommandContribution {
                     commands.executeCommand<CallHierarchyOutgoingCall[]>('_executeProvideOutgoingCalls', { item }))
             }
         );
+    }
+
+    protected async shouldCreateBeforeOpen(uri: URI): Promise<boolean> {
+        // Do not try to create a document which scheme is not a file
+        if (uri.scheme !== 'file') {
+            return false;
+        }
+        const stat = await this.fileSystem.getFileStat(uri.toString());
+        if (stat && !stat.isDirectory) {
+            return false;
+        }
+        return true;
+    }
+
+    protected async openEditor(uri: URI, columnOrOptions?: ViewColumn | TextDocumentShowOptions): Promise<object | undefined> {
+        let options: TextDocumentShowOptions | undefined;
+        if (typeof columnOrOptions === 'number') {
+            options = {
+                viewColumn: columnOrOptions
+            };
+        } else if (columnOrOptions) {
+            options = {
+                ...columnOrOptions
+            };
+        }
+        const editorOptions = DocumentsMainImpl.toEditorOpenerOptions(this.shell, options);
+        return open(this.openerService, new TheiaURI(uri), editorOptions);
+    }
+
+    protected async getOrCreateDirectory(uri: TheiaURI): Promise<FileStat | undefined> {
+        const stat = await this.fileSystem.getFileStat(uri.toString());
+        if (stat && stat.isDirectory) {
+            return stat;
+        }
+        return this.fileSystem.createFolder(uri.toString());
     }
 }
