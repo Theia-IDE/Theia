@@ -15,10 +15,12 @@
  ********************************************************************************/
 import { Event } from '@theia/core/lib/common/event';
 import { WidgetOpenerOptions } from '@theia/core/lib/browser';
-import { TerminalWidgetOptions, TerminalWidget } from './terminal-widget';
+import { TerminalWidgetOptions, TerminalWidget } from '../terminal-widget-impl';
 
 /**
  * Service manipulating terminal widgets.
+ * @since 1.1.0
+ * @deprecated Since 1.1.0. Use `TerminalFrontendContribution` instead.
  */
 export const TerminalService = Symbol('TerminalService');
 export interface TerminalService {

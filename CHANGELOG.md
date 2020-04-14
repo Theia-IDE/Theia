@@ -2,6 +2,8 @@
 
 ## v1.1.0
 
+- [task] deprecated `TerminalWidgetImpl` class. [#7546](https://github.com/eclipse-theia/theia/pull/7546)
+
 Breaking changes:
 
 - [core] Removed the `core.find` and `core.replace` commands as they did not work without the `@theia/monaco` extension, or an opened Monaco editor. Use the Monaco-specific `actions.find` and `editor.action.startFindReplaceAction` commands instead. [#7474](https://github.com/eclipse-theia/theia/issues/7474)

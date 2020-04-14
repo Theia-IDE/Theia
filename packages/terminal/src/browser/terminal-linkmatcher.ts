@@ -17,20 +17,20 @@
 import { injectable, inject } from 'inversify';
 import { isOSX, } from '@theia/core';
 import { TerminalContribution } from './terminal-contribution';
-import { TerminalWidgetImpl } from './terminal-widget-impl';
+import { TerminalWidget } from './terminal-widget-impl';
 import { open, OpenerService } from '@theia/core/lib/browser/opener-service';
 import URI from '@theia/core/lib/common/uri';
 
 @injectable()
 export abstract class AbstractCmdClickTerminalContribution implements TerminalContribution {
 
-    abstract getRegExp(terminalWidget: TerminalWidgetImpl): Promise<RegExp>;
-    abstract getHandler(terminalWidget: TerminalWidgetImpl): (event: MouseEvent, text: string) => void;
-    getValidate(terminalWidget: TerminalWidgetImpl): (text: string) => Promise<boolean> {
+    abstract getRegExp(terminalWidget: TerminalWidget): Promise<RegExp>;
+    abstract getHandler(terminalWidget: TerminalWidget): (event: MouseEvent, text: string) => void;
+    getValidate(terminalWidget: TerminalWidget): (text: string) => Promise<boolean> {
         return () => Promise.resolve(true);
     }
 
-    async onCreate(terminalWidget: TerminalWidgetImpl): Promise<void> {
+    async onCreate(terminalWidget: TerminalWidget): Promise<void> {
         const term = terminalWidget.getTerminal();
         const regexp = await this.getRegExp(terminalWidget);
         const handler = this.getHandler(terminalWidget);

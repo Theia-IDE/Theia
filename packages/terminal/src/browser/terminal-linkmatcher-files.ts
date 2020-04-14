@@ -20,7 +20,7 @@ import { OS } from '@theia/core/lib/common';
 import { OpenerService } from '@theia/core/lib/browser';
 import { Position } from '@theia/editor/lib/browser';
 import { AbstractCmdClickTerminalContribution } from './terminal-linkmatcher';
-import { TerminalWidgetImpl } from './terminal-widget-impl';
+import { TerminalWidget } from './terminal-widget-impl';
 import { Path } from '@theia/core';
 import { FileSystem } from '@theia/filesystem/lib/common';
 import URI from '@theia/core/lib/common/uri';
@@ -45,7 +45,7 @@ export class TerminalLinkmatcherFiles extends AbstractCmdClickTerminalContributi
         return new RegExp(`${baseLocalLinkClause}(${lineAndColumnClause})`);
     }
 
-    getValidate(terminalWidget: TerminalWidgetImpl): (link: string) => Promise<boolean> {
+    getValidate(terminalWidget: TerminalWidget): (link: string) => Promise<boolean> {
         return async match => {
             try {
                 const toOpen = await this.toURI(match, await terminalWidget.cwd);
@@ -62,7 +62,7 @@ export class TerminalLinkmatcherFiles extends AbstractCmdClickTerminalContributi
         };
     }
 
-    getHandler(terminalWidget: TerminalWidgetImpl): (event: MouseEvent, link: string) => void {
+    getHandler(terminalWidget: TerminalWidget): (event: MouseEvent, link: string) => void {
         return async (event, fullMatch) => {
             const toOpen = await this.toURI(fullMatch, await terminalWidget.cwd);
             if (!toOpen) {

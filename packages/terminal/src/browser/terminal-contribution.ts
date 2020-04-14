@@ -14,9 +14,9 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { TerminalWidgetImpl } from './terminal-widget-impl';
+import { TerminalWidget } from './terminal-widget-impl';
 
 export const TerminalContribution = Symbol('TerminalContribution');
 export interface TerminalContribution {
-    onCreate(term: TerminalWidgetImpl): void;
+    onCreate(term: TerminalWidget): void;
 }

@@ -27,7 +27,7 @@ import { DebugSession } from '@theia/debug/lib/browser/debug-session';
 import { DebugSessionConnection } from '@theia/debug/lib/browser/debug-session-connection';
 import { IWebSocket } from 'vscode-ws-jsonrpc/lib/socket/socket';
 import { FileSystem } from '@theia/filesystem/lib/common';
-import { TerminalWidgetOptions, TerminalWidget } from '@theia/terminal/lib/browser/base/terminal-widget';
+import { TerminalWidgetOptions, TerminalWidget } from '@theia/terminal/lib/browser/terminal-widget-impl';
 import { TerminalOptionsExt } from '../../../common/plugin-api-rpc';
 
 export class PluginDebugSession extends DebugSession {

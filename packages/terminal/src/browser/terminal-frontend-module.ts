@@ -23,8 +23,7 @@ import { bindContributionProvider } from '@theia/core';
 import { KeybindingContribution, WebSocketConnectionProvider, WidgetFactory, KeybindingContext, QuickOpenContribution } from '@theia/core/lib/browser';
 import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { TerminalFrontendContribution } from './terminal-frontend-contribution';
-import { TerminalWidgetImpl, TERMINAL_WIDGET_FACTORY_ID } from './terminal-widget-impl';
-import { TerminalWidget, TerminalWidgetOptions } from './base/terminal-widget';
+import { TerminalWidget, TERMINAL_WIDGET_FACTORY_ID, TerminalWidgetOptions } from './terminal-widget-impl';
 import { ITerminalServer, terminalPath } from '../common/terminal-protocol';
 import { TerminalWatcher } from '../common/terminal-watcher';
 import { IShellTerminalServer, shellTerminalPath, ShellTerminalServerProxy } from '../common/shell-terminal-protocol';
@@ -48,7 +47,7 @@ export default new ContainerModule(bind => {
     bind(KeybindingContext).to(TerminalActiveContext).inSingletonScope();
     bind(KeybindingContext).to(TerminalSearchVisibleContext).inSingletonScope();
 
-    bind(TerminalWidget).to(TerminalWidgetImpl).inTransientScope();
+    bind(TerminalWidget).to(TerminalWidget).inTransientScope();
     bind(TerminalWatcher).toSelf().inSingletonScope();
 
     let terminalNum = 0;

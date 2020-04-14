@@ -18,14 +18,13 @@ import { Terminal, RendererType } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { inject, injectable, named, postConstruct } from 'inversify';
 import { ContributionProvider, Disposable, Event, Emitter, ILogger, DisposableCollection } from '@theia/core';
-import { Widget, Message, WebSocketConnectionProvider, StatefulWidget, isFirefox, MessageLoop, KeyCode } from '@theia/core/lib/browser';
+import { BaseWidget, Widget, Message, WebSocketConnectionProvider, StatefulWidget, isFirefox, MessageLoop, KeyCode } from '@theia/core/lib/browser';
 import { isOSX } from '@theia/core/lib/common';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { ShellTerminalServerProxy } from '../common/shell-terminal-protocol';
 import { terminalsPath } from '../common/terminal-protocol';
 import { IBaseTerminalServer, TerminalProcessInfo } from '../common/base-terminal-protocol';
 import { TerminalWatcher } from '../common/terminal-watcher';
-import { TerminalWidgetOptions, TerminalWidget } from './base/terminal-widget';
 import { MessageConnection } from 'vscode-jsonrpc';
 import { Deferred } from '@theia/core/lib/common/promise-util';
 import { TerminalPreferences, TerminalRendererType, isTerminalRendererType, DEFAULT_TERMINAL_RENDERER_TYPE, CursorStyle } from './terminal-preferences';
@@ -39,13 +38,72 @@ import { CommandLineOptions, ShellCommandBuilder } from '@theia/process/lib/comm
 
 export const TERMINAL_WIDGET_FACTORY_ID = 'terminal';
 
+/**
+ * Terminal widget options.
+ */
+export const TerminalWidgetOptions = Symbol('TerminalWidgetOptions');
+export interface TerminalWidgetOptions {
+
+    /**
+     * Human readable terminal representation on the UI.
+     */
+    readonly title?: string;
+
+    /**
+     * Path to the executable shell. For example: `/bin/bash`, `bash`, `sh`.
+     */
+    readonly shellPath?: string;
+
+    /**
+     * Shell arguments to executable shell, for example: [`-l`] - without login.
+     */
+    readonly shellArgs?: string[];
+
+    /**
+     * Current working directory.
+     */
+    readonly cwd?: string;
+
+    /**
+     * Environment variables for terminal.
+     */
+    readonly env?: { [key: string]: string | null };
+
+    /**
+     * In case `destroyTermOnClose` is true - terminal process will be destroyed on close terminal widget, otherwise will be kept
+     * alive.
+     */
+    readonly destroyTermOnClose?: boolean;
+
+    /**
+     * Terminal server side can send to the client `terminal title` to display this value on the UI. If
+     * useServerTitle = true then display this title, otherwise display title defined by 'title' argument.
+     */
+    readonly useServerTitle?: boolean;
+
+    /**
+     * Terminal id. Should be unique for all DOM.
+     */
+    readonly id?: string;
+
+    /**
+     * Terminal attributes. Can be useful to apply some implementation specific information.
+     */
+    readonly attributes?: { [key: string]: string | null };
+
+    /**
+     * Terminal kind that indicates whether a terminal is created by a user or by some extension for a user
+     */
+    readonly kind?: 'user' | string;
+}
+
 export interface TerminalWidgetFactoryOptions extends Partial<TerminalWidgetOptions> {
     /* a unique string per terminal */
     created: string
 }
 
 @injectable()
-export class TerminalWidgetImpl extends TerminalWidget implements StatefulWidget {
+export class TerminalWidget extends BaseWidget implements StatefulWidget {
 
     private readonly TERMINAL = 'Terminal';
     protected terminalKind = 'user';
@@ -607,3 +665,9 @@ export class TerminalWidgetImpl extends TerminalWidget implements StatefulWidget
         this.title.label = title;
     }
 }
+
+/**
+ * @since 1.1.0
+ * @deprecated since 1.1.0. Use `TerminalWidget` instead.
+ */
+export class TerminalWidgetImpl extends TerminalWidget { }
