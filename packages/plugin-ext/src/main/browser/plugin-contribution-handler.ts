@@ -274,7 +274,7 @@ export class PluginContributionHandler {
         if (contributions.taskDefinitions) {
             for (const taskDefinition of contributions.taskDefinitions) {
                 pushContribution(`taskDefinitions.${taskDefinition.taskType}`,
-                    () => this.taskDefinitionRegistry.register(taskDefinition)
+                    () => this.taskDefinitionRegistry.register({ ...taskDefinition, pluginOrExtensionId: plugin.metadata.model.id })
                 );
             }
         }

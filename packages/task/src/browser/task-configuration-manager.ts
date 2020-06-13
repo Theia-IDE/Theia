@@ -24,7 +24,7 @@ import { QuickPickService } from '@theia/core/lib/common/quick-pick-service';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { TaskConfigurationModel } from './task-configuration-model';
 import { TaskTemplateSelector } from './task-templates';
-import { TaskCustomization, TaskConfiguration, TaskConfigurationScope, TaskScope } from '../common/task-protocol';
+import { TaskCustomization, TaskConfiguration, TaskConfigurationScope, TaskScope, CustomizedTaskTemplate } from '../common/task-protocol';
 import { WorkspaceVariableContribution } from '@theia/workspace/lib/browser/workspace-variable-contribution';
 import { FileSystem, FileSystemError } from '@theia/filesystem/lib/common';
 import { FileChangeType } from '@theia/filesystem/lib/common/filesystem-watcher-protocol';
@@ -139,7 +139,7 @@ export class TaskConfigurationManager {
         }
     }
 
-    async addTaskConfiguration(scope: TaskConfigurationScope, taskConfig: TaskCustomization): Promise<boolean> {
+    async addTaskConfiguration(scope: TaskConfigurationScope, taskConfig: CustomizedTaskTemplate): Promise<boolean> {
         const taskPrefModel = this.getModel(scope);
         if (taskPrefModel) {
             const configurations = taskPrefModel.configurations;
@@ -148,7 +148,7 @@ export class TaskConfigurationManager {
         return false;
     }
 
-    async setTaskConfigurations(scope: TaskConfigurationScope, taskConfigs: (TaskCustomization | TaskConfiguration)[]): Promise<boolean> {
+    async setTaskConfigurations(scope: TaskConfigurationScope, taskConfigs: CustomizedTaskTemplate[]): Promise<boolean> {
         const taskPrefModel = this.getModel(scope);
         if (taskPrefModel) {
             return taskPrefModel.setConfigurations(taskConfigs);

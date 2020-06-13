@@ -303,7 +303,10 @@ export class TaskFrontendContribution implements CommandContribution, MenuContri
         registry.registerCommand(
             TaskCommands.TASK_CLEAR_HISTORY,
             {
-                execute: () => this.taskService.clearRecentTasks()
+                execute: () => {
+                    this.taskService.clearRecentTasks();
+                    this.taskService.clearLastTask();
+                }
             }
         );
 

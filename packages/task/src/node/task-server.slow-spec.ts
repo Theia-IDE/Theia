@@ -370,6 +370,7 @@ describe('Task server / back-end', function (): void {
 
 function createTaskConfig(taskType: string, command: string, args: string[]): TaskConfiguration {
     const options: TaskConfiguration = {
+        id: { _key: 'id', type: taskType },
         label: 'test task',
         type: taskType,
         _source: '/source/folder',
@@ -383,6 +384,7 @@ function createTaskConfig(taskType: string, command: string, args: string[]): Ta
 
 function createProcessTaskConfig(processType: ProcessType, command: string, args?: string[], cwd: string = wsRoot): TaskConfiguration {
     return <ProcessTaskConfiguration>{
+        id: { _key: 'id', type: processType },
         label: 'test task',
         type: processType,
         _source: '/source/folder',
@@ -406,6 +408,7 @@ function createProcessTaskConfig2(processType: ProcessType, command: string, arg
 
 function createTaskConfigTaskLongRunning(processType: ProcessType): TaskConfiguration {
     return <ProcessTaskConfiguration>{
+        id: { _key: 'id', type: processType },
         label: '[Task] long running test task (~300s)',
         type: processType,
         _source: '/source/folder',

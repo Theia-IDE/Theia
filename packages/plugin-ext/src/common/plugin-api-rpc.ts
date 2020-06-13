@@ -1162,7 +1162,14 @@ export interface CommandProperties {
     };
 }
 
+export interface TaskDefinitionDto {
+    type: string;
+    [name: string]: any;
+}
+
 export interface TaskDto {
+    id: string;
+    definition: TaskDefinitionDto;
     type: string;
     label: string;
     source?: string;

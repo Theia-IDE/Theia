@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (C) 2017 Ericsson and others.
+ * Copyright (C) 2020 Ericsson and others.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0 which is available at
@@ -14,10 +14,17 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-export * from './task-service';
-export * from './task-contribution';
-export * from './task-definition-registry';
-export * from './task-problem-matcher-registry';
-export * from './task-problem-pattern-registry';
-export * from './task-schema-updater';
-export * from './task-identifier-resolver';
+import { inject, injectable } from 'inversify';
+import { TaskIdentifier, KeyedTaskIdentifier } from '../common/task-protocol';
+import { TaskDefinitionRegistry } from './task-definition-registry';
+
+@injectable()
+export class TaskIdentifierResolver {
+    @inject(TaskDefinitionRegistry)
+    protected taskDefinitionRegistry: TaskDefinitionRegistry;
+
+    createKeyedIdentifier(identifier: TaskIdentifier): KeyedTaskIdentifier {
+        const definition = this.taskDefinitionRegistry.getDefinitions(identifier.type)[0];
+        return KeyedTaskIdentifier.createKeyedIdentifier(identifier, definition);
+    }
+}

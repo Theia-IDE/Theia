@@ -1608,6 +1608,10 @@ export enum TaskScope {
 }
 
 export class Task {
+    private static ProcessType: string = 'process';
+    private static ShellType: string = 'shell';
+    private static EmptyType: string = '$empty';
+
     private taskDefinition: theia.TaskDefinition;
     private taskScope: theia.TaskScope.Global | theia.TaskScope.Workspace | theia.WorkspaceFolder | undefined;
     private taskName: string;
@@ -1794,14 +1798,20 @@ export class Task {
     private updateDefinitionBasedOnExecution(): void {
         if (this.taskExecution instanceof ProcessExecution) {
             Object.assign(this.taskDefinition, {
-                type: 'process',
+                type: Task.ProcessType,
                 id: this.taskExecution.computeId(),
                 taskType: this.taskDefinition!.type
             });
         } else if (this.taskExecution instanceof ShellExecution) {
             Object.assign(this.taskDefinition, {
-                type: 'shell',
+                type: Task.ShellType,
                 id: this.taskExecution.computeId(),
+                taskType: this.taskDefinition!.type
+            });
+        } else {
+            Object.assign(this.taskDefinition, {
+                type: Task.EmptyType,
+                id: UUID.uuid4(),
                 taskType: this.taskDefinition!.type
             });
         }

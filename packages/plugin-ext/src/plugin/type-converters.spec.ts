@@ -178,8 +178,15 @@ describe('Type converters:', () => {
         const args = ['run', 'build'];
         const cwd = '/projects/theia';
         const additionalProperty = 'some property';
+        const id = 'id';
 
         const shellTaskDto: TaskDto = {
+            id,
+            definition: {
+                id,
+                type: shellType,
+                additionalProperty
+            },
             type: shellType,
             label,
             source,
@@ -191,6 +198,12 @@ describe('Type converters:', () => {
         };
 
         const shellTaskDtoWithCommandLine: TaskDto = {
+            id,
+            definition: {
+                type: shellType,
+                id,
+                additionalProperty
+            },
             type: shellType,
             label,
             source,
@@ -206,6 +219,7 @@ describe('Type converters:', () => {
             scope: 1,
             definition: {
                 type: shellType,
+                id,
                 additionalProperty
             },
             execution: {
@@ -222,6 +236,7 @@ describe('Type converters:', () => {
             source,
             scope: 2,
             definition: {
+                id,
                 type: shellType,
                 additionalProperty
             },
@@ -233,12 +248,29 @@ describe('Type converters:', () => {
             }
         };
 
-        const customTaskDto: TaskDto = { ...shellTaskDto, type: customType };
+        const customTaskDto: TaskDto = {
+            ...shellTaskDto,
+            type: customType,
+            definition: {
+                type: customType,
+                id,
+                additionalProperty
+            }
+        };
 
-        const customTaskDtoWithCommandLine: TaskDto = { ...shellTaskDtoWithCommandLine, type: customType };
+        const customTaskDtoWithCommandLine: TaskDto = {
+            ...shellTaskDtoWithCommandLine,
+            type: customType,
+            definition: {
+                type: customType,
+                id,
+                additionalProperty
+            }
+        };
 
         const customPluginTask: theia.Task = {
             ...shellPluginTask, definition: {
+                id,
                 type: customType,
                 additionalProperty
             }
@@ -249,6 +281,7 @@ describe('Type converters:', () => {
             source,
             scope: 2,
             definition: {
+                id,
                 type: customType,
                 additionalProperty
             },

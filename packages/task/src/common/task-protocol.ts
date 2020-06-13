@@ -14,8 +14,10 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
+import { UUID } from '@phosphor/coreutils/lib/uuid';
 import { JsonRpcServer } from '@theia/core/lib/common/messaging/proxy-factory';
 import { IJSONSchema } from '@theia/core/lib/common/json-schema';
+import { deepClone } from '@theia/core/lib/common';
 import { ProblemMatcher, ProblemMatch, WatchingPattern } from './problem-matcher-protocol';
 
 export const taskPath = '/services/task';
@@ -111,7 +113,7 @@ export namespace TaskOutputPresentation {
     }
 }
 
-export interface TaskCustomization {
+export interface CustomizedTaskTemplate {
     type: string;
     group?: 'build' | 'test' | 'none' | { kind: 'build' | 'test' | 'none', isDefault: true };
     problemMatcher?: string | ProblemMatcherContribution | (string | ProblemMatcherContribution)[];
@@ -128,6 +130,10 @@ export interface TaskCustomization {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [name: string]: any;
+}
+
+export interface TaskCustomization extends CustomizedTaskTemplate {
+    id: KeyedTaskIdentifier;
 }
 export namespace TaskCustomization {
     export function isBuildTask(task: TaskCustomization): boolean {
@@ -155,7 +161,6 @@ export enum TaskScope {
 export type TaskConfigurationScope = string | TaskScope.Workspace | TaskScope.Global;
 
 export interface TaskConfiguration extends TaskCustomization {
-    /** A label that uniquely identifies a task configuration per source */
     readonly label: string;
     readonly _scope: TaskConfigurationScope;
 }
@@ -173,6 +178,91 @@ export interface ContributedTaskConfiguration extends TaskConfiguration {
 export interface TaskIdentifier {
     type: string;
     [name: string]: string;
+}
+export interface KeyedTaskIdentifier extends TaskIdentifier {
+    _key: string;
+}
+
+// Functions in this namespace are inspired by VS Code https://github.com/microsoft/vscode/blob/1.45.1/src/vs/workbench/contrib/tasks/common/tasks.ts
+// 'tasks.ts' copyright:
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+export namespace KeyedTaskIdentifier {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function sortedStringify(literal: any): string {
+        const keys = Object.keys(literal).sort();
+        let result: string = '';
+        for (const key of keys) {
+            let stringified = literal[key];
+            if (stringified instanceof Object) {
+                stringified = sortedStringify(stringified);
+            } else if (typeof stringified === 'string') {
+                stringified = stringified.replace(/,/g, ',,');
+            }
+            result += key + ',' + stringified + ',';
+        }
+        return result;
+    }
+
+    function doCreateKeyedIdentifier(value: TaskIdentifier): KeyedTaskIdentifier {
+        const resultKey = sortedStringify(value);
+        const result = { _key: resultKey, type: value.taskType };
+        return { ...result, ...value };
+    }
+
+    export function createKeyedIdentifier(identifier: TaskIdentifier, definition: TaskDefinition | undefined): KeyedTaskIdentifier {
+        if (!definition) {
+            // We have no task definition so we can't sanitize the literal.
+            return {
+                type: identifier.type,
+                _key: UUID.uuid4()
+            };
+        }
+
+        const literal: {
+            type: string;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            [name: string]: any;
+        } = { type: identifier.type };
+        const required: Set<string> = new Set(definition.properties.required);
+
+        for (const property of definition.properties.all) {
+            const value = identifier[property];
+            // eslint-disable-next-line no-null/no-null
+            if (value !== undefined && value !== null) {
+                literal[property] = value;
+            } else if (required.has(property)) {
+                const schema = definition.properties.schema.properties![property];
+                if (schema.default !== undefined) {
+                    literal[property] = deepClone(schema.default);
+                } else {
+                    switch (schema.type) {
+                        case 'boolean':
+                            literal[property] = false;
+                            break;
+                        case 'number':
+                        case 'integer':
+                            literal[property] = 0;
+                            break;
+                        case 'string':
+                            literal[property] = '';
+                            break;
+                        default:
+                            console.error(`Error: the task identifier '${JSON.stringify(identifier, undefined, 0)}' is missing the required property '${property}'.
+                                The task identifier will be ignored.`);
+                    }
+                }
+            }
+        }
+        let createdIdentifier = doCreateKeyedIdentifier(literal);
+        const pluginOrExtensionId = definition.pluginOrExtensionId;
+        if (pluginOrExtensionId) {
+            createdIdentifier = { ...createdIdentifier, _key: `${pluginOrExtensionId}.${createdIdentifier._key}` };
+        }
+        return createdIdentifier;
+    }
 }
 
 /** Runtime information about Task. */
@@ -263,7 +353,11 @@ export interface TaskClient {
     onBackgroundTaskEnded(event: BackgroundTaskEndedEvent): void;
 }
 
-export interface TaskDefinition {
+export interface TaskDefinition extends TaskDefinitionContibution {
+    pluginOrExtensionId?: string;
+}
+
+export interface TaskDefinitionContibution {
     taskType: string;
     source: string;
     properties: {

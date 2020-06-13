@@ -49,9 +49,10 @@ import {
     RevealKind,
     ApplyToKind,
     TaskOutputPresentation,
-    TaskConfigurationScope
+    TaskConfigurationScope,
+    TaskWatcher,
+    KeyedTaskIdentifier,
 } from '../common';
-import { TaskWatcher } from '../common/task-watcher';
 import { ProvidedTaskConfigurations } from './provided-task-configurations';
 import { TaskConfigurationClient, TaskConfigurations } from './task-configurations';
 import { TaskResolverRegistry } from './task-contribution';
@@ -65,6 +66,7 @@ import { PROBLEMS_WIDGET_ID, ProblemWidget } from '@theia/markers/lib/browser/pr
 import { TaskNode } from './task-node';
 import { MonacoWorkspace } from '@theia/monaco/lib/browser/monaco-workspace';
 import { TaskTerminalWidgetManager } from './task-terminal-widget-manager';
+import { TaskIdentifierResolver } from './task-identifier-resolver';
 
 export interface QuickPickProblemMatcherItem {
     problemMatchers: NamedProblemMatcher[] | undefined;
@@ -92,7 +94,7 @@ export class TaskService implements TaskConfigurationClient {
     /**
      * The last executed task.
      */
-    protected lastTask: { source: string, taskLabel: string, scope: TaskConfigurationScope } | undefined = undefined;
+    protected lastTask: { source: string, taskLabel: string, scope: TaskConfigurationScope, key: string } | undefined = undefined;
     protected cachedRecentTasks: TaskConfiguration[] = [];
     protected runningTasks = new Map<number, {
         exitCode: Deferred<number | undefined>,
@@ -180,6 +182,9 @@ export class TaskService implements TaskConfigurationClient {
 
     @inject(TaskTerminalWidgetManager)
     protected readonly taskTerminalWidgetManager: TaskTerminalWidgetManager;
+
+    @inject(TaskIdentifierResolver)
+    protected readonly taskIdentifierResolver: TaskIdentifierResolver;
 
     @postConstruct()
     protected init(): void {
@@ -386,7 +391,7 @@ export class TaskService implements TaskConfigurationClient {
         if (Array.isArray(tasks)) {
             tasks.forEach(task => this.addRecentTasks(task));
         } else {
-            const ind = this.cachedRecentTasks.findIndex(recent => this.taskDefinitionRegistry.compareTasks(recent, tasks));
+            const ind = this.cachedRecentTasks.findIndex(recent => recent.id._key === tasks.id._key);
             if (ind >= 0) {
                 this.cachedRecentTasks.splice(ind, 1);
             }
@@ -410,6 +415,13 @@ export class TaskService implements TaskConfigurationClient {
     }
 
     /**
+     * Clears the task that was most recently run.
+     */
+    clearLastTask(): void {
+        this.lastTask = undefined;
+    }
+
+    /**
      * Open user ser
      */
     openUserTasks(): Promise<void> {
@@ -422,6 +434,10 @@ export class TaskService implements TaskConfigurationClient {
      */
     async getProvidedTask(source: string, label: string, scope: TaskConfigurationScope): Promise<TaskConfiguration | undefined> {
         return this.providedTaskConfigurations.getTask(source, label, scope);
+    }
+
+    async getProvidedTaskById(id: KeyedTaskIdentifier): Promise<TaskConfiguration | undefined> {
+        return this.providedTaskConfigurations.getTaskById(id);
     }
 
     /** Returns an array of running tasks 'TaskInfo' objects */
@@ -439,7 +455,7 @@ export class TaskService implements TaskConfigurationClient {
      *
      * @returns the last executed task or `undefined`.
      */
-    getLastTask(): { source: string, taskLabel: string, scope: TaskConfigurationScope } | undefined {
+    getLastTask(): { source: string, taskLabel: string, scope: TaskConfigurationScope, key: string } | undefined {
         return this.lastTask;
     }
 
@@ -464,24 +480,56 @@ export class TaskService implements TaskConfigurationClient {
         if (!this.lastTask) {
             return;
         }
-        const { source, taskLabel, scope } = this.lastTask;
-        return this.run(source, taskLabel, scope);
+        const { source, taskLabel, scope, key } = this.lastTask;
+        let ret = await this.run({ type: '', _key: key });
+        if (!ret) {
+            ret = await this.run(source, taskLabel, scope);
+        }
+        return ret;
+    }
+
+    protected async findTaskConfigById(id: KeyedTaskIdentifier): Promise<TaskConfiguration | undefined> {
+        let task: TaskConfiguration | undefined;
+        task = this.taskConfigurations.getTaskById(id);
+        if (!task) { // if a configured task cannot be found, search from detected tasks
+            task = await this.getProvidedTaskById(id);
+        }
+        if (!task) { // find from the customized detected tasks
+            task = await this.taskConfigurations.getCustomizedTaskById(id);
+        }
+        return task;
+    }
+
+    protected async findTaskConfig(source: string, taskLabel: string, scope: TaskConfigurationScope): Promise<TaskConfiguration | undefined> {
+        let task: TaskConfiguration | undefined;
+        task = this.taskConfigurations.getTask(scope, taskLabel);
+        if (!task) { // if a configured task cannot be found, search from detected tasks
+            task = await this.getProvidedTask(source, taskLabel, scope);
+        }
+        if (!task) { // find from the customized detected tasks
+            task = await this.taskConfigurations.getCustomizedTask(scope, taskLabel);
+        }
+        return task;
     }
 
     /**
      * Runs a task, by the source and label of the task configuration.
      * It looks for configured and detected tasks.
      */
-    async run(source: string, taskLabel: string, scope: TaskConfigurationScope): Promise<TaskInfo | undefined> {
+    async run(id: KeyedTaskIdentifier): Promise<TaskInfo | undefined>;
+    async run(source: string, taskLabel: string, scope: TaskConfigurationScope): Promise<TaskInfo | undefined>;
+    async run(arg1: KeyedTaskIdentifier | string, taskLabel?: string, scope?: TaskConfigurationScope): Promise<TaskInfo | undefined> {
         let task: TaskConfiguration | undefined;
-        task = this.taskConfigurations.getTask(scope, taskLabel);
-        if (!task) { // if a configured task cannot be found, search from detected tasks
-            task = await this.getProvidedTask(source, taskLabel, scope);
-            if (!task) { // find from the customized detected tasks
-                task = await this.taskConfigurations.getCustomizedTask(scope, taskLabel);
-            }
+        if (typeof arg1 === 'string') {
+            task = await this.findTaskConfig(arg1, taskLabel!, scope!);
             if (!task) {
                 this.logger.error(`Can't get task launch configuration for label: ${taskLabel}`);
+                return;
+            }
+        } else {
+            task = await this.findTaskConfigById(arg1);
+            if (!task) {
+                this.logger.error(`Can't get task launch configuration for id: ${JSON.stringify(arg1)}`);
                 return;
             }
         }
@@ -658,18 +706,13 @@ export class TaskService implements TaskConfigurationClient {
             // TaskIdentifier object does not support tasks of type 'shell' (The same behavior as in VS Code).
             // So if we want the 'dependsOn' property to include tasks of type 'shell',
             // then we must mention their labels (in the 'dependsOn' property) and not to create a task identifier object for them.
-            const taskDefinition = this.taskDefinitionRegistry.getDefinition(taskIdentifier);
-            if (taskDefinition) {
-                currentTaskChildConfiguration = this.getTaskByTaskIdentifierAndTaskDefinition(taskDefinition, taskIdentifier, tasks);
-                if (!currentTaskChildConfiguration.type) {
-                    this.messageService.error(notEnoughDataError);
-                    throw new Error(notEnoughDataError);
-                }
-                return currentTaskChildConfiguration;
-            } else {
-                this.messageService.error(notEnoughDataError);
-                throw new Error(notEnoughDataError);
+            const key = this.taskIdentifierResolver.createKeyedIdentifier(taskIdentifier)._key;
+            const matchedTask = tasks.find(t => t.id._key === key);
+            if (matchedTask) {
+                return matchedTask;
             }
+            this.messageService.error(notEnoughDataError);
+            throw new Error(notEnoughDataError);
         } else {
             currentTaskChildConfiguration = tasks.filter(t => taskIdentifier === this.taskNameResolver.resolve(t))[0];
             return currentTaskChildConfiguration;
@@ -710,7 +753,7 @@ export class TaskService implements TaskConfigurationClient {
             return relevantTasks[0];
         } else {
             // return empty TaskConfiguration
-            return { 'label': '', '_scope': '', 'type': '' };
+            return { id: { _key: '', type: '' }, label: '', _scope: '', type: '' };
         }
     }
 
@@ -883,7 +926,7 @@ export class TaskService implements TaskConfigurationClient {
     }
 
     protected async getTaskCustomization(task: TaskConfiguration): Promise<TaskCustomization> {
-        const customizationObject: TaskCustomization = { type: '', _scope: task._scope };
+        const customizationObject: TaskCustomization = { type: '', _scope: task._scope, id: task.id };
         const customizationFound = this.taskConfigurations.getCustomizationForTask(task);
         if (customizationFound) {
             Object.assign(customizationObject, customizationFound);
@@ -935,7 +978,7 @@ export class TaskService implements TaskConfigurationClient {
         const taskLabel = resolvedTask.label;
         try {
             const taskInfo = await this.taskServer.run(resolvedTask, this.getContext(), option);
-            this.lastTask = { source, taskLabel, scope: resolvedTask._scope };
+            this.lastTask = { source, taskLabel, scope: resolvedTask._scope, key: taskInfo.config.id._key };
             this.logger.debug(`Task created. Task id: ${taskInfo.taskId}`);
 
             /**

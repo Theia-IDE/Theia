@@ -22,7 +22,7 @@ import { ExtPluginApi } from './plugin-ext-api-contribution';
 import { IJSONSchema, IJSONSchemaSnippet } from '@theia/core/lib/common/json-schema';
 import { RecursivePartial } from '@theia/core/lib/common/types';
 import { PreferenceSchema, PreferenceSchemaProperties } from '@theia/core/lib/common/preferences/preference-schema';
-import { ProblemMatcherContribution, ProblemPatternContribution, TaskDefinition } from '@theia/task/lib/common';
+import { ProblemMatcherContribution, ProblemPatternContribution, TaskDefinitionContibution } from '@theia/task/lib/common';
 import { FileStat } from '@theia/filesystem/lib/common';
 import { ColorDefinition } from '@theia/core/lib/browser/color-registry';
 
@@ -477,7 +477,7 @@ export interface PluginContribution {
     themes?: ThemeContribution[];
     iconThemes?: IconThemeContribution[];
     colors?: ColorDefinition[];
-    taskDefinitions?: TaskDefinition[];
+    taskDefinitions?: TaskDefinitionContibution[];
     problemMatchers?: ProblemMatcherContribution[];
     problemPatterns?: ProblemPatternContribution[];
 }

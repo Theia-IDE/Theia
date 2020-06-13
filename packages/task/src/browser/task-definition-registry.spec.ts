@@ -83,8 +83,9 @@ describe('TaskDefinitionRegistry', () => {
         it('should return undefined if the given task configuration does not match any registered definitions', () => {
             registry.register(definitionContributionA);
             registry.register(definitionContributionB);
+            const type = definitionContributionA.taskType;
             const defs = registry.getDefinition({
-                type: definitionContributionA.taskType, label: 'grunt task', task: 'build'
+                type, label: 'grunt task', task: 'build', id: { type, _key: '' }
             });
             expect(defs).to.be.not.ok;
         });
@@ -92,14 +93,15 @@ describe('TaskDefinitionRegistry', () => {
         it('should return the best match if there is one or more registered definitions match the given task configuration', () => {
             registry.register(definitionContributionA);
             registry.register(definitionContributionB);
+            const type = definitionContributionA.taskType;
             const defs = registry.getDefinition({
-                type: definitionContributionA.taskType, label: 'extension task', extensionType: 'extensionType', taskLabel: 'taskLabel'
+                type, label: 'extension task', extensionType: 'extensionType', taskLabel: 'taskLabel', id: { type, _key: '' }
             });
             expect(defs).to.be.ok;
             expect(defs!.taskType).to.be.eq(definitionContributionA.taskType);
 
             const defs2 = registry.getDefinition({
-                type: definitionContributionA.taskType, label: 'extension task', extensionType: 'extensionType', taskLabel: 'taskLabel', taskDetailedLabel: 'taskDetailedLabel'
+                type, label: 'extension task', extensionType: 'extensionType', taskLabel: 'taskLabel', taskDetailedLabel: 'taskDetailedLabel', id: { type, _key: '' }
             });
             expect(defs2).to.be.ok;
             expect(defs2!.taskType).to.be.eq(definitionContributionB.taskType);

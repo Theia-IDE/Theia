@@ -17,7 +17,7 @@
 import { inject, injectable } from 'inversify';
 import { TaskProviderRegistry } from './task-contribution';
 import { TaskDefinitionRegistry } from './task-definition-registry';
-import { TaskConfiguration, TaskCustomization, TaskOutputPresentation, TaskConfigurationScope } from '../common';
+import { TaskConfiguration, TaskCustomization, TaskOutputPresentation, TaskConfigurationScope, KeyedTaskIdentifier } from '../common';
 
 @injectable()
 export class ProvidedTaskConfigurations {
@@ -62,6 +62,17 @@ export class ProvidedTaskConfigurations {
         } else {
             await this.getTasks();
             return this.getCachedTask(source, taskLabel, scope);
+        }
+    }
+
+    /** returns the task configuration for a given id or undefined if none */
+    async getTaskById(id: KeyedTaskIdentifier): Promise<TaskConfiguration | undefined> {
+        const task = this.getCachedTaskById(id);
+        if (task) {
+            return task;
+        } else {
+            await this.getTasks();
+            return this.getCachedTaskById(id);
         }
     }
 
@@ -118,6 +129,18 @@ export class ProvidedTaskConfigurations {
                     return scopeConfigMap.get(scope.toString());
                 }
                 return Array.from(scopeConfigMap.values())[0];
+            }
+        }
+    }
+
+    protected getCachedTaskById(id: KeyedTaskIdentifier): TaskConfiguration | undefined {
+        for (const labelConfigMap of this.tasksMap.values()) {
+            for (const scopeConfigMap of labelConfigMap.values()) {
+                for (const taskConfig of scopeConfigMap.values()) {
+                    if (taskConfig.id._key === id._key) {
+                        return taskConfig;
+                    }
+                }
             }
         }
     }

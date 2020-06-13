@@ -20,7 +20,7 @@ import { URI } from 'vscode-uri';
 import * as rpc from '../common/plugin-api-rpc';
 import {
     DecorationOptions, EditorPosition, PickOpenItem, Plugin, Position, ResourceFileEditDto,
-    ResourceTextEditDto, Selection, TaskDto, WorkspaceEditDto
+    ResourceTextEditDto, Selection, TaskDto, WorkspaceEditDto, TaskDefinitionDto
 } from '../common/plugin-api-rpc';
 import * as model from '../common/plugin-api-rpc-model';
 import { LanguageFilter, LanguageSelector, RelativePattern } from '@theia/languages/lib/common/language-selector';
@@ -720,6 +720,7 @@ export function fromTask(task: theia.Task): TaskDto | undefined {
     }
 
     taskDto.type = taskDefinition.type;
+    taskDto.definition = { ...taskDefinition };
     const { type, ...properties } = taskDefinition;
     for (const key in properties) {
         if (properties.hasOwnProperty(key)) {
@@ -748,7 +749,7 @@ export function toTask(taskDto: TaskDto): theia.Task {
         throw new Error('Task should be provided for converting');
     }
 
-    const { type, label, source, scope, command, args, options, windows, ...properties } = taskDto;
+    const { type, label, source, scope, command, args, options, windows, definition, ...properties } = taskDto;
     const result = {} as theia.Task;
     result.name = label;
     result.source = source;
@@ -764,7 +765,8 @@ export function toTask(taskDto: TaskDto): theia.Task {
     }
 
     const taskType = type;
-    const taskDefinition: theia.TaskDefinition = {
+    const taskDefinition: TaskDefinitionDto = {
+        ...definition,
         type: taskType
     };
 

@@ -38,6 +38,7 @@ import '../../src/browser/style/index.css';
 import './tasks-monaco-contribution';
 import { TaskNameResolver } from './task-name-resolver';
 import { TaskSourceResolver } from './task-source-resolver';
+import { TaskIdentifierResolver } from './task-identifier-resolver';
 import { TaskTemplateSelector } from './task-templates';
 import { TaskTerminalWidgetManager } from './task-terminal-widget-manager';
 
@@ -77,6 +78,7 @@ export default new ContainerModule(bind => {
     bind(TaskSchemaUpdater).toSelf().inSingletonScope();
     bind(TaskNameResolver).toSelf().inSingletonScope();
     bind(TaskSourceResolver).toSelf().inSingletonScope();
+    bind(TaskIdentifierResolver).toSelf().inSingletonScope();
     bind(TaskTemplateSelector).toSelf().inSingletonScope();
     bind(TaskTerminalWidgetManager).toSelf().inSingletonScope();
 

@@ -58,7 +58,7 @@ import { deepClone } from '@theia/core/lib/common/objects';
 import { FileUri } from '@theia/core/lib/node/file-uri';
 import { PreferenceSchema, PreferenceSchemaProperties } from '@theia/core/lib/common/preferences/preference-schema';
 import { RecursivePartial } from '@theia/core/lib/common/types';
-import { ProblemMatcherContribution, ProblemPatternContribution, TaskDefinition } from '@theia/task/lib/common/task-protocol';
+import { ProblemMatcherContribution, ProblemPatternContribution, TaskDefinitionContibution } from '@theia/task/lib/common/task-protocol';
 import { ColorDefinition } from '@theia/core/lib/browser/color-registry';
 
 namespace nls {
@@ -547,7 +547,7 @@ export class TheiaPluginScanner implements PluginScanner {
         return result;
     }
 
-    private readTaskDefinition(pluginName: string, definitionContribution: PluginTaskDefinitionContribution): TaskDefinition {
+    private readTaskDefinition(pluginName: string, definitionContribution: PluginTaskDefinitionContribution): TaskDefinitionContibution {
         const propertyKeys = definitionContribution.properties ? Object.keys(definitionContribution.properties) : [];
         return {
             taskType: definitionContribution.type,

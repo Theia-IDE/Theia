@@ -34,7 +34,9 @@ describe('provided-task-configurations', () => {
         const providerRegistry = container.get(TaskProviderRegistry);
         providerRegistry.register('test', {
             provideTasks(): Promise<TaskConfiguration[]> {
-                return Promise.resolve([{ type: 'test', label: 'task from test', _source: 'test', _scope: 'test' } as TaskConfiguration]);
+                return Promise.resolve([{
+                    id: { _key: 'id', type: 'test' }, type: 'test', label: 'task from test', _source: 'test', _scope: 'test'
+                } as TaskConfiguration]);
             }
         });
 

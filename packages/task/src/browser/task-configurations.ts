@@ -16,18 +16,21 @@
 
 import { inject, injectable, postConstruct } from 'inversify';
 import {
+    CustomizedTaskTemplate,
     TaskConfiguration,
     TaskCustomization,
     TaskDefinition,
     TaskOutputPresentation,
     TaskConfigurationScope,
-    TaskScope
+    TaskScope,
+    KeyedTaskIdentifier
 } from '../common';
 import { TaskDefinitionRegistry } from './task-definition-registry';
 import { ProvidedTaskConfigurations } from './provided-task-configurations';
 import { TaskConfigurationManager, TasksChange } from './task-configuration-manager';
 import { TaskSchemaUpdater } from './task-schema-updater';
 import { TaskSourceResolver } from './task-source-resolver';
+import { TaskIdentifierResolver } from './task-identifier-resolver';
 import { Disposable, DisposableCollection } from '@theia/core/lib/common';
 import { FileChangeType } from '@theia/filesystem/lib/common/filesystem-watcher-protocol';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
@@ -52,7 +55,7 @@ export class TaskConfigurations implements Disposable {
     protected readonly toDispose = new DisposableCollection();
     /**
      * Map of source (path of root folder that the task configs come from) and task config map.
-     * For the inner map (i.e., task config map), the key is task label and value TaskConfiguration
+     * For the inner map (i.e., task config map), the key is task id (i.e., taskConfig.id._key) and value TaskConfiguration
      */
     protected tasksMap = new Map<string, Map<string, TaskConfiguration>>();
     /**
@@ -88,6 +91,9 @@ export class TaskConfigurations implements Disposable {
 
     @inject(TaskSourceResolver)
     protected readonly taskSourceResolver: TaskSourceResolver;
+
+    @inject(TaskIdentifierResolver)
+    protected readonly taskIdentifierResolver: TaskIdentifierResolver;
 
     constructor() {
         this.toDispose.push(Disposable.create(() => {
@@ -126,7 +132,13 @@ export class TaskConfigurations implements Disposable {
 
     /** returns the list of known task labels */
     getTaskLabels(): string[] {
-        return Array.from(this.tasksMap.values()).reduce((acc, labelConfigMap) => acc.concat(Array.from(labelConfigMap.keys())), [] as string[]);
+        const labels: string[] = [];
+        for (const idMap of this.tasksMap.values()) {
+            for (const config of idMap.values()) {
+                labels.push(config.label);
+            }
+        }
+        return labels;
     }
 
     /**
@@ -184,11 +196,24 @@ export class TaskConfigurations implements Disposable {
         return invalidTaskConfigs;
     }
 
-    /** returns the task configuration for a given label or undefined if none */
-    getTask(scope: TaskConfigurationScope, taskLabel: string): TaskConfiguration | undefined {
-        const labelConfigMap = this.tasksMap.get(this.getKeyFromScope(scope));
-        if (labelConfigMap) {
-            return labelConfigMap.get(taskLabel);
+    /** returns the task configuration for a given scope and label or undefined if none */
+    getTask(scope: TaskConfigurationScope, label: string): TaskConfiguration | undefined {
+        const idConfigMap = this.tasksMap.get(this.getKeyFromScope(scope));
+        if (idConfigMap) {
+            for (const config of idConfigMap.values()) {
+                if (config.label === label) {
+                    return config;
+                }
+            }
+        }
+    }
+
+    /** returns the task configuration for a given id or undefined if none */
+    getTaskById(id: KeyedTaskIdentifier): TaskConfiguration | undefined {
+        for (const idConfigMap of this.tasksMap.values()) {
+            if (idConfigMap.has(id._key)) {
+                return idConfigMap.get(id._key);
+            }
         }
     }
 
@@ -205,6 +230,23 @@ export class TaskConfigurations implements Disposable {
                         ...customization,
                         type: detected.type
                     };
+                }
+            }
+        }
+    }
+
+    async getCustomizedTaskById(id: KeyedTaskIdentifier): Promise<TaskConfiguration | undefined> {
+        for (const taskConfigs of this.taskCustomizationMap.values()) {
+            for (const taskConfig of taskConfigs) {
+                if (taskConfig.id._key === id._key) {
+                    const detected = await this.providedTaskConfigurations.getTaskById(id);
+                    if (detected) {
+                        return {
+                            ...detected,
+                            ...taskConfig,
+                            type: detected.type
+                        };
+                    }
                 }
             }
         }
@@ -323,7 +365,7 @@ export class TaskConfigurations implements Disposable {
         }
 
         const configuredAndCustomizedTasks = await this.getTasks();
-        if (!configuredAndCustomizedTasks.some(t => this.taskDefinitionRegistry.compareTasks(t, task))) {
+        if (!configuredAndCustomizedTasks.some(t => t.id._key === task.id._key)) {
             await this.saveTask(scope, { ...task, problemMatcher: [] });
         }
 
@@ -340,7 +382,7 @@ export class TaskConfigurations implements Disposable {
             console.error('Detected / Contributed tasks should have a task definition.');
             return;
         }
-        const customization: TaskCustomization = { type: task.taskType || task.type };
+        const customization: TaskCustomization = { type: task.taskType || task.type, id: task.id };
         definition.properties.all.forEach(p => {
             if (task[p] !== undefined) {
                 customization[p] = task[p];
@@ -372,8 +414,10 @@ export class TaskConfigurations implements Disposable {
     /** Writes the task to a config file. Creates a config file if this one does not exist */
     saveTask(scope: TaskConfigurationScope, task: TaskConfiguration): Promise<boolean> {
         const { _source, $ident, ...preparedTask } = task;
-        const customizedTaskTemplate = this.getTaskCustomizationTemplate(task) || preparedTask;
-        return this.taskConfigurationManager.addTaskConfiguration(scope, customizedTaskTemplate);
+        const customizedTask = this.getTaskCustomizationTemplate(task) || preparedTask;
+        const customizedTaskTemplate = { ...customizedTask };
+        delete customizedTaskTemplate.id;
+        return this.taskConfigurationManager.addTaskConfiguration(scope, customizedTaskTemplate as CustomizedTaskTemplate);
     }
 
     /**
@@ -385,17 +429,24 @@ export class TaskConfigurations implements Disposable {
         const newTaskCustomizationMap = new Map<string, TaskCustomization[]>();
         const addCustomization = (rootFolder: string, customization: TaskCustomization) => {
             if (newTaskCustomizationMap.has(rootFolder)) {
-                newTaskCustomizationMap.get(rootFolder)!.push(customization);
+                const customizations = newTaskCustomizationMap.get(rootFolder)!;
+                const index = customizations.findIndex(cus => cus.id._key === customization.id._key);
+                if (index >= 0) {
+                    // Comply with VS Code: if a detected task is customized more than once, the last customization overwrite the prior ones
+                    customizations.splice(index, 1);
+                }
+                customizations.push(customization);
             } else {
                 newTaskCustomizationMap.set(rootFolder, [customization]);
             }
         };
-        const addConfiguredTask = (rootFolder: string, label: string, configuredTask: TaskCustomization) => {
+        const addConfiguredTask = (rootFolder: string, configuredTask: TaskCustomization) => {
+            const key = configuredTask.id._key;
             if (newTaskMap.has(rootFolder)) {
-                newTaskMap.get(rootFolder)!.set(label, configuredTask as TaskConfiguration);
+                newTaskMap.get(rootFolder)!.set(key, configuredTask as TaskConfiguration);
             } else {
                 const newConfigMap = new Map();
-                newConfigMap.set(label, configuredTask);
+                newConfigMap.set(key, configuredTask);
                 newTaskMap.set(rootFolder, newConfigMap);
             }
         };
@@ -411,7 +462,7 @@ export class TaskConfigurations implements Disposable {
                 if (this.isDetectedTask(transformedTask)) {
                     addCustomization(scopeKey, transformedTask);
                 } else {
-                    addConfiguredTask(scopeKey, transformedTask['label'] as string, transformedTask);
+                    addConfiguredTask(scopeKey, transformedTask);
                 }
             }
         }
@@ -436,8 +487,10 @@ export class TaskConfigurations implements Disposable {
                 _scope: scope
             };
         }
+        const identifier = this.taskIdentifierResolver.createKeyedIdentifier(taskConfig);
         return {
             ...taskConfig,
+            id: identifier,
             presentation: TaskOutputPresentation.fromJson(rawTask)
         };
     }
@@ -461,7 +514,7 @@ export class TaskConfigurations implements Disposable {
     async updateTaskConfig(task: TaskConfiguration, update: { [name: string]: any }): Promise<void> {
         const scope = task._scope;
         const configuredAndCustomizedTasks = await this.getTasks();
-        if (configuredAndCustomizedTasks.some(t => this.taskDefinitionRegistry.compareTasks(t, task))) { // task is already in `tasks.json`
+        if (configuredAndCustomizedTasks.some(t => t.id._key === task.id._key)) { // task is already in `tasks.json`
             const jsonTasks = this.taskConfigurationManager.getTasks(scope);
             if (jsonTasks) {
                 const ind = jsonTasks.findIndex((t: TaskCustomization | TaskConfiguration) => {
