@@ -22,7 +22,7 @@ import { MaybeArray } from '@theia/core/lib/common/types';
 import { MessageService } from '@theia/core/lib/common/message-service';
 import { FileStat } from '../../common';
 import { FileAccess } from '../../common/filesystem';
-import { DefaultFileDialogService, OpenFileDialogProps, SaveFileDialogProps } from '../../browser/file-dialog';
+import { DefaultFileDialogService, OpenFileDialogProps, SaveFileDialogProps, FileDialogTreeAllFilesPosition } from '../../browser/file-dialog';
 
 // See https://github.com/electron/electron/blob/v4.2.12/docs/api/dialog.md
 // These properties get extended with newer versions of Electron
@@ -102,9 +102,16 @@ export class ElectronFileDialogService extends DefaultFileDialogService {
     protected toDialogOptions(uri: URI, props: SaveFileDialogProps | OpenFileDialogProps, dialogTitle: string): electron.FileDialogProps {
         const title = props.title || dialogTitle;
         const defaultPath = FileUri.fsPath(uri);
-        const filters: FileFilter[] = [{ name: 'All Files', extensions: ['*'] }];
+        const allFilesFilter = { name: 'All Files', extensions: ['*'] };
+        const filters: FileFilter[] = [];
+        if (props.allFilesPosition === undefined || props.allFilesPosition === FileDialogTreeAllFilesPosition.FIRST) {
+            filters.push(allFilesFilter);
+        }
         if (props.filters) {
             filters.push(...Object.keys(props.filters).map(key => ({ name: key, extensions: props.filters![key] })));
+        }
+        if (props.allFilesPosition === FileDialogTreeAllFilesPosition.LAST) {
+            filters.push(allFilesFilter);
         }
         return { title, defaultPath, filters };
     }

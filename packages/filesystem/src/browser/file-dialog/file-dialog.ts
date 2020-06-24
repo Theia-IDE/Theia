@@ -55,6 +55,12 @@ export const FILENAME_TEXTFIELD_CLASS = 'theia-FileNameTextField';
 
 export const CONTROL_PANEL_CLASS = 'theia-ControlPanel';
 
+export enum FileDialogTreeAllFilesPosition {
+    FIRST,
+    LAST,
+    HIDDEN
+}
+
 export class FileDialogProps extends DialogProps {
 
     /**
@@ -68,6 +74,11 @@ export class FileDialogProps extends DialogProps {
      * ```
      */
     filters?: FileDialogTreeFilters;
+
+    /**
+     * Allow to decide where the 'All Files' selector appears relative to the other filters
+     */
+    allFilesPosition?: FileDialogTreeAllFilesPosition;
 
 }
 
@@ -163,7 +174,7 @@ export abstract class FileDialog<T> extends AbstractDialog<T> {
 
     protected createFileTreeFiltersRenderer(): FileDialogTreeFiltersRenderer | undefined {
         if (this.props.filters) {
-            return new FileDialogTreeFiltersRenderer(this.props.filters, this.widget.model.tree);
+            return new FileDialogTreeFiltersRenderer(this.props.filters, this.widget.model.tree, this.props);
         }
 
         return undefined;
