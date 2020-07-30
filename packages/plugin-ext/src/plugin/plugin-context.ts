@@ -27,14 +27,16 @@ import {
     Plugin as InternalPlugin,
     PluginManager,
     PluginAPIFactory,
-    MainMessageType
+    MainMessageType,
+    PreferenceData,
+    EnvInit,
+    WebviewInitData
 } from '../common/plugin-api-rpc';
 import { RPCProtocol } from '../common/rpc-protocol';
 import { MessageRegistryExt } from './message-registry';
 import { StatusBarMessageRegistryExt } from './status-bar-message-registry';
 import { WindowStateExtImpl } from './window-state';
 import { WorkspaceExtImpl } from './workspace';
-import { EnvExtImpl } from './env';
 import { QueryParameters } from '../common/env';
 import {
     ConfigurationTarget,
@@ -150,19 +152,34 @@ import { DecorationsExtImpl } from './decorations';
 import { TextEditorExt } from './text-editor';
 import { ClipboardExt } from './clipboard-ext';
 import { WebviewsExtImpl } from './webviews';
+import { EnvNodeExtImpl } from './node/env-node-ext';
+import { KeysToKeysToAnyValue } from '../common/types';
+import { KeyValueStorageProxy } from './plugin-storage';
+import { PluginJsonValidationContribution } from '../common/plugin-protocol';
+
+export interface TheiaAPIInitParameters {
+    preferences: PreferenceData
+    globalState: KeysToKeysToAnyValue
+    workspaceState: KeysToKeysToAnyValue
+    env: EnvInit
+    webview: WebviewInitData
+    jsonValidation: PluginJsonValidationContribution[]
+}
 
 export function createAPIFactory(
-    rpc: RPCProtocol,
     pluginManager: PluginManager,
-    envExt: EnvExtImpl,
-    debugExt: DebugExtImpl,
-    preferenceRegistryExt: PreferenceRegistryExtImpl,
-    editorsAndDocumentsExt: EditorsAndDocumentsExtImpl,
-    workspaceExt: WorkspaceExtImpl,
-    messageRegistryExt: MessageRegistryExt,
-    clipboard: ClipboardExt,
-    webviewExt: WebviewsExtImpl
+    rpc: RPCProtocol,
+    storageProxy: KeyValueStorageProxy,
+    params: TheiaAPIInitParameters
 ): PluginAPIFactory {
+    const editorsAndDocumentsExt: EditorsAndDocumentsExtImpl = rpc.get(MAIN_RPC_CONTEXT.EDITORS_AND_DOCUMENTS_EXT);
+    const workspaceExt: WorkspaceExtImpl = rpc.get(MAIN_RPC_CONTEXT.WORKSPACE_EXT);
+    const preferenceRegistryExt: PreferenceRegistryExtImpl = rpc.get(MAIN_RPC_CONTEXT.PREFERENCE_REGISTRY_EXT);
+    const webviewExt: WebviewsExtImpl = rpc.get(MAIN_RPC_CONTEXT.WEBVIEWS_EXT);
+    const debugExt = new DebugExtImpl(rpc);
+    const messageRegistryExt = new MessageRegistryExt(rpc);
+    const envExt: EnvNodeExtImpl = new EnvNodeExtImpl(rpc);
+    const clipboardExt = new ClipboardExt(rpc);
 
     const commandRegistry = rpc.set(MAIN_RPC_CONTEXT.COMMAND_REGISTRY_EXT, new CommandRegistryImpl(rpc));
     const quickOpenExt = rpc.set(MAIN_RPC_CONTEXT.QUICK_OPEN_EXT, new QuickOpenExtImpl(rpc));
@@ -183,6 +200,17 @@ export function createAPIFactory(
     const scmExt = rpc.set(MAIN_RPC_CONTEXT.SCM_EXT, new ScmExtImpl(rpc, commandRegistry));
     const decorationsExt = rpc.set(MAIN_RPC_CONTEXT.DECORATIONS_EXT, new DecorationsExtImpl(rpc));
     rpc.set(MAIN_RPC_CONTEXT.DEBUG_EXT, debugExt);
+
+    storageProxy.init(params.globalState, params.workspaceState);
+
+    envExt.setQueryParameters(params.env.queryParams);
+    envExt.setLanguage(params.env.language);
+    envExt.setShell(params.env.shell);
+    envExt.setUIKind(params.env.uiKind);
+    envExt.setApplicationName(params.env.appName);
+    webviewExt.init(params.webview);
+
+    preferenceRegistryExt.init(params.preferences);
 
     return function (plugin: InternalPlugin): typeof theia {
         const commands: typeof theia.commands = {
@@ -517,7 +545,7 @@ export function createAPIFactory(
             get uriScheme(): string { return envExt.uriScheme; },
             get shell(): string { return envExt.shell; },
             get uiKind(): theia.UIKind { return envExt.uiKind; },
-            clipboard,
+            clipboard: clipboardExt,
             getEnvVariable(envVarName: string): PromiseLike<string | undefined> {
                 return envExt.getEnvVariable(envVarName);
             },

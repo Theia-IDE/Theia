@@ -47,6 +47,11 @@ export interface RPCProtocol extends Disposable {
      */
     set<T, R extends T>(identifier: ProxyIdentifier<T>, instance: R): R;
 
+    /**
+     * Get a locally created instance
+     */
+    get<T, R extends T>(identifier: ProxyIdentifier<T>): R;
+
 }
 
 export class ProxyIdentifier<T> {
@@ -132,6 +137,10 @@ export class RPCProtocolImpl implements RPCProtocol {
         }
         this.toDispose.push(Disposable.create(() => this.locals.delete(identifier.id)));
         return instance;
+    }
+
+    get<T, R extends T>(identifier: ProxyIdentifier<T>): R {
+        return this.locals.get(identifier.id);
     }
 
     private createProxy<T>(proxyId: string): T {

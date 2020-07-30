@@ -16,6 +16,7 @@
 import { RPCProtocol } from './rpc-protocol';
 import { PluginManager, Plugin } from './plugin-api-rpc';
 import { interfaces } from 'inversify';
+import { KeyValueStorageProxy } from '../plugin/plugin-storage';
 
 export const ExtPluginApiProvider = 'extPluginApi';
 /**
@@ -33,6 +34,7 @@ export interface ExtPluginApiProvider {
  * This interface describes scripts for both plugin runtimes: frontend(WebWorker) and backend(NodeJs)
  */
 export interface ExtPluginApi {
+    readonly id: string;
 
     /**
      * Path to the script which should be loaded to provide api, module should export `provideApi` function with
@@ -47,11 +49,13 @@ export interface ExtPluginApi {
 }
 
 export interface ExtPluginApiFrontendInitializationFn {
-    (rpc: RPCProtocol, plugins: Map<string, Plugin>): void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (rpc: RPCProtocol, pluginManager: PluginManager, storageProxy: KeyValueStorageProxy, plugins: Map<string, Plugin>, initParams?: any): void;
 }
 
 export interface ExtPluginApiBackendInitializationFn {
-    (rpc: RPCProtocol, pluginManager: PluginManager): void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (rpc: RPCProtocol, pluginManager: PluginManager, storageProxy: KeyValueStorageProxy, initParams?: any): void;
 }
 
 /**
@@ -78,5 +82,8 @@ export const MainPluginApiProvider = Symbol('mainPluginApi');
  * [initialize](#initialize) will be called once per plugin runtime
  */
 export interface MainPluginApiProvider {
+    readonly id: string;
     initialize(rpc: RPCProtocol, container: interfaces.Container): void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    computeInitParameters?(rpc: RPCProtocol, container: interfaces.Container): Promise<any>;
 }

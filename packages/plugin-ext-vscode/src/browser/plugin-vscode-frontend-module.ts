@@ -18,8 +18,12 @@ import { ContainerModule } from 'inversify';
 import { CommandContribution } from '@theia/core';
 import { PluginVscodeCommandsContribution } from './plugin-vscode-commands-contribution';
 import { PluginVSCodeEnvironment } from '../common/plugin-vscode-environment';
+import { VSCodeMainPluginAPIProvider } from './vscode-main-plugin-api-provider';
+import { MainPluginApiProvider } from '@theia/plugin-ext/lib/common/plugin-ext-api-contribution';
 
 export default new ContainerModule(bind => {
+    bind(VSCodeMainPluginAPIProvider).toSelf().inSingletonScope();
+    bind(MainPluginApiProvider).toService(VSCodeMainPluginAPIProvider);
     bind(PluginVSCodeEnvironment).toSelf().inSingletonScope();
     bind(PluginVscodeCommandsContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toDynamicValue(context => context.container.get(PluginVscodeCommandsContribution));

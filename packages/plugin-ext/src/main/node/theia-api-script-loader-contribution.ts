@@ -13,26 +13,24 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
-
-import * as path from 'path';
 import connect = require('connect');
 import serveStatic = require('serve-static');
 const vhost = require('vhost');
 import * as express from 'express';
 import { BackendApplicationContribution } from '@theia/core/lib/node/backend-application';
 import { injectable } from 'inversify';
+import * as path from 'path';
 import { WebviewExternalEndpoint } from '../common/webview-protocol';
-import { environment } from '@theia/application-package/lib/environment';
 
-const pluginPath = (process.env.HOME || process.env.HOMEPATH || process.env.USERPROFILE) + './theia/plugins/';
+const pluginPath = path.resolve(__dirname, '../../lib/webworker');
 
 @injectable()
-export class PluginApiContribution implements BackendApplicationContribution {
+export class TheiaApiScriptLoaderContribution implements BackendApplicationContribution {
 
     configure(app: express.Application): void {
-        app.get('/plugin/:path(*)', (req, res) => {
+        app.get('/theia/api/:path(*)', (req, res) => {
             const filePath: string = req.params.path;
-            res.sendFile(pluginPath + filePath);
+            res.sendFile(path.resolve(pluginPath, filePath));
         });
 
         const webviewApp = connect();
@@ -43,14 +41,10 @@ export class PluginApiContribution implements BackendApplicationContribution {
     }
 
     protected webviewExternalEndpoint(): string {
-        let endpointPattern;
-        if (environment.electron.is()) {
-            endpointPattern = WebviewExternalEndpoint.defaultPattern;
-        } else {
-            endpointPattern = process.env[WebviewExternalEndpoint.pattern] || WebviewExternalEndpoint.defaultPattern;
-        }
-        return endpointPattern
+        return (process.env[WebviewExternalEndpoint.pattern] || WebviewExternalEndpoint.defaultPattern)
             .replace('{{uuid}}', '.+')
             .replace('{{hostname}}', '.+');
+
     }
+
 }

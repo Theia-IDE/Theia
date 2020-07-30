@@ -17,7 +17,7 @@ import { JsonRpcServer } from '@theia/core/lib/common/messaging/proxy-factory';
 import { RPCProtocol } from './rpc-protocol';
 import { Disposable } from '@theia/core/lib/common/disposable';
 import { LogPart, KeysToAnyValues, KeysToKeysToAnyValue } from './types';
-import { CharacterPair, CommentRule, PluginAPIFactory, Plugin } from './plugin-api-rpc';
+import { CharacterPair, CommentRule, Plugin } from './plugin-api-rpc';
 import { ExtPluginApi } from './plugin-ext-api-contribution';
 import { IJSONSchema, IJSONSchemaSnippet } from '@theia/core/lib/common/json-schema';
 import { RecursivePartial } from '@theia/core/lib/common/types';
@@ -652,23 +652,7 @@ export interface PluginLifecycle {
      * Frontend module name, frontend plugin should expose this name.
      */
     frontendModuleName?: string;
-    /**
-     * Path to the script which should do some initialization before frontend plugin is loaded.
-     */
-    frontendInitPath?: string;
-    /**
-     * Path to the script which should do some initialization before backend plugin is loaded.
-     */
-    backendInitPath?: string;
 }
-
-/**
- * The export function of initialization module of backend plugin.
- */
-export interface BackendInitializationFn {
-    (apiFactory: PluginAPIFactory, plugin: Plugin): void;
-}
-
 export interface BackendLoadingFn {
     (rpc: RPCProtocol, plugin: Plugin): void;
 }

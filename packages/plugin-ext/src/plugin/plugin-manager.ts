@@ -31,13 +31,10 @@ import { PluginMetadata, PluginJsonValidationContribution } from '../common/plug
 import * as theia from '@theia/plugin';
 import { join } from 'path';
 import { Deferred } from '@theia/core/lib/common/promise-util';
-import { EnvExtImpl } from './env';
-import { PreferenceRegistryExtImpl } from './preference-registry';
 import { Memento, KeyValueStorageProxy } from './plugin-storage';
 import { ExtPluginApi } from '../common/plugin-ext-api-contribution';
 import { RPCProtocol } from '../common/rpc-protocol';
 import { Emitter } from '@theia/core/lib/common/event';
-import { WebviewsExtImpl } from './webviews';
 
 export interface PluginHost {
 
@@ -46,7 +43,8 @@ export interface PluginHost {
 
     init(data: PluginMetadata[]): Promise<[Plugin[], Plugin[]]> | [Plugin[], Plugin[]];
 
-    initExtApi(extApi: ExtPluginApi[]): void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    initExtApi(extApi: { pluginApi: ExtPluginApi, initParameters?: any }[]): void;
 
     loadTests?(): Promise<void>;
 }
@@ -104,11 +102,8 @@ export class PluginManagerExtImpl implements PluginManagerExt, PluginManager {
 
     constructor(
         private readonly host: PluginHost,
-        private readonly envExt: EnvExtImpl,
-        private readonly storageProxy: KeyValueStorageProxy,
-        private readonly preferencesManager: PreferenceRegistryExtImpl,
-        private readonly webview: WebviewsExtImpl,
-        private readonly rpc: RPCProtocol
+        private readonly rpc: RPCProtocol,
+        private readonly storageProxy: KeyValueStorageProxy
     ) {
         this.messageRegistryProxy = this.rpc.getProxy(PLUGIN_RPC_CONTEXT.MESSAGE_REGISTRY_MAIN);
         this.notificationMain = this.rpc.getProxy(PLUGIN_RPC_CONTEXT.NOTIFICATION_MAIN);
@@ -183,22 +178,9 @@ export class PluginManagerExtImpl implements PluginManagerExt, PluginManager {
     }
 
     async $init(params: PluginManagerInitializeParams): Promise<void> {
-        this.storageProxy.init(params.globalState, params.workspaceState);
-
-        this.envExt.setQueryParameters(params.env.queryParams);
-        this.envExt.setLanguage(params.env.language);
-        this.envExt.setShell(params.env.shell);
-        this.envExt.setUIKind(params.env.uiKind);
-        this.envExt.setApplicationName(params.env.appName);
-
-        this.preferencesManager.init(params.preferences);
-
         if (params.extApi) {
             this.host.initExtApi(params.extApi);
         }
-
-        this.webview.init(params.webview);
-        this.jsonValidation = params.jsonValidation;
     }
 
     async $start(params: PluginManagerStartParams): Promise<void> {

@@ -71,8 +71,12 @@ import { WebviewResourceCache } from './webview/webview-resource-cache';
 import { PluginIconThemeService, PluginIconThemeFactory, PluginIconThemeDefinition, PluginIconTheme } from './plugin-icon-theme-service';
 import { PluginTreeViewNodeLabelProvider } from './view/plugin-tree-view-node-label-provider';
 import { WebviewWidgetFactory } from './webview/webview-widget-factory';
+import { TheiaMainPluginAPIProvider } from './theia-main-plugin-api-provider';
 
 export default new ContainerModule((bind, unbind, isBound, rebind) => {
+
+    bind(TheiaMainPluginAPIProvider).toSelf().inSingletonScope();
+    bind(MainPluginApiProvider).toService(TheiaMainPluginAPIProvider);
 
     bind(LanguagesMainImpl).toSelf().inTransientScope();
     bind(LanguagesMainFactory).toFactory(context => (rpc: RPCProtocol) => {

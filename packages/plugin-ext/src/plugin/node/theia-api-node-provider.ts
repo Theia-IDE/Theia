@@ -1,5 +1,5 @@
 /********************************************************************************
- * Copyright (C) 2015-2018 Red Hat, Inc.
+ * Copyright (C) 2018 Red Hat, Inc. and others.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0 which is available at
@@ -13,24 +13,23 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
-
 import * as theia from '@theia/plugin';
-import { BackendInitializationFn } from '../../../common/plugin-protocol';
-import { PluginAPIFactory, Plugin, emptyPlugin } from '../../../common/plugin-api-rpc';
+import { RPCProtocol } from '../../common/rpc-protocol';
+import { Plugin, emptyPlugin, PluginManager, PluginAPIFactory } from '../../common/plugin-api-rpc';
+import { ExtPluginApiBackendInitializationFn } from '../../common/plugin-ext-api-contribution';
+import { createAPIFactory } from '../plugin-context';
+import { KeyValueStorageProxy } from '../plugin-storage';
 
 const pluginsApiImpl = new Map<string, typeof theia>();
-const plugins = new Array<Plugin>();
 let defaultApi: typeof theia;
 let isLoadOverride = false;
-let pluginApiFactory: PluginAPIFactory;
+let theiaApiFactory: PluginAPIFactory;
+let plugins: PluginManager;
 
-export const doInitialization: BackendInitializationFn = (apiFactory: PluginAPIFactory, plugin: Plugin) => {
-
-    const apiImpl = apiFactory(plugin);
-    pluginsApiImpl.set(plugin.model.id, apiImpl);
-
-    plugins.push(plugin);
-    pluginApiFactory = apiFactory;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const provideApi: ExtPluginApiBackendInitializationFn = (rpc: RPCProtocol, pluginManager: PluginManager, storageProxy: KeyValueStorageProxy, initParams?: any) => {
+    theiaApiFactory = createAPIFactory(pluginManager, rpc, storageProxy, initParams);
+    plugins = pluginManager;
 
     if (!isLoadOverride) {
         overrideInternalLoad();
@@ -44,22 +43,26 @@ function overrideInternalLoad(): void {
     // save original load method
     const internalLoad = module._load;
 
-    // if we try to resolve theia module, return the filename entry to use cache.
+    // if we try to resolve che module, return the filename entry to use cache.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     module._load = function (request: string, parent: any, isMain: {}): any {
-        if (request !== '@theia/plugin') {
+        if (request !== '@eclipse-che/plugin') {
             return internalLoad.apply(this, arguments);
         }
 
         const plugin = findPlugin(parent.filename);
         if (plugin) {
-            const apiImpl = pluginsApiImpl.get(plugin.model.id);
+            let apiImpl = pluginsApiImpl.get(plugin.model.id);
+            if (!apiImpl) {
+                apiImpl = theiaApiFactory(plugin);
+                pluginsApiImpl.set(plugin.model.id, apiImpl);
+            }
             return apiImpl;
         }
 
         if (!defaultApi) {
-            console.warn(`Could not identify plugin for 'Theia' require call from ${parent.filename}`);
-            defaultApi = pluginApiFactory(emptyPlugin);
+            console.warn(`Could not identify plugin for 'Che' require call from ${parent.filename}`);
+            defaultApi = theiaApiFactory(emptyPlugin);
         }
 
         return defaultApi;
@@ -67,5 +70,7 @@ function overrideInternalLoad(): void {
 }
 
 function findPlugin(filePath: string): Plugin | undefined {
-    return plugins.find(plugin => filePath.startsWith(plugin.pluginFolder));
+    return plugins.getAllPlugins().find(plugin => filePath.startsWith(plugin.pluginFolder));
 }
+
+export default provideApi;

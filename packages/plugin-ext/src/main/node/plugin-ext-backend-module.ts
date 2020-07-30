@@ -15,7 +15,6 @@
  ********************************************************************************/
 
 import { interfaces } from 'inversify';
-import { PluginApiContribution } from './plugin-service';
 import { BackendApplicationContribution, CliContribution } from '@theia/core/lib/node';
 import { PluginsKeyValueStorage } from './plugins-key-value-storage';
 import { PluginDeployerContribution } from './plugin-deployer-contribution';
@@ -38,17 +37,23 @@ import { WebviewResourceLoaderImpl } from './webview-resource-loader-impl';
 import { WebviewResourceLoaderPath } from '../common/webview-protocol';
 import { PluginTheiaEnvironment } from '../common/plugin-theia-environment';
 import { PluginTheiaDeployerParticipant } from './plugin-theia-deployer-participant';
+import { TheiaApiScriptLoaderContribution } from './theia-api-script-loader-contribution';
+import { TheiaPluginApiProvider } from './theia-plugin-api-provider';
+import { ExtPluginApiProvider } from '../../common/plugin-ext-api-contribution';
 
 export function bindMainBackend(bind: interfaces.Bind): void {
+    bind(TheiaApiScriptLoaderContribution).toSelf().inSingletonScope();
+    bind(BackendApplicationContribution).toService(TheiaApiScriptLoaderContribution);
+
+    bind(TheiaPluginApiProvider).toSelf().inSingletonScope();
+    bind(Symbol.for(ExtPluginApiProvider)).toService(TheiaPluginApiProvider);
+
     bind(WebviewResourceLoaderImpl).toSelf().inSingletonScope();
     bind(ConnectionHandler).toDynamicValue(ctx =>
         new JsonRpcConnectionHandler(WebviewResourceLoaderPath, () =>
             ctx.container.get(WebviewResourceLoaderImpl)
         )
     ).inSingletonScope();
-
-    bind(PluginApiContribution).toSelf().inSingletonScope();
-    bind(BackendApplicationContribution).toService(PluginApiContribution);
 
     bindContributionProvider(bind, PluginDeployerParticipant);
     bind(PluginDeployer).to(PluginDeployerImpl).inSingletonScope();
