@@ -26,7 +26,7 @@ import URI from '@theia/core/lib/common/uri';
 import { Emitter, Event, WaitUntilEvent } from '@theia/core/lib/common/event';
 import { EditorManager, EditorWidget } from '@theia/editor/lib/browser';
 import { MonacoEditor } from '@theia/monaco/lib/browser/monaco-editor';
-import { PreferenceService, StorageService } from '@theia/core/lib/browser';
+import { PreferenceService, StorageService, LabelProvider } from '@theia/core/lib/browser';
 import { QuickPickService } from '@theia/core/lib/common/quick-pick-service';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { DebugConfigurationModel } from './debug-configuration-model';
@@ -37,6 +37,7 @@ import { DebugConfiguration } from '../common/debug-common';
 import { WorkspaceVariableContribution } from '@theia/workspace/lib/browser/workspace-variable-contribution';
 import { FileSystem, FileSystemError } from '@theia/filesystem/lib/common';
 import { PreferenceConfigurations } from '@theia/core/lib/browser/preferences/preference-configurations';
+import { PreferenceScope } from '@theia/core/lib/browser/preferences/preference-service';
 
 export interface WillProvideDebugConfiguration extends WaitUntilEvent {
 }
@@ -67,6 +68,9 @@ export class DebugConfigurationManager {
 
     @inject(WorkspaceVariableContribution)
     protected readonly workspaceVariables: WorkspaceVariableContribution;
+
+    @inject(LabelProvider)
+    protected readonly labelProvider: LabelProvider;
 
     protected readonly onDidChangeEmitter = new Emitter<void>();
     readonly onDidChange: Event<void> = this.onDidChangeEmitter.event;
@@ -189,7 +193,26 @@ export class DebugConfigurationManager {
         }
     }
     async addConfiguration(): Promise<void> {
-        const { model } = this;
+        const thismodel = this.model;
+        if (thismodel) {
+            console.log(thismodel);
+        }
+        let model: DebugConfigurationModel | undefined;
+        if (this.models.size > 1) {
+            model = await this.quickPick.show((await this.workspaceService.roots).map(rootFileStat => {
+                const modelValue = this.models.get(rootFileStat.uri);
+                const rootUri = new URI(rootFileStat.uri);
+                return {
+                    label: this.labelProvider.getName(rootUri),
+                    description: this.labelProvider.getLongName(rootUri),
+                    value: modelValue
+                };
+            }), {
+                placeholder: 'Select the workspace folder to add the configuration to'
+            });
+        } else {
+            model = this.model;
+        }
         if (!model) {
             return;
         }
@@ -254,21 +277,27 @@ export class DebugConfigurationManager {
 
     protected async doOpen(model: DebugConfigurationModel): Promise<EditorWidget> {
         let uri = model.uri;
-        if (!uri) {
+        const configFileUri = await this.getFolderConfigurationUri(model);
+        if (!await this.filesystem.exists(configFileUri.toString())) {
             uri = await this.doCreate(model);
         }
-        return this.editorManager.open(uri, {
+        return this.editorManager.open(uri!, {
             mode: 'activate'
         });
     }
     protected async doCreate(model: DebugConfigurationModel): Promise<URI> {
-        await this.preferences.set('launch', {}); // create dummy launch.json in the correct place
+        // create dummy launch.json in the correct place
+        if (this.workspaceService.isMultiRootWorkspaceOpened) {
+            await this.preferences.set('launch', {}, PreferenceScope.Folder, model.workspaceFolderUri.toString());
+        } else {
+            await this.preferences.set('launch', {});
+        }
         const { configUri } = this.preferences.resolve('launch'); // get uri to write content to it
         let uri: URI;
         if (configUri && configUri.path.base === 'launch.json') {
             uri = configUri;
         } else { // fallback
-            uri = new URI(model.workspaceFolderUri).resolve(`${this.preferenceConfigurations.getPaths()[0]}/launch.json`);
+            uri = await this.getFolderConfigurationUri(model);
         }
         const debugType = await this.selectDebugType();
         const configurations = debugType ? await this.provideDebugConfigurations(debugType, model.workspaceFolderUri) : [];
@@ -285,6 +314,17 @@ export class DebugConfigurationManager {
             }
         }
         return uri;
+    }
+
+    private async getFolderConfigurationUri(model: DebugConfigurationModel): Promise<URI> {
+        const paths = this.preferenceConfigurations.getPaths();
+        for (const configPath of paths) {
+            const configUri = new URI(model.workspaceFolderUri).resolve(`${configPath}/launch.json`);
+            if (await this.filesystem.exists(configUri.toString())) {
+                return configUri;
+            }
+        }
+        return new URI(model.workspaceFolderUri).resolve(`${paths[0]}/launch.json`);
     }
 
     protected async provideDebugConfigurations(debugType: string, workspaceFolderUri: string | undefined): Promise<DebugConfiguration[]> {
