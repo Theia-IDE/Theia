@@ -107,7 +107,7 @@ export class KeymapsService {
      * Set the keybinding in the JSON.
      * @param newKeybinding the JSON keybindings.
      */
-    async setKeybinding(newKeybinding: Keybinding, oldKeybinding: string | undefined): Promise<void> {
+    async setKeybinding(newKeybinding: Keybinding, oldKeybinding: Keybinding | string | undefined): Promise<void> {
         if (!this.resource.saveContents) {
             return;
         }
@@ -141,10 +141,10 @@ export class KeymapsService {
             keybindings.push({
                 command: '-' + newKeybinding.command,
                 // TODO key: oldKeybinding, see https://github.com/eclipse-theia/theia/issues/6879
-                keybinding: oldKeybinding,
-                context: newKeybinding.context,
-                when: newKeybinding.when,
-                args: newKeybinding.args
+                keybinding: typeof oldKeybinding === 'string' ? oldKeybinding : oldKeybinding.keybinding,
+                context: typeof oldKeybinding === 'string' ? newKeybinding.context : oldKeybinding.context,
+                when: typeof oldKeybinding === 'string' ? newKeybinding.when : oldKeybinding.when,
+                args: typeof oldKeybinding === 'string' ? newKeybinding.args : oldKeybinding.args,
             });
         }
         // TODO use preference values to get proper json settings

@@ -25,10 +25,12 @@ import {
 import { Widget } from '@theia/core/lib/browser';
 import { CommonMenus } from '@theia/core/lib/browser/common-frontend-contribution';
 import { KeymapsService } from './keymaps-service';
-import { KeybindingRegistry } from '@theia/core/lib/browser/keybinding';
+import { KeybindingRegistry, KeybindingScope } from '@theia/core/lib/browser/keybinding';
 import { AbstractViewContribution } from '@theia/core/lib/browser';
-import { KeybindingWidget } from './keybindings-widget';
+import { KeybindingWidget, KeybindingItem } from './keybindings-widget';
 import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
+import { KeymapsMenus } from './keymaps-menus';
+import { ClipboardService } from '@theia/core/lib/browser/clipboard-service';
 
 export namespace KeymapsCommands {
     export const OPEN_KEYMAPS: Command = {
@@ -43,16 +45,34 @@ export namespace KeymapsCommands {
     };
     export const OPEN_KEYMAPS_JSON_TOOLBAR: Command = {
         id: 'keymaps:openJson.toolbar',
-        iconClass: 'theia-open-json-icon'
+        iconClass: 'codicon codicon-json'
     };
     export const CLEAR_KEYBINDINGS_SEARCH: Command = {
         id: 'keymaps.clearSearch',
-        iconClass: 'clear-all'
+        iconClass: 'codicon codicon-clear-all'
+    };
+    export const COPY_COMMAND_ID: Command = {
+        id: 'keymaps.copyCommandId'
+    };
+    export const COPY_COMMAND: Command = {
+        id: 'keymaps.copyCommand'
+    };
+    export const EDIT_KEYBINDING: Command = {
+        id: 'keymaps.editKeybinding',
+    };
+    export const RESET_KEYBINDING: Command = {
+        id: 'keymaps.resetKeybinding'
+    };
+    export const CHANGE_WHEN_EXPRESSION: Command = {
+        id: 'keymaps.changeWhenExpression',
     };
 }
 
 @injectable()
 export class KeymapsFrontendContribution extends AbstractViewContribution<KeybindingWidget> implements CommandContribution, MenuContribution, TabBarToolbarContribution {
+
+    @inject(ClipboardService)
+    protected clipboardService: ClipboardService;
 
     @inject(KeymapsService)
     protected readonly keymaps: KeymapsService;
@@ -86,12 +106,72 @@ export class KeymapsFrontendContribution extends AbstractViewContribution<Keybin
             isVisible: w => this.withWidget(w, () => true),
             execute: w => this.withWidget(w, widget => widget.clearSearch()),
         });
+        commands.registerCommand(KeymapsCommands.COPY_COMMAND, {
+            isEnabled: w => this.withWidget(w, () => true),
+            isVisible: w => this.withWidget(w, () => true),
+            execute: (w, { id, value }: { id: string, value: KeybindingItem }) => this.withWidget(w, widget => {
+                this.clipboardService.writeText(this.toStringifiedCommand(value));
+            })
+        });
+        commands.registerCommand(KeymapsCommands.COPY_COMMAND_ID, {
+            isEnabled: w => this.withWidget(w, () => true),
+            isVisible: w => this.withWidget(w, () => true),
+            execute: (w, { id, value }: { id: string, value: KeybindingItem }) => this.withWidget(w, () => {
+                this.clipboardService.writeText(id);
+            })
+        });
+        commands.registerCommand(KeymapsCommands.EDIT_KEYBINDING, {
+            isEnabled: w => this.withWidget(w, () => true),
+            isVisible: w => this.withWidget(w, () => true),
+            execute: (w, { id, value }: { id: string, value: KeybindingItem }) => this.withWidget(w, widget => {
+                widget.triggerEditKeybinding(value);
+            })
+        });
+        commands.registerCommand(KeymapsCommands.RESET_KEYBINDING, {
+            isEnabled: (w, { id, value }: { id: string, value: KeybindingItem }) => this.withWidget(w, () => value.keybinding?.scope === KeybindingScope.USER),
+            isVisible: (w, { id, value }: { id: string, value: KeybindingItem }) => this.withWidget(w, () => value.keybinding?.scope === KeybindingScope.USER),
+            execute: (w, { id, value }: { id: string, value: KeybindingItem }) => this.withWidget(w, widget => {
+                widget.triggerResetKeybinding(value);
+            })
+        });
+        commands.registerCommand(KeymapsCommands.CHANGE_WHEN_EXPRESSION, {
+            isEnabled: w => this.withWidget(w, () => true),
+            isVisible: w => this.withWidget(w, () => true),
+            execute: (w, { id, value }: { id: string, value: KeybindingItem }) => this.withWidget(w, widget => {
+                widget.triggerChangeWhenExpression(value);
+            })
+        });
     }
 
     registerMenus(menus: MenuModelRegistry): void {
         menus.registerMenuAction(CommonMenus.FILE_SETTINGS_SUBMENU_OPEN, {
             commandId: KeymapsCommands.OPEN_KEYMAPS.id,
             order: 'a20'
+        });
+        menus.registerMenuAction(KeymapsMenus.KEYBINDINGS_WIDGET_COPY, {
+            commandId: KeymapsCommands.COPY_COMMAND.id,
+            label: 'Copy',
+            order: 'a10',
+        });
+        menus.registerMenuAction(KeymapsMenus.KEYBINDINGS_WIDGET_COPY, {
+            commandId: KeymapsCommands.COPY_COMMAND_ID.id,
+            label: 'Copy Command ID',
+            order: 'a20',
+        });
+        menus.registerMenuAction(KeymapsMenus.KEYBINDINGS_WIDGET_ACTIONS, {
+            commandId: KeymapsCommands.EDIT_KEYBINDING.id,
+            label: 'Edit Keybinding',
+            order: 'a10'
+        });
+        menus.registerMenuAction(KeymapsMenus.KEYBINDINGS_WIDGET_ACTIONS, {
+            commandId: KeymapsCommands.RESET_KEYBINDING.id,
+            label: 'Reset Keybinding',
+            order: 'a20'
+        });
+        menus.registerMenuAction(KeymapsMenus.KEYBINDINGS_WIDGET_ACTIONS, {
+            commandId: KeymapsCommands.CHANGE_WHEN_EXPRESSION.id,
+            label: 'Change When Expression',
+            order: 'a30'
         });
     }
 
@@ -128,5 +208,17 @@ export class KeymapsFrontendContribution extends AbstractViewContribution<Keybin
             return fn(widget);
         }
         return false;
+    }
+
+    /**
+     * Converts a keybinding item to a human-readable form.
+     * @param item the keybinding item.
+     */
+    protected toStringifiedCommand(item: KeybindingItem): string {
+        return JSON.stringify({
+            key: item.labels.keybinding,
+            command: item.labels.id,
+            when: item.labels.context
+        }, undefined, '\t');
     }
 }

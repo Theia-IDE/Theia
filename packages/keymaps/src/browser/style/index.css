@@ -62,17 +62,17 @@
 
 .th-action,
 .kb-actions {
-    padding: 2px 0px 5px 0px;
+    padding: 2px 0px 2px 0px;
 }
 
 .th-keybinding,
 .kb-keybinding {
-    padding: 2px 10px 5px 10px;
+    padding: 2px 10px 2px 10px;
 }
 
 .th-label, .th-source, .th-context, .th-keybinding,
 .kb-label, .kb-source, .kb-context {
-    padding: 2px 10px 5px 10px;
+    padding: 2px 10px 2px 10px;
     min-height: 18px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -98,6 +98,18 @@
 
 .kb table tbody tr:hover {
     background-color: var(--theia-list-focusBackground);
+}
+
+.kb table tbody tr:active,
+.kb table tbody tr:active .kb-action-item,
+.kb table tbody tr:active td code,
+.kb table tbody tr:active .fuzzy-match {
+    background-color: var(--theia-list-activeSelectionBackground) !important;
+    color: var(--theia-list-activeSelectionForeground) !important;
+}
+
+.kb table tbody tr:active .monaco-keybinding > .monaco-keybinding-key {
+    color: var(--theia-list-activeSelectionForeground) !important;
 }
 
 .kb table tbody tr:hover .kb-action-item {
