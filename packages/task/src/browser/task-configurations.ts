@@ -130,7 +130,7 @@ export class TaskConfigurations implements Disposable {
      * The invalid task configs are not returned.
      */
     async getTasks(token: number): Promise<TaskConfiguration[]> {
-        const configuredTasks = Array.from(this.tasksMap.values()).reduce((acc, labelConfigMap) => acc.concat(Array.from(labelConfigMap.values())), [] as TaskConfiguration[]);
+        const configuredTasksMap = new Map(this.tasksMap);
         const detectedTasksAsConfigured: TaskConfiguration[] = [];
         for (const [rootFolder, customizations] of Array.from(this.taskCustomizationMap.entries())) {
             for (const cus of customizations) {
@@ -139,9 +139,19 @@ export class TaskConfigurations implements Disposable {
                 if (detected) {
                     // there might be a provided task that has a different scope from the task we're inspecting
                     detectedTasksAsConfigured.push({ ...detected, ...cus });
+                } else {
+                    if (configuredTasksMap.has(rootFolder)) {
+                        configuredTasksMap.get(rootFolder)!.set(cus['label'], cus as TaskConfiguration);
+                    } else {
+                        const newConfigMap = new Map();
+                        newConfigMap.set(cus['label'], cus as TaskConfiguration);
+                        configuredTasksMap.set(rootFolder, newConfigMap);
+                    }
                 }
             }
         }
+        const configuredTasks = Array.from(configuredTasksMap.values()).reduce((acc, labelConfigMap) => acc.concat(Array.from(labelConfigMap.values())), [] as TaskConfiguration[]);
+
         return [...configuredTasks, ...detectedTasksAsConfigured];
     }
 
