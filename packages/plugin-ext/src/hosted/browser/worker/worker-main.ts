@@ -38,10 +38,10 @@ const ctx = self as any;
 const pluginsApiImpl = new Map<string, typeof theia>();
 const pluginsModulesNames = new Map<string, Plugin>();
 
-const emitter = new Emitter();
+const emitter: Emitter<string> = new Emitter<string>();
 const rpc = new RPCProtocolImpl({
     onMessage: emitter.event,
-    send: (m: {}) => {
+    send: (m: string) => {
         ctx.postMessage(m);
     }
 });

@@ -685,7 +685,6 @@ export interface ExtensionContext {
 }
 
 export interface PluginMetadata {
-    host: string;
     model: PluginModel;
     lifecycle: PluginLifecycle;
 }
@@ -705,11 +704,15 @@ export function buildFrontendModuleName(plugin: PluginPackage | PluginModel): st
 
 export const HostedPluginClient = Symbol('HostedPluginClient');
 export interface HostedPluginClient {
-    postMessage(message: string): Promise<void>;
+    postMessage(pluginHostId: string, message: string): Promise<void>;
 
     log(logPart: LogPart): void;
 
-    onDidDeploy(): void;
+    onDidDeploy(pluginHostId: string): void;
+
+    onWillStartPluginHost(pluginHostId: string): void;
+
+    onDidStartPluginHost(pluginHostId: string): void;
 }
 
 export interface PluginDependencies {
@@ -728,6 +731,7 @@ export interface PluginDeployerHandler {
 }
 
 export interface GetDeployedPluginsParams {
+    pluginHostId: string;
     pluginIds: string[]
 }
 
@@ -743,13 +747,13 @@ export interface DeployedPlugin {
 export const HostedPluginServer = Symbol('HostedPluginServer');
 export interface HostedPluginServer extends JsonRpcServer<HostedPluginClient> {
 
-    getDeployedPluginIds(): Promise<string[]>;
+    getDeployedPluginIds(pluginHostId: string): Promise<string[]>;
 
     getDeployedPlugins(params: GetDeployedPluginsParams): Promise<DeployedPlugin[]>;
 
     getExtPluginAPI(): Promise<ExtPluginApi[]>;
 
-    onMessage(message: string): Promise<void>;
+    onMessage(pluginHostId: string, message: string): Promise<void>;
 
 }
 
@@ -784,22 +788,21 @@ export interface PluginServer {
 export const ServerPluginRunner = Symbol('ServerPluginRunner');
 export interface ServerPluginRunner {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    acceptMessage(jsonMessage: any): boolean;
+    acceptMessage(pluginHostId: string): boolean;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onMessage(jsonMessage: any): void;
+    onMessage(pluginHostId: string, jsonMessage: string): void;
     setClient(client: HostedPluginClient): void;
-    setDefault(defaultRunner: ServerPluginRunner): void;
     clientClosed(): void;
 
     /**
      * Provides additional deployed plugins.
      */
-    getExtraDeployedPlugins(): Promise<DeployedPlugin[]>;
+    getDeployedPlugins(pluginHostId: string, pluginIds: string[]): Promise<DeployedPlugin[]>;
 
     /**
      * Provides additional plugin ids.
      */
-    getExtraDeployedPluginIds(): Promise<string[]>;
+    getDeployedPluginIds(pluginHostId: string): Promise<string[]>;
 
 }
 

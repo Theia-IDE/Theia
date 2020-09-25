@@ -23,6 +23,7 @@ import { MessageType } from '../../common/rpc-protocol';
 import { HostedPluginCliContribution } from './hosted-plugin-cli-contribution';
 import * as psTree from 'ps-tree';
 import { Deferred } from '@theia/core/lib/common/promise-util';
+import { HostedPluginDeployerHandler } from './hosted-plugin-deployer-handler';
 
 export interface IPCConnectionOptions {
     readonly serverName: string;
@@ -38,6 +39,8 @@ export interface HostedPluginProcessConfiguration {
 
 @injectable()
 export class HostedPluginProcess implements ServerPluginRunner {
+    public static readonly PLUGIN_HOST_ID = 'HOSTED_PLUGIN_PROCESS';
+    private static readonly HOSTED_PLUGIN_ENV_REGEXP_EXCLUSION = new RegExp('HOSTED_PLUGIN*');
 
     @inject(HostedPluginProcessConfiguration)
     protected configuration: HostedPluginProcessConfiguration;
@@ -48,6 +51,9 @@ export class HostedPluginProcess implements ServerPluginRunner {
     @inject(HostedPluginCliContribution)
     protected readonly cli: HostedPluginCliContribution;
 
+    @inject(HostedPluginDeployerHandler)
+    protected readonly deployerHandler: HostedPluginDeployerHandler;
+
     @inject(ContributionProvider)
     @named(PluginHostEnvironmentVariable)
     protected readonly pluginHostEnvironmentVariables: ContributionProvider<PluginHostEnvironmentVariable>;
@@ -56,37 +62,29 @@ export class HostedPluginProcess implements ServerPluginRunner {
     protected readonly messageService: MessageService;
 
     private childProcess: cp.ChildProcess | undefined;
-    private client: HostedPluginClient;
+    protected client: HostedPluginClient;
 
     private terminatingPluginServer = false;
 
     public setClient(client: HostedPluginClient): void {
-        if (this.client) {
-            if (this.childProcess) {
-                this.runPluginServer();
-            }
-        }
         this.client = client;
+        client.onWillStartPluginHost(HostedPluginProcess.PLUGIN_HOST_ID);
+        this.runPluginServer();
+        client.onDidStartPluginHost(HostedPluginProcess.PLUGIN_HOST_ID);
     }
 
     public clientClosed(): void {
-
-    }
-
-    public setDefault(defaultRunner: ServerPluginRunner): void {
-
+        this.terminatePluginServer();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public acceptMessage(jsonMessage: any): boolean {
-        return jsonMessage.type !== undefined && jsonMessage.id;
+    public acceptMessage(pluginHostId: string): boolean {
+        return HostedPluginProcess.PLUGIN_HOST_ID === pluginHostId;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public onMessage(jsonMessage: any): void {
-        if (this.childProcess) {
-            this.childProcess.send(JSON.stringify(jsonMessage));
-        }
+    public onMessage(pluginHostId: string, jsonMessage: string): void {
+        this.childProcess!.send(jsonMessage);
     }
 
     async terminatePluginServer(): Promise<void> {
@@ -142,30 +140,18 @@ export class HostedPluginProcess implements ServerPluginRunner {
         }
     }
 
-    public runPluginServer(): void {
-        if (this.childProcess) {
-            this.terminatePluginServer();
-        }
+    protected runPluginServer(): void {
         this.terminatingPluginServer = false;
-        this.childProcess = this.fork({
+
+        const options = {
             serverName: 'hosted-plugin',
             logger: this.logger,
             args: []
-        });
-        this.childProcess.on('message', message => {
-            if (this.client) {
-                this.client.postMessage(message);
-            }
-        });
-    }
-
-    readonly HOSTED_PLUGIN_ENV_REGEXP_EXCLUSION = new RegExp('HOSTED_PLUGIN*');
-    private fork(options: IPCConnectionOptions): cp.ChildProcess {
-
+        };
         // create env and add PATH to it so any executable from root process is available
         const env = createIpcEnv({ env: process.env });
         for (const key of Object.keys(env)) {
-            if (this.HOSTED_PLUGIN_ENV_REGEXP_EXCLUSION.test(key)) {
+            if (HostedPluginProcess.HOSTED_PLUGIN_ENV_REGEXP_EXCLUSION.test(key)) {
                 delete env[key];
             }
         }
@@ -188,13 +174,27 @@ export class HostedPluginProcess implements ServerPluginRunner {
         }
 
         const childProcess = cp.fork(this.configuration.path, options.args, forkOptions);
-        childProcess.stdout.on('data', data => this.logger.info(`[${options.serverName}: ${childProcess.pid}] ${data.toString().trim()}`));
-        childProcess.stderr.on('data', data => this.logger.error(`[${options.serverName}: ${childProcess.pid}] ${data.toString().trim()}`));
+        childProcess.stdout.on('data', data => this.onStdOutData(options.serverName, childProcess.pid, data));
+        childProcess.stderr.on('data', data => this.onStdErrData(options.serverName, childProcess.pid, data));
 
         this.logger.debug(`[${options.serverName}: ${childProcess.pid}] IPC started`);
         childProcess.once('exit', (code: number, signal: string) => this.onChildProcessExit(options.serverName, childProcess.pid, code, signal));
         childProcess.on('error', err => this.onChildProcessError(err));
-        return childProcess;
+        childProcess.on('message', message => {
+            if (this.client) {
+                this.client.postMessage(HostedPluginProcess.PLUGIN_HOST_ID, message);
+            }
+        });
+
+        this.childProcess = childProcess;
+    }
+
+    protected onStdOutData(serverName: string, pid: number, data: string | Buffer): void {
+        this.logger.info(`[${serverName}: ${pid}] ${data.toString().trim()}`);
+    }
+
+    protected onStdErrData(serverName: string, pid: number, data: string | Buffer): void {
+        this.logger.info(`[${serverName}: ${pid}] ${data.toString().trim()}`);
     }
 
     private onChildProcessExit(serverName: string, pid: number, code: number, signal: string): void {
@@ -217,18 +217,29 @@ export class HostedPluginProcess implements ServerPluginRunner {
         this.logger.error(`Error from plugin host: ${err.message}`);
     }
 
-    /**
-     * Provides additional plugin ids.
-     */
-    public async getExtraDeployedPluginIds(): Promise<string[]> {
-        return [];
+    async getDeployedPlugins(pluginHostId: string, pluginIds: string[]): Promise<DeployedPlugin[]> {
+        if (!pluginIds.length) {
+            return [];
+        }
+        const plugins = [];
+        for (const pluginId of pluginIds) {
+            const plugin = this.deployerHandler.getDeployedPlugin(pluginId);
+            if (plugin) {
+                plugins.push(plugin);
+            }
+        }
+        return plugins;
     }
 
-    /**
-     * Provides additional deployed plugins.
-     */
-    public async getExtraDeployedPlugins(): Promise<DeployedPlugin[]> {
-        return [];
+    async getDeployedPluginIds(pluginHostId: string): Promise<string[]> {
+        const backendMetadata = await this.deployerHandler.getDeployedBackendPluginIds();
+        const plugins = new Set<string>();
+        for (const pluginId of await this.deployerHandler.getDeployedFrontendPluginIds()) {
+            plugins.add(pluginId);
+        }
+        for (const pluginId of backendMetadata) {
+            plugins.add(pluginId);
+        }
+        return [...plugins.values()];
     }
-
 }

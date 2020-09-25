@@ -14,11 +14,10 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { injectable, inject, multiInject, postConstruct, optional } from 'inversify';
+import { injectable, inject, multiInject, optional } from 'inversify';
 import { ILogger, ConnectionErrorHandler } from '@theia/core/lib/common';
-import { HostedPluginClient, PluginModel, ServerPluginRunner, DeployedPlugin } from '../../common/plugin-protocol';
+import { HostedPluginClient, ServerPluginRunner, DeployedPlugin } from '../../common/plugin-protocol';
 import { LogPart } from '../../common/types';
-import { HostedPluginProcess } from './hosted-plugin-process';
 
 export interface IPCConnectionOptions {
     readonly serverName: string;
@@ -34,11 +33,6 @@ export class HostedPluginSupport {
     @inject(ILogger)
     protected readonly logger: ILogger;
 
-    @inject(HostedPluginProcess)
-    protected readonly hostedPluginProcess: HostedPluginProcess;
-
-    private isPluginProcessRunning = false;
-
     /**
      * Optional runners to delegate some work
      */
@@ -46,70 +40,37 @@ export class HostedPluginSupport {
     @multiInject(ServerPluginRunner)
     private readonly pluginRunners: ServerPluginRunner[];
 
-    @postConstruct()
-    protected init(): void {
-        this.pluginRunners.forEach(runner => {
-            runner.setDefault(this.hostedPluginProcess);
-        });
-    }
-
     setClient(client: HostedPluginClient): void {
         this.client = client;
-        this.hostedPluginProcess.setClient(client);
         this.pluginRunners.forEach(runner => runner.setClient(client));
     }
 
     clientClosed(): void {
-        this.isPluginProcessRunning = false;
-        this.terminatePluginServer();
-        this.isPluginProcessRunning = false;
         this.pluginRunners.forEach(runner => runner.clientClosed());
     }
 
-    runPlugin(plugin: PluginModel): void {
-        if (!plugin.entryPoint.frontend) {
-            this.runPluginServer();
+    onMessage(pluginHostId: string, message: string): void {
+        this.withPluginRunner(pluginHostId, runner => runner.onMessage(pluginHostId, message));
+    }
+
+    getDeployedPluginIds(pluginHostId: string): string[] | PromiseLike<string[]> {
+        return this.withPluginRunner(pluginHostId, runner => runner.getDeployedPluginIds(pluginHostId)) || [];
+    }
+
+    private withPluginRunner<T>(pluginHostId: string, what: (runner: ServerPluginRunner) => T): T | undefined {
+        for (const runner of this.pluginRunners) {
+            if (runner.acceptMessage(pluginHostId)) {
+                return what(runner);
+            }
         }
-    }
-
-    onMessage(message: string): void {
-        // need to perform routing
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const jsonMessage: any = JSON.parse(message);
-        if (this.pluginRunners.length > 0) {
-            this.pluginRunners.forEach(runner => {
-                if (runner.acceptMessage(jsonMessage)) {
-                    runner.onMessage(jsonMessage);
-                }
-            });
-        } else {
-            this.hostedPluginProcess.onMessage(jsonMessage.content);
-        }
-    }
-
-    private terminatePluginServer(): void {
-        this.hostedPluginProcess.terminatePluginServer();
-    }
-
-    public runPluginServer(): void {
-        if (!this.isPluginProcessRunning) {
-            this.hostedPluginProcess.runPluginServer();
-            this.isPluginProcessRunning = true;
-        }
-    }
-
-    /**
-     * Provides additional plugin ids.
-     */
-    public async getExtraDeployedPluginIds(): Promise<string[]> {
-        return [].concat.apply([], await Promise.all(this.pluginRunners.map(runner => runner.getExtraDeployedPluginIds())));
+        this.logger.error('no runner found for ' + pluginHostId);
     }
 
     /**
      * Provides additional deployed plugins.
      */
-    public async getExtraDeployedPlugins(): Promise<DeployedPlugin[]> {
-        return [].concat.apply([], await Promise.all(this.pluginRunners.map(runner => runner.getExtraDeployedPlugins())));
+    public async getDeployedPlugins(pluginHostId: string, pluginIds: string[]): Promise<DeployedPlugin[]> {
+        return this.withPluginRunner(pluginHostId, runner => runner.getDeployedPlugins(pluginHostId, pluginIds)) || Promise.resolve([]);
     }
 
     public sendLog(logPart: LogPart): void {

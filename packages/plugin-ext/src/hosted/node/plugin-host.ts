@@ -72,12 +72,12 @@ process.on('rejectionHandled', (promise: Promise<any>) => {
 });
 
 let terminating = false;
-const emitter = new Emitter();
+const emitter = new Emitter<string>();
 const rpc = new RPCProtocolImpl({
     onMessage: emitter.event,
-    send: (m: {}) => {
+    send: (m: string) => {
         if (process.send && !terminating) {
-            process.send(JSON.stringify(m));
+            process.send(m);
         }
     }
 });
@@ -88,7 +88,7 @@ process.on('message', async (message: string) => {
     }
     try {
         const msg = JSON.parse(message);
-        if ('type' in msg && msg.type === MessageType.Terminate) {
+        if (typeof msg === 'object' && 'type' in msg && msg.type === MessageType.Terminate) {
             terminating = true;
             emitter.dispose();
             if ('stopTimeout' in msg && typeof msg.stopTimeout === 'number' && msg.stopTimeout) {
@@ -104,7 +104,7 @@ process.on('message', async (message: string) => {
                 process.send(JSON.stringify({ type: MessageType.Terminated }));
             }
         } else {
-            emitter.fire(msg);
+            emitter.fire(message);
         }
     } catch (e) {
         console.error(e);

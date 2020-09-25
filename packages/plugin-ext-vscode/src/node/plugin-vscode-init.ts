@@ -17,6 +17,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as theia from '@theia/plugin';
+import * as path from 'path';
+
 import { BackendInitializationFn, PluginAPIFactory, Plugin, emptyPlugin } from '@theia/plugin-ext';
 
 export const VSCODE_DEFAULT_API_VERSION = '1.44.0';
@@ -94,7 +96,7 @@ function overrideInternalLoad(): void {
 }
 
 function findPlugin(filePath: string): Plugin | undefined {
-    return plugins.find(plugin => filePath.startsWith(plugin.pluginFolder));
+    return plugins.find(plugin => filePath.startsWith(plugin.pluginFolder.endsWith(path.sep) ? plugin.pluginFolder : plugin.pluginFolder + path.sep));
 }
 
 function asExtension(plugin: any | undefined): any | undefined {

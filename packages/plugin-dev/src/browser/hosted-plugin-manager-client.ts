@@ -22,7 +22,7 @@ import { LabelProvider, isNative, AbstractDialog } from '@theia/core/lib/browser
 import { WindowService } from '@theia/core/lib/browser/window/window-service';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { OpenFileDialogFactory, DirNode } from '@theia/filesystem/lib/browser';
-import { HostedPluginServer } from '../common/plugin-dev-protocol';
+import { PluginDevServer } from '../common/plugin-dev-protocol';
 import { DebugConfiguration as HostedDebugConfig } from '../common';
 import { DebugSessionManager } from '@theia/debug/lib/browser/debug-session-manager';
 import { HostedPluginPreferences } from './hosted-plugin-preferences';
@@ -100,8 +100,8 @@ export class HostedPluginManagerClient {
         return this.stateChanged.event;
     }
 
-    @inject(HostedPluginServer)
-    protected readonly hostedPluginServer: HostedPluginServer;
+    @inject(PluginDevServer)
+    protected readonly pluginDevServer: PluginDevServer;
     @inject(MessageService)
     protected readonly messageService: MessageService;
     @inject(OpenFileDialogFactory)
@@ -126,8 +126,8 @@ export class HostedPluginManagerClient {
         this.openNewTabAskDialog = new OpenHostedInstanceLinkDialog(this.windowService);
 
         // is needed for case when page is loaded when hosted instance is already running.
-        if (await this.hostedPluginServer.isHostedPluginInstanceRunning()) {
-            this.pluginLocation = new URI(await this.hostedPluginServer.getHostedPluginURI());
+        if (await this.pluginDevServer.isHostedPluginInstanceRunning()) {
+            this.pluginLocation = new URI(await this.pluginDevServer.getHostedPluginURI());
         }
     }
 
@@ -139,7 +139,7 @@ export class HostedPluginManagerClient {
     }
 
     async start(debugConfig?: HostedDebugConfig): Promise<void> {
-        if (await this.hostedPluginServer.isHostedPluginInstanceRunning()) {
+        if (await this.pluginDevServer.isHostedPluginInstanceRunning()) {
             this.messageService.warn('Hosted instance is already running.');
             return;
         }
@@ -158,10 +158,10 @@ export class HostedPluginManagerClient {
 
             if (debugConfig) {
                 this.isDebug = true;
-                this.pluginInstanceURL = await this.hostedPluginServer.runDebugHostedPluginInstance(this.pluginLocation.toString(), debugConfig);
+                this.pluginInstanceURL = await this.pluginDevServer.runDebugHostedPluginInstance(this.pluginLocation.toString(), debugConfig);
             } else {
                 this.isDebug = false;
-                this.pluginInstanceURL = await this.hostedPluginServer.runHostedPluginInstance(this.pluginLocation.toString());
+                this.pluginInstanceURL = await this.pluginDevServer.runHostedPluginInstance(this.pluginLocation.toString());
             }
             await this.openPluginWindow();
 
@@ -201,13 +201,13 @@ export class HostedPluginManagerClient {
     }
 
     async stop(checkRunning: boolean = true): Promise<void> {
-        if (checkRunning && !await this.hostedPluginServer.isHostedPluginInstanceRunning()) {
+        if (checkRunning && !await this.pluginDevServer.isHostedPluginInstanceRunning()) {
             this.messageService.warn('Hosted instance is not running.');
             return;
         }
         try {
             this.stateChanged.fire({ state: HostedInstanceState.STOPPING, pluginLocation: this.pluginLocation! });
-            await this.hostedPluginServer.terminateHostedPluginInstance();
+            await this.pluginDevServer.terminateHostedPluginInstance();
             this.messageService.info((this.pluginInstanceURL ? this.pluginInstanceURL : 'The instance') + ' has been terminated.');
             this.stateChanged.fire({ state: HostedInstanceState.STOPPED, pluginLocation: this.pluginLocation! });
         } catch (error) {
@@ -216,7 +216,7 @@ export class HostedPluginManagerClient {
     }
 
     async restart(): Promise<void> {
-        if (await this.hostedPluginServer.isHostedPluginInstanceRunning()) {
+        if (await this.pluginDevServer.isHostedPluginInstanceRunning()) {
             await this.stop(false);
 
             this.messageService.info('Starting hosted instance server ...');
@@ -228,12 +228,12 @@ export class HostedPluginManagerClient {
             for (let tries = 0; tries < 15; tries++) {
                 try {
                     if (this.isDebug) {
-                        this.pluginInstanceURL = await this.hostedPluginServer.runDebugHostedPluginInstance(this.pluginLocation!.toString(), {
+                        this.pluginInstanceURL = await this.pluginDevServer.runDebugHostedPluginInstance(this.pluginLocation!.toString(), {
                             debugMode: this.hostedPluginPreferences['hosted-plugin.debugMode']
                         });
                         await this.startDebugSessionManager();
                     } else {
-                        this.pluginInstanceURL = await this.hostedPluginServer.runHostedPluginInstance(this.pluginLocation!.toString());
+                        this.pluginInstanceURL = await this.pluginDevServer.runHostedPluginInstance(this.pluginLocation!.toString());
                     }
                     await this.openPluginWindow();
                     this.messageService.info('Hosted instance is running at: ' + this.pluginInstanceURL);
@@ -278,7 +278,7 @@ export class HostedPluginManagerClient {
         const result = await dialog.open();
 
         if (UriSelection.is(result)) {
-            if (await this.hostedPluginServer.isPluginValid(result.uri.toString())) {
+            if (await this.pluginDevServer.isPluginValid(result.uri.toString())) {
                 this.pluginLocation = result.uri;
                 this.messageService.info('Plugin folder is set to: ' + this.labelProvider.getLongName(result.uri));
             } else {

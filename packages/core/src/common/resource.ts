@@ -271,7 +271,7 @@ export class InMemoryResources implements ResourceResolver {
         const resourceUri = uri.toString();
         const resource = this.resources.get(resourceUri);
         if (!resource) {
-            throw new Error(`Cannot update non-existed in-memory resource '${resourceUri}'`);
+            throw new Error(`Cannot update missing in-memory resource '${resourceUri}'`);
         }
         resource.saveContents(contents);
         return resource;

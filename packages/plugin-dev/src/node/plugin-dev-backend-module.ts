@@ -20,17 +20,17 @@ import { HostedPluginsManager, HostedPluginsManagerImpl } from './hosted-plugins
 import { ContainerModule, interfaces } from 'inversify';
 import { ConnectionContainerModule } from '@theia/core/lib/node/messaging/connection-container-module';
 import { bindContributionProvider } from '@theia/core/lib/common/contribution-provider';
-import { HostedPluginServerImpl } from './hosted-plugin-service';
-import { HostedPluginServer, HostedPluginClient, hostedServicePath } from '../common/plugin-dev-protocol';
+import { PluginDevServerImpl } from './plugin-dev-server-impl';
+import { PluginDevServer, PluginDevClient, pluginDevServicePath } from '../common/plugin-dev-protocol';
 import { HostedPluginReader } from './hosted-plugin-reader';
 import { BackendApplicationContribution } from '@theia/core/lib/node/backend-application';
 
 const commonHostedConnectionModule = ConnectionContainerModule.create(({ bind, bindBackendService }) => {
     bind(HostedPluginsManagerImpl).toSelf().inSingletonScope();
     bind(HostedPluginsManager).toService(HostedPluginsManagerImpl);
-    bind(HostedPluginServerImpl).toSelf().inSingletonScope();
-    bind(HostedPluginServer).toService(HostedPluginServerImpl);
-    bindBackendService<HostedPluginServer, HostedPluginClient>(hostedServicePath, HostedPluginServer, (server, client) => {
+    bind(PluginDevServerImpl).toSelf().inSingletonScope();
+    bind(PluginDevServer).toService(PluginDevServerImpl);
+    bindBackendService<PluginDevServer, PluginDevClient>(pluginDevServicePath, PluginDevServer, (server, client) => {
         server.setClient(client);
         client.onDidCloseConnection(() => server.dispose());
         return server;

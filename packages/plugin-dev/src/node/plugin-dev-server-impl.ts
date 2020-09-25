@@ -14,17 +14,16 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { HostedPluginServer, DebugConfiguration, HostedPluginClient } from '../common/plugin-dev-protocol';
+import { PluginDevServer, DebugConfiguration, PluginDevClient } from '../common/plugin-dev-protocol';
 import { injectable, inject } from 'inversify';
 import { HostedInstanceManager } from './hosted-instance-manager';
 import { PluginMetadata } from '@theia/plugin-ext/lib/common/plugin-protocol';
 import URI from '@theia/core/lib/common/uri';
 import { HostedPluginReader } from './hosted-plugin-reader';
 import { HostedPluginsManager } from './hosted-plugins-manager';
-import { HostedPluginSupport } from '@theia/plugin-ext/lib/hosted/node/hosted-plugin';
 
 @injectable()
-export class HostedPluginServerImpl implements HostedPluginServer {
+export class PluginDevServerImpl implements PluginDevServer {
 
     @inject(HostedPluginsManager)
     protected readonly hostedPluginsManager: HostedPluginsManager;
@@ -35,25 +34,18 @@ export class HostedPluginServerImpl implements HostedPluginServer {
     @inject(HostedPluginReader)
     private readonly reader: HostedPluginReader;
 
-    @inject(HostedPluginSupport)
-    private readonly hostedPlugin: HostedPluginSupport;
-
     dispose(): void {
         // Terminate the hosted instance if it is currently running.
         if (this.hostedInstanceManager.isRunning()) {
             this.hostedInstanceManager.terminate();
         }
     }
-    setClient(client: HostedPluginClient): void {
+    setClient(client: PluginDevClient): void {
 
     }
 
     async getHostedPlugin(): Promise<PluginMetadata | undefined> {
-        const pluginMetadata = await this.reader.getPlugin();
-        if (pluginMetadata) {
-            this.hostedPlugin.runPlugin(pluginMetadata.model);
-        }
-        return Promise.resolve(this.reader.getPlugin());
+        return this.reader.getPlugin();
     }
 
     isPluginValid(uri: string): Promise<boolean> {

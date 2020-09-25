@@ -23,7 +23,7 @@ import { CommandRegistry } from '@phosphor/commands';
 import { Menu } from '@phosphor/widgets';
 import { FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
 import { ConnectionStatusService, ConnectionStatus } from '@theia/core/lib/browser/connection-status-service';
-import { HostedPluginServer } from '../common/plugin-dev-protocol';
+import { PluginDevServer } from '../common/plugin-dev-protocol';
 import { HostedPluginManagerClient, HostedInstanceState, HostedPluginCommands, HostedInstanceData } from './hosted-plugin-manager-client';
 import { HostedPluginLogViewer } from './hosted-plugin-log-viewer';
 import { HostedPluginPreferences } from './hosted-plugin-preferences';
@@ -45,8 +45,8 @@ export class HostedPluginController implements FrontendApplicationContribution {
     @inject(FrontendApplicationStateService)
     protected readonly frontendApplicationStateService: FrontendApplicationStateService;
 
-    @inject(HostedPluginServer)
-    protected readonly hostedPluginServer: HostedPluginServer;
+    @inject(PluginDevServer)
+    protected readonly pluginDevServer: PluginDevServer;
 
     @inject(HostedPluginManagerClient)
     protected readonly hostedPluginManagerClient: HostedPluginManagerClient;
@@ -72,7 +72,7 @@ export class HostedPluginController implements FrontendApplicationContribution {
     private entry: StatusBarEntry | undefined;
 
     public initialize(): void {
-        this.hostedPluginServer.getHostedPlugin().then(pluginMetadata => {
+        this.pluginDevServer.getHostedPlugin().then(pluginMetadata => {
             if (!pluginMetadata) {
                 this.frontendApplicationStateService.reachedState('ready').then(() => {
                     // handles status bar item
@@ -92,7 +92,7 @@ export class HostedPluginController implements FrontendApplicationContribution {
                     this.hostedPluginManagerClient.onStateChanged(e => this.handleWatchers(e));
 
                     // updates status bar if page is loading when hosted instance is already running
-                    this.hostedPluginServer.isHostedPluginInstanceRunning().then(running => {
+                    this.pluginDevServer.isHostedPluginInstanceRunning().then(running => {
                         if (running) {
                             this.onHostedPluginRunning();
                         }
@@ -192,16 +192,16 @@ export class HostedPluginController implements FrontendApplicationContribution {
 
     protected async onPreferencesChanged(preference: PreferenceChange): Promise<void> {
         if (preference.preferenceName === 'hosted-plugin.watchMode') {
-            if (await this.hostedPluginServer.isHostedPluginInstanceRunning()) {
-                const pluginLocation = await this.hostedPluginServer.getHostedPluginURI();
-                const isWatchCompilationRunning = await this.hostedPluginServer.isWatchCompilationRunning(pluginLocation);
+            if (await this.pluginDevServer.isHostedPluginInstanceRunning()) {
+                const pluginLocation = await this.pluginDevServer.getHostedPluginURI();
+                const isWatchCompilationRunning = await this.pluginDevServer.isWatchCompilationRunning(pluginLocation);
                 if (preference.newValue === true) {
                     if (!isWatchCompilationRunning) {
                         await this.runWatchCompilation(pluginLocation.toString());
                     }
                 } else {
                     if (isWatchCompilationRunning) {
-                        await this.hostedPluginServer.stopWatchCompilation(pluginLocation.toString());
+                        await this.pluginDevServer.stopWatchCompilation(pluginLocation.toString());
                     }
                 }
                 // update status bar
@@ -224,10 +224,10 @@ export class HostedPluginController implements FrontendApplicationContribution {
             }
         } else if (event.state === HostedInstanceState.STOPPING) {
             if (this.hostedPluginPreferences['hosted-plugin.watchMode']) {
-                const isRunning = await this.hostedPluginServer.isWatchCompilationRunning(event.pluginLocation.toString());
+                const isRunning = await this.pluginDevServer.isWatchCompilationRunning(event.pluginLocation.toString());
                 if (isRunning) {
                     try {
-                        await this.hostedPluginServer.stopWatchCompilation(event.pluginLocation.toString());
+                        await this.pluginDevServer.stopWatchCompilation(event.pluginLocation.toString());
                     } catch (error) {
                         this.messageService.error(this.getErrorMessage(error.message));
                     }
@@ -238,7 +238,7 @@ export class HostedPluginController implements FrontendApplicationContribution {
 
     private async runWatchCompilation(pluginLocation: string): Promise<void> {
         try {
-            await this.hostedPluginServer.runWatchCompilation(pluginLocation);
+            await this.pluginDevServer.runWatchCompilation(pluginLocation);
             this.watcherSuccess = true;
         } catch (error) {
             this.messageService.error(this.getErrorMessage(error));
@@ -269,7 +269,7 @@ export class HostedPluginController implements FrontendApplicationContribution {
         } else {
             // ask state of hosted plugin when switching to Online
             if (this.entry) {
-                this.hostedPluginServer.isHostedPluginInstanceRunning().then(running => {
+                this.pluginDevServer.isHostedPluginInstanceRunning().then(running => {
                     if (running) {
                         this.onHostedPluginRunning();
                     } else {

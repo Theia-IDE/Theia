@@ -15,6 +15,7 @@
  ********************************************************************************/
 
 import * as theia from '@theia/plugin';
+import * as path from 'path';
 import { BackendInitializationFn } from '../../../common/plugin-protocol';
 import { PluginAPIFactory, Plugin, emptyPlugin } from '../../../common/plugin-api-rpc';
 
@@ -67,5 +68,5 @@ function overrideInternalLoad(): void {
 }
 
 function findPlugin(filePath: string): Plugin | undefined {
-    return plugins.find(plugin => filePath.startsWith(plugin.pluginFolder));
+    return plugins.find(plugin => filePath.startsWith(plugin.pluginFolder.endsWith(path.sep) ? plugin.pluginFolder : plugin.pluginFolder + path.sep));
 }

@@ -18,7 +18,7 @@ import { injectable, inject } from 'inversify';
 import { StatusBar } from '@theia/core/lib/browser/status-bar/status-bar';
 import { StatusBarAlignment, StatusBarEntry, FrontendApplicationContribution } from '@theia/core/lib/browser';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
-import { HostedPluginServer } from '../common/plugin-dev-protocol';
+import { PluginDevServer } from '../common/plugin-dev-protocol';
 import { ConnectionStatusService, ConnectionStatus } from '@theia/core/lib/browser/connection-status-service';
 import { FileStat } from '@theia/filesystem/lib/common/files';
 import { FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
@@ -44,8 +44,8 @@ export class HostedPluginInformer implements FrontendApplicationContribution {
     @inject(WorkspaceService)
     protected readonly workspaceService: WorkspaceService;
 
-    @inject(HostedPluginServer)
-    protected readonly hostedPluginServer: HostedPluginServer;
+    @inject(PluginDevServer)
+    protected readonly pluginDevServer: PluginDevServer;
 
     @inject(ConnectionStatusService)
     protected readonly connectionStatusService: ConnectionStatusService;
@@ -56,7 +56,7 @@ export class HostedPluginInformer implements FrontendApplicationContribution {
     public initialize(): void {
         this.workspaceService.roots.then(roots => {
             const workspaceFolder = roots[0];
-            this.hostedPluginServer.getHostedPlugin().then(pluginMetadata => {
+            this.pluginDevServer.getHostedPlugin().then(pluginMetadata => {
                 if (pluginMetadata) {
                     this.updateTitle(workspaceFolder);
 

@@ -25,10 +25,10 @@ import {
 import { MaybePromise, CommandContribution, ResourceResolver, bindContributionProvider } from '@theia/core/lib/common';
 import { WebSocketConnectionProvider } from '@theia/core/lib/browser/messaging';
 import { HostedPluginSupport } from '../../hosted/browser/hosted-plugin';
-import { HostedPluginWatcher } from '../../hosted/browser/hosted-plugin-watcher';
+import { HostedPluginClientImpl } from '../../hosted/browser/hosted-plugin-client-impl';
 import { OpenUriCommandHandler } from './commands';
 import { PluginApiFrontendContribution } from './plugin-frontend-contribution';
-import { HostedPluginServer, hostedServicePath, PluginServer, pluginServerJsonRpcPath } from '../../common/plugin-protocol';
+import { PluginServer, pluginServerJsonRpcPath } from '../../common/plugin-protocol';
 import { ModalNotification } from './dialogs/modal-notification';
 import { PluginWidget } from './plugin-ext-widget';
 import { PluginFrontendViewContribution } from './plugin-frontend-view-contribution';
@@ -83,7 +83,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
     bind(ModalNotification).toSelf().inSingletonScope();
 
     bind(HostedPluginSupport).toSelf().inSingletonScope();
-    bind(HostedPluginWatcher).toSelf().inSingletonScope();
+    bind(HostedPluginClientImpl).toSelf().inSingletonScope();
     bind(SelectionProviderCommandContribution).toSelf().inSingletonScope();
     bind(CommandContribution).toService(SelectionProviderCommandContribution);
 
@@ -100,12 +100,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
         onStart(): MaybePromise<void> {
             ctx.container.get(HostedPluginSupport).onStart(ctx.container);
         }
-    }));
-    bind(HostedPluginServer).toDynamicValue(ctx => {
-        const connection = ctx.container.get(WebSocketConnectionProvider);
-        const hostedWatcher = ctx.container.get(HostedPluginWatcher);
-        return connection.createProxy<HostedPluginServer>(hostedServicePath, hostedWatcher.getHostedPluginClient());
-    }).inSingletonScope();
+    })).inSingletonScope();
 
     bind(PluginPathsService).toDynamicValue(ctx => {
         const connection = ctx.container.get(WebSocketConnectionProvider);

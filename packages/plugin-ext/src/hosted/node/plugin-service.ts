@@ -13,22 +13,19 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
-import { injectable, inject, named, postConstruct } from 'inversify';
+import { injectable, inject, named } from 'inversify';
 import { HostedPluginServer, HostedPluginClient, PluginDeployer, GetDeployedPluginsParams, DeployedPlugin } from '../../common/plugin-protocol';
 import { HostedPluginSupport } from './hosted-plugin';
-import { ILogger, Disposable } from '@theia/core';
+import { ILogger, DisposableCollection } from '@theia/core';
 import { ContributionProvider } from '@theia/core';
 import { ExtPluginApiProvider, ExtPluginApi } from '../../common/plugin-ext-api-contribution';
-import { HostedPluginDeployerHandler } from './hosted-plugin-deployer-handler';
 import { PluginDeployerImpl } from '../../main/node/plugin-deployer-impl';
+import { HostedPluginProcess } from './hosted-plugin-process';
 
 @injectable()
 export class HostedPluginServerImpl implements HostedPluginServer {
     @inject(ILogger)
     protected readonly logger: ILogger;
-
-    @inject(HostedPluginDeployerHandler)
-    protected readonly deployerHandler: HostedPluginDeployerHandler;
 
     @inject(PluginDeployer)
     protected readonly pluginDeployer: PluginDeployerImpl;
@@ -39,74 +36,36 @@ export class HostedPluginServerImpl implements HostedPluginServer {
 
     protected client: HostedPluginClient | undefined;
 
-    protected deployedListener: Disposable;
+    protected toDispose = new DisposableCollection();
 
     constructor(
         @inject(HostedPluginSupport) private readonly hostedPlugin: HostedPluginSupport) {
     }
 
-    @postConstruct()
-    protected init(): void {
-        this.deployedListener = this.pluginDeployer.onDidDeploy(() => {
-            if (this.client) {
-                this.client.onDidDeploy();
-            }
-        });
-    }
-
     dispose(): void {
         this.hostedPlugin.clientClosed();
-        this.deployedListener.dispose();
+        this.toDispose.dispose();
     }
     setClient(client: HostedPluginClient): void {
         this.client = client;
+        this.toDispose.push(this.pluginDeployer.onDidDeploy(() => {
+            if (this.client) {
+                this.client.onDidDeploy(HostedPluginProcess.PLUGIN_HOST_ID);
+            }
+        }));
         this.hostedPlugin.setClient(client);
     }
 
-    async getDeployedPluginIds(): Promise<string[]> {
-        const backendMetadata = await this.deployerHandler.getDeployedBackendPluginIds();
-        if (backendMetadata.length > 0) {
-            this.hostedPlugin.runPluginServer();
-        }
-        const plugins = new Set<string>();
-        for (const pluginId of await this.deployerHandler.getDeployedFrontendPluginIds()) {
-            plugins.add(pluginId);
-        }
-        for (const pluginId of backendMetadata) {
-            plugins.add(pluginId);
-        }
-        for (const pluginId of await this.hostedPlugin.getExtraDeployedPluginIds()) {
-            plugins.add(pluginId);
-        }
-        return [...plugins.values()];
+    async getDeployedPluginIds(pluginHostId: string): Promise<string[]> {
+        return this.hostedPlugin.getDeployedPluginIds(pluginHostId);
     }
 
-    async getDeployedPlugins({ pluginIds }: GetDeployedPluginsParams): Promise<DeployedPlugin[]> {
-        if (!pluginIds.length) {
-            return [];
-        }
-        const plugins = [];
-        let extraDeployedPlugins: Map<string, DeployedPlugin> | undefined;
-        for (const pluginId of pluginIds) {
-            let plugin = this.deployerHandler.getDeployedPlugin(pluginId);
-            if (!plugin) {
-                if (!extraDeployedPlugins) {
-                    extraDeployedPlugins = new Map<string, DeployedPlugin>();
-                    for (const extraDeployedPlugin of await this.hostedPlugin.getExtraDeployedPlugins()) {
-                        extraDeployedPlugins.set(extraDeployedPlugin.metadata.model.id, extraDeployedPlugin);
-                    }
-                }
-                plugin = extraDeployedPlugins.get(pluginId);
-            }
-            if (plugin) {
-                plugins.push(plugin);
-            }
-        }
-        return plugins;
+    async getDeployedPlugins({ pluginHostId, pluginIds }: GetDeployedPluginsParams): Promise<DeployedPlugin[]> {
+        return this.hostedPlugin.getDeployedPlugins(pluginHostId, pluginIds);
     }
 
-    onMessage(message: string): Promise<void> {
-        this.hostedPlugin.onMessage(message);
+    onMessage(pluginHostId: string, message: string): Promise<void> {
+        this.hostedPlugin.onMessage(pluginHostId, message);
         return Promise.resolve();
     }
 

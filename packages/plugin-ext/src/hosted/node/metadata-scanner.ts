@@ -32,7 +32,6 @@ export class MetadataScanner {
     getPluginMetadata(plugin: PluginPackage): PluginMetadata {
         const scanner = this.getScanner(plugin);
         return {
-            host: 'main',
             model: scanner.getModel(plugin),
             lifecycle: scanner.getLifecycle(plugin)
         };
