@@ -239,8 +239,8 @@ export class DocumentsMainImpl implements DocumentsMain, Disposable {
         if (options.selection) {
             const selection = options.selection;
             range = {
-                start: { line: selection.startLineNumber - 1, character: selection.startColumn - 1 },
-                end: { line: selection.endLineNumber - 1, character: selection.endColumn - 1 }
+                start: { line: selection.startLineNumber, character: selection.startColumn },
+                end: { line: selection.endLineNumber, character: selection.endColumn }
             };
         }
         /* fall back to side group -> split relative to the active widget */

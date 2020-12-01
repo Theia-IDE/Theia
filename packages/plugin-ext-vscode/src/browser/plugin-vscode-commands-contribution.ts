@@ -46,7 +46,6 @@ import {
 import { DocumentsMainImpl } from '@theia/plugin-ext/lib/main/browser/documents-main';
 import { createUntitledURI } from '@theia/plugin-ext/lib/main/browser/editor/untitled-resource';
 import { toDocumentSymbol } from '@theia/plugin-ext/lib/plugin/type-converters';
-import { ViewColumn } from '@theia/plugin-ext/lib/plugin/types-impl';
 import { WorkspaceCommands } from '@theia/workspace/lib/browser';
 import { WorkspaceService, WorkspaceInput } from '@theia/workspace/lib/browser/workspace-service';
 import { DiffService } from '@theia/workspace/lib/browser/diff-service';
@@ -63,6 +62,7 @@ import {
 } from '@theia/navigator/lib/browser/navigator-contribution';
 import { FILE_NAVIGATOR_ID, FileNavigatorWidget } from '@theia/navigator/lib/browser';
 import { SelectableTreeNode } from '@theia/core/lib/browser/tree/tree-selection';
+import type * as theia from '@theia/plugin';
 
 export namespace VscodeCommands {
     export const OPEN: Command = {
@@ -110,7 +110,7 @@ export class PluginVscodeCommandsContribution implements CommandContribution {
     registerCommands(commands: CommandRegistry): void {
         commands.registerCommand(VscodeCommands.OPEN, {
             isVisible: () => false,
-            execute: async (resource: URI, columnOrOptions?: ViewColumn | TextDocumentShowOptions) => {
+            execute: async (resource: URI, columnOrOptions?: theia.ViewColumn | theia.TextDocumentShowOptions) => {
                 if (!resource) {
                     throw new Error(`${VscodeCommands.OPEN.id} command requires at least URI argument.`);
                 }
@@ -124,8 +124,18 @@ export class PluginVscodeCommandsContribution implements CommandContribution {
                         viewColumn: columnOrOptions
                     };
                 } else if (columnOrOptions) {
+                    let selection: TextDocumentShowOptions['selection'];
+                    if (columnOrOptions.selection) {
+                        selection = {
+                            startLineNumber: columnOrOptions.selection.start.line,
+                            startColumn: columnOrOptions.selection.start.character,
+                            endLineNumber: columnOrOptions.selection.end.line,
+                            endColumn: columnOrOptions.selection.end.character
+                        };
+                    }
                     options = {
-                        ...columnOrOptions
+                        ...columnOrOptions,
+                        selection
                     };
                 }
                 const editorOptions = DocumentsMainImpl.toEditorOpenerOptions(this.shell, options);
@@ -161,7 +171,7 @@ export class PluginVscodeCommandsContribution implements CommandContribution {
         commands.registerCommand(VscodeCommands.DIFF, {
             isVisible: () => false,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            execute: async (left: URI, right: URI, label?: string, options?: TextDocumentShowOptions) => {
+            execute: async (left: URI, right: URI, label?: string, options?: theia.TextDocumentShowOptions) => {
                 if (!left || !right) {
                     throw new Error(`${VscodeCommands.DIFF} command requires at least two URI arguments. Found left=${left}, right=${right} as arguments`);
                 }
@@ -173,7 +183,16 @@ export class PluginVscodeCommandsContribution implements CommandContribution {
                 }
 
                 const leftURI = new TheiaURI(left);
-                const editorOptions = DocumentsMainImpl.toEditorOpenerOptions(this.shell, options);
+                let selection: TextDocumentShowOptions['selection'];
+                if (options?.selection) {
+                    selection = {
+                        startLineNumber: options.selection.start.line,
+                        startColumn: options.selection.start.character,
+                        endLineNumber: options.selection.end.line,
+                        endColumn: options.selection.end.character
+                    };
+                }
+                const editorOptions = DocumentsMainImpl.toEditorOpenerOptions(this.shell, { ...options, selection });
                 await this.diffService.openDiffEditor(leftURI, new TheiaURI(right), label, editorOptions);
             }
         });
