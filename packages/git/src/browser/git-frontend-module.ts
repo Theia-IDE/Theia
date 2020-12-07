@@ -16,82 +16,27 @@
 
 import '../../src/browser/style/index.css';
 
-import { ContainerModule, interfaces } from 'inversify';
-import { CommandContribution, MenuContribution, ResourceResolver } from '@theia/core/lib/common';
-import {
-    WebSocketConnectionProvider,
-    LabelProviderContribution,
-    FrontendApplicationContribution,
-} from '@theia/core/lib/browser';
-import { TabBarToolbarContribution } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
-import { NavigatorTreeDecorator } from '@theia/navigator/lib/browser';
+import { ContainerModule } from 'inversify';
+import { WebSocketConnectionProvider } from '@theia/core/lib/browser';
 import { Git, GitPath, GitWatcher, GitWatcherPath, GitWatcherServer, GitWatcherServerProxy, ReconnectingGitWatcherServer } from '../common';
-import { GitContribution } from './git-contribution';
-import { bindGitDiffModule } from './diff/git-diff-frontend-module';
 import { bindGitHistoryModule } from './history/git-history-frontend-module';
-import { GitResourceResolver } from './git-resource-resolver';
-import { GitRepositoryProvider } from './git-repository-provider';
+import { bindGitDiffModule } from './diff/git-diff-frontend-module';
+import { GitAmendContribution } from './git-amend-support';
+import { GitHistoryContribution } from './history/git-history-support';
+import { ScmExtraSupportContribution } from '@theia/scm/lib/browser/scm-service';
 import { GitQuickOpenService } from './git-quick-open-service';
-import { GitUriLabelProviderContribution } from './git-uri-label-contribution';
-import { GitDecorator } from './git-decorator';
-import { bindGitPreferences } from './git-preferences';
-import { bindDirtyDiff } from './dirty-diff/dirty-diff-module';
-import { bindBlame } from './blame/blame-module';
-import { GitRepositoryTracker } from './git-repository-tracker';
-import { GitCommitMessageValidator } from './git-commit-message-validator';
-import { GitSyncService } from './git-sync-service';
 import { GitErrorHandler } from './git-error-handler';
-import { GitScmProvider, GitScmProviderOptions } from './git-scm-provider';
-import { ColorContribution } from '@theia/core/lib/browser/color-application-contribution';
-import { ScmHistorySupport } from '@theia/scm-extra/lib/browser/history/scm-history-widget';
-import { ScmHistoryProvider } from '@theia/scm-extra/lib/browser/history';
-import { GitHistorySupport } from './history/git-history-support';
 
 export default new ContainerModule(bind => {
-    bindGitPreferences(bind);
     bindGitDiffModule(bind);
     bindGitHistoryModule(bind);
-    bindDirtyDiff(bind);
-    bindBlame(bind);
-    bind(GitRepositoryTracker).toSelf().inSingletonScope();
     bind(GitWatcherServerProxy).toDynamicValue(context => WebSocketConnectionProvider.createProxy(context.container, GitWatcherPath)).inSingletonScope();
     bind(GitWatcherServer).to(ReconnectingGitWatcherServer).inSingletonScope();
     bind(GitWatcher).toSelf().inSingletonScope();
     bind(Git).toDynamicValue(context => WebSocketConnectionProvider.createProxy(context.container, GitPath)).inSingletonScope();
-
-    bind(GitContribution).toSelf().inSingletonScope();
-    bind(CommandContribution).toService(GitContribution);
-    bind(MenuContribution).toService(GitContribution);
-    bind(FrontendApplicationContribution).toService(GitContribution);
-    bind(TabBarToolbarContribution).toService(GitContribution);
-    bind(ColorContribution).toService(GitContribution);
-
-    bind(GitResourceResolver).toSelf().inSingletonScope();
-    bind(ResourceResolver).toService(GitResourceResolver);
-
-    bind(GitScmProvider.Factory).toFactory(createGitScmProviderFactory);
-    bind(GitRepositoryProvider).toSelf().inSingletonScope();
     bind(GitQuickOpenService).toSelf().inSingletonScope();
-
-    bind(LabelProviderContribution).to(GitUriLabelProviderContribution).inSingletonScope();
-    bind(NavigatorTreeDecorator).to(GitDecorator).inSingletonScope();
-
-    bind(GitCommitMessageValidator).toSelf().inSingletonScope();
-
-    bind(GitSyncService).toSelf().inSingletonScope();
     bind(GitErrorHandler).toSelf().inSingletonScope();
-});
 
-export function createGitScmProviderFactory(ctx: interfaces.Context): GitScmProvider.Factory {
-    return (options: GitScmProviderOptions) => {
-        const container = ctx.container.createChild();
-        container.bind(GitScmProviderOptions).toConstantValue(options);
-        container.bind(GitScmProvider).toSelf().inSingletonScope();
-        container.bind(GitHistorySupport).toSelf().inSingletonScope();
-        container.bind(ScmHistorySupport).toService(GitHistorySupport);
-        const provider = container.get(GitScmProvider);
-        const historySupport = container.get(GitHistorySupport);
-        (provider as ScmHistoryProvider).historySupport = historySupport;
-        return provider;
-    };
-}
+    bind(ScmExtraSupportContribution).to(GitAmendContribution).inSingletonScope();
+    bind(ScmExtraSupportContribution).to(GitHistoryContribution).inSingletonScope();
+});

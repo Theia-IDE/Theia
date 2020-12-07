@@ -22,10 +22,13 @@ import { ApplicationProps } from '@theia/application-package/lib/application-pro
 FrontendApplicationConfigProvider.set({
     ...ApplicationProps.DEFAULT.frontend.config
 });
+import { bindContributionProvider } from '@theia/core/lib/common';
 
 import { Container } from 'inversify';
-import { Git, Repository } from '../common';
-import { DugiteGit } from '../node/dugite-git';
+import { Git, Repository } from '@theia/git/lib/common';
+import { DugiteGit } from '@theia/git/lib/node/dugite-git';
+import { GitNative } from '../common/git-native';
+import { DugiteGitNative } from '../node/dugite-git-native';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { FileStat, FileChangesEvent } from '@theia/filesystem/lib/common/files';
 import { Emitter, CommandService } from '@theia/core';
@@ -34,13 +37,13 @@ import { GitRepositoryProvider } from './git-repository-provider';
 import * as sinon from 'sinon';
 import * as chai from 'chai';
 import { GitCommitMessageValidator } from './git-commit-message-validator';
-import { ScmService } from '@theia/scm/lib/browser/scm-service';
+import { ScmService, ScmExtraSupportContribution } from '@theia/scm/lib/browser/scm-service';
 import { ScmContextKeyService } from '@theia/scm/lib/browser/scm-context-key-service';
 import { ContextKeyService } from '@theia/core/lib/browser/context-key-service';
 import { GitScmProvider } from './git-scm-provider';
-import { createGitScmProviderFactory } from './git-frontend-module';
+import { createGitScmProviderFactory } from './git-native-frontend-module';
 import { EditorManager } from '@theia/editor/lib/browser';
-import { GitErrorHandler } from './git-error-handler';
+import { GitErrorHandler } from '@theia/git/lib/browser/git-error-handler';
 import { GitPreferences } from './git-preferences';
 import { GitRepositoryTracker } from './git-repository-tracker';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
@@ -66,6 +69,7 @@ describe('GitRepositoryProvider', () => {
     let testContainer: Container;
 
     let mockGit: DugiteGit;
+    let mockGitNative: DugiteGitNative;
     let mockWorkspaceService: WorkspaceService;
     let mockFilesystem: FileService;
     let mockStorageService: StorageService;
@@ -77,13 +81,9 @@ describe('GitRepositoryProvider', () => {
 
     before(() => {
         disableJSDOM = enableJSDOM();
-    });
-    after(() => {
-        disableJSDOM();
-    });
 
-    beforeEach(() => {
         mockGit = sinon.createStubInstance(DugiteGit);
+        mockGitNative = sinon.createStubInstance(DugiteGitNative);
         mockWorkspaceService = sinon.createStubInstance(WorkspaceService);
         mockFilesystem = sinon.createStubInstance(FileService);
         mockStorageService = sinon.createStubInstance(LocalStorageService);
@@ -92,6 +92,7 @@ describe('GitRepositoryProvider', () => {
         testContainer = new Container();
         testContainer.bind(GitRepositoryProvider).toSelf().inSingletonScope();
         testContainer.bind(Git).toConstantValue(mockGit);
+        testContainer.bind(GitNative).toConstantValue(mockGitNative);
         testContainer.bind(WorkspaceService).toConstantValue(mockWorkspaceService);
         testContainer.bind(FileService).toConstantValue(mockFilesystem);
         testContainer.bind(StorageService).toConstantValue(mockStorageService);
@@ -106,7 +107,14 @@ describe('GitRepositoryProvider', () => {
         testContainer.bind(LabelProvider).toConstantValue(<LabelProvider>{});
         testContainer.bind(GitPreferences).toConstantValue(<GitPreferences>{});
         testContainer.bind(GitRepositoryTracker).toConstantValue(mockGitRepositoryTracker);
+        bindContributionProvider(testContainer, ScmExtraSupportContribution);
+    });
 
+    after(() => {
+        disableJSDOM();
+    });
+
+    beforeEach(() => {
         sinon.stub(mockWorkspaceService, 'onWorkspaceChanged').value(mockRootChangeEmitter.event);
         sinon.stub(mockFilesystem, 'onDidFilesChange').value(mockFileChangeEmitter.event);
     });
@@ -120,7 +128,7 @@ describe('GitRepositoryProvider', () => {
         (<sinon.SinonStub>mockWorkspaceService.tryGetRoots).returns(roots);
         gitRepositoryProvider = testContainer.get<GitRepositoryProvider>(GitRepositoryProvider);
         (<sinon.SinonStub>mockFilesystem.exists).resolves(true);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderA.resource.toString(), {}).resolves(allRepos);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderA.resource.toString(), {}).resolves(allRepos);
 
         await gitRepositoryProvider['initialize']();
         expect(gitRepositoryProvider.allRepositories.length).to.eq(allRepos.length);
@@ -141,8 +149,8 @@ describe('GitRepositoryProvider', () => {
         stubWsRoots.returns(oldRoots);
         gitRepositoryProvider = testContainer.get<GitRepositoryProvider>(GitRepositoryProvider);
         (<sinon.SinonStub>mockFilesystem.exists).resolves(true);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderA.resource.toString(), {}).resolves(allReposA);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderB.resource.toString(), {}).resolves(allReposB);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderA.resource.toString(), {}).resolves(allReposA);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderB.resource.toString(), {}).resolves(allReposB);
 
         let counter = 0;
         gitRepositoryProvider.onDidChangeRepository(selected => {
@@ -183,8 +191,8 @@ describe('GitRepositoryProvider', () => {
         stubWsRoots.onCall(2).returns(newRoots);
         gitRepositoryProvider = testContainer.get<GitRepositoryProvider>(GitRepositoryProvider);
         (<sinon.SinonStub>mockFilesystem.exists).resolves(true);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderA.resource.toString(), {}).resolves(allReposA);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderB.resource.toString(), {}).resolves(allReposB);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderA.resource.toString(), {}).resolves(allReposA);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderB.resource.toString(), {}).resolves(allReposB);
 
         let counter = 0;
         gitRepositoryProvider.onDidChangeRepository(selected => {
@@ -216,7 +224,7 @@ describe('GitRepositoryProvider', () => {
         gitRepositoryProvider = testContainer.get<GitRepositoryProvider>(GitRepositoryProvider);
         (<sinon.SinonStub>mockFilesystem.exists).withArgs(folderA.resource.toString()).resolves(true); // folderA exists
         (<sinon.SinonStub>mockFilesystem.exists).withArgs(folderB.resource.toString()).resolves(false); // folderB does not exist
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderA.resource.toString(), {}).resolves(allReposA);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderA.resource.toString(), {}).resolves(allReposA);
 
         await gitRepositoryProvider['initialize']();
         expect(gitRepositoryProvider.allRepositories.length).to.eq(allReposA.length);
@@ -235,10 +243,10 @@ describe('GitRepositoryProvider', () => {
         (<sinon.SinonStub>mockWorkspaceService.tryGetRoots).returns(roots);
         gitRepositoryProvider = testContainer.get<GitRepositoryProvider>(GitRepositoryProvider);
         (<sinon.SinonStub>mockFilesystem.exists).resolves(true);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderA.resource.toString(), {}).resolves(allReposA);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderA.resource.toString(), { maxCount: 1 }).resolves([allReposA[0]]);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderB.resource.toString(), {}).resolves(allReposB);
-        (<sinon.SinonStub>mockGit.repositories).withArgs(folderB.resource.toString(), { maxCount: 1 }).resolves([allReposB[0]]);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderA.resource.toString(), {}).resolves(allReposA);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderA.resource.toString(), { maxCount: 1 }).resolves([allReposA[0]]);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderB.resource.toString(), {}).resolves(allReposB);
+        (<sinon.SinonStub>mockGitNative.repositories).withArgs(folderB.resource.toString(), { maxCount: 1 }).resolves([allReposB[0]]);
 
         await gitRepositoryProvider['initialize']();
         expect(gitRepositoryProvider.selectedRepository && gitRepositoryProvider.selectedRepository.localUri).to.eq(allReposA[0].localUri);

@@ -16,7 +16,7 @@
 
 import { inject, injectable } from 'inversify';
 import { EditorManager, TextEditor, EditorDecoration, EditorDecorationOptions, Range, Position, EditorDecorationStyle } from '@theia/editor/lib/browser';
-import { GitFileBlame, Commit } from '../../common';
+import { GitFileBlame, Commit } from '@theia/git/lib/common';
 import { Disposable, DisposableCollection } from '@theia/core';
 import * as moment from 'moment';
 import URI from '@theia/core/lib/common/uri';

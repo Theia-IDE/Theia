@@ -1,0 +1,37 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../core/compile.tsconfig.json"
+    },
+    {
+      "path": "../editor/compile.tsconfig.json"
+    },
+    {
+      "path": "../filesystem/compile.tsconfig.json"
+    },
+    {
+      "path": "../git/compile.tsconfig.json"
+    },
+    {
+      "path": "../navigator/compile.tsconfig.json"
+    },
+    {
+      "path": "../scm/compile.tsconfig.json"
+    },
+    {
+      "path": "../scm-extra/compile.tsconfig.json"
+    },
+    {
+      "path": "../workspace/compile.tsconfig.json"
+    }
+  ]
+}

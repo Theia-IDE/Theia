@@ -20,7 +20,8 @@ import { injectable, inject, postConstruct } from 'inversify';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { Emitter, Event } from '@theia/core/lib/common/event';
 import { StorageService } from '@theia/core/lib/browser/storage-service';
-import { Git, Repository } from '../common';
+import { Git, Repository } from '@theia/git/lib/common';
+import { GitNative } from '../common/git-native';
 import { GitCommitMessageValidator } from './git-commit-message-validator';
 import { GitScmProvider } from './git-scm-provider';
 import { ScmService } from '@theia/scm/lib/browser/scm-service';
@@ -45,6 +46,7 @@ export class GitRepositoryProvider {
     protected readonly commitMessageValidator: GitCommitMessageValidator;
 
     @inject(Git) protected readonly git: Git;
+    @inject(GitNative) protected readonly gitNative: GitNative;
     @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService;
     @inject(ScmService) protected readonly scmService: ScmService;
     @inject(StorageService) protected readonly storageService: StorageService;
@@ -128,7 +130,7 @@ export class GitRepositoryProvider {
         const repositories: Repository[] = [];
         const refreshing: Promise<void>[] = [];
         for (const root of await this.workspaceService.roots) {
-            refreshing.push(this.git.repositories(root.resource.toString(), { ...options }).then(
+            refreshing.push(this.gitNative.repositories(root.resource.toString(), { ...options }).then(
                 result => { repositories.push(...result); },
                 () => { /* no-op*/ }
             ));

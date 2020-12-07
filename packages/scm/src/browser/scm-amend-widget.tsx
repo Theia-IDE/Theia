@@ -15,11 +15,8 @@
  ********************************************************************************/
 
 import { injectable, inject } from 'inversify';
-import { SelectionService } from '@theia/core/lib/common';
 import * as React from 'react';
-import {
-    ContextMenuRenderer, ReactWidget, LabelProvider, KeybindingRegistry, StorageService
-} from '@theia/core/lib/browser';
+import { ReactWidget, StorageService } from '@theia/core/lib/browser';
 import { ScmService } from './scm-service';
 import { ScmAvatarService } from './scm-avatar-service';
 import { ScmAmendComponent } from './scm-amend-component';
@@ -32,15 +29,8 @@ export class ScmAmendWidget extends ReactWidget {
     @inject(ScmService) protected readonly scmService: ScmService;
     @inject(ScmAvatarService) protected readonly avatarService: ScmAvatarService;
     @inject(StorageService) protected readonly storageService: StorageService;
-    @inject(SelectionService) protected readonly selectionService: SelectionService;
-    @inject(LabelProvider) protected readonly labelProvider: LabelProvider;
-    @inject(KeybindingRegistry) protected readonly keybindings: KeybindingRegistry;
 
-    protected shouldScrollToRow = true;
-
-    constructor(
-        @inject(ContextMenuRenderer) protected readonly contextMenuRenderer: ContextMenuRenderer,
-    ) {
+    constructor() {
         super();
         this.scrollOptions = {
             suppressScrollX: true,

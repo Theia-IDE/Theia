@@ -18,7 +18,7 @@ import { injectable, inject } from 'inversify';
 import { QuickOpenItem, QuickOpenMode, QuickOpenModel } from '@theia/core/lib/common/quick-open-model';
 import { QuickOpenService, QuickOpenOptions } from '@theia/core/lib/browser/quick-open/quick-open-service';
 import { Git, Repository, Branch, BranchType, Tag, Remote, StashEntry } from '../common';
-import { GitRepositoryProvider } from './git-repository-provider';
+import { ScmService } from '@theia/scm/lib/browser/scm-service';
 import { MessageService } from '@theia/core/lib/common/message-service';
 import { WorkspaceService } from '@theia/workspace/lib/browser/workspace-service';
 import { GitErrorHandler } from './git-error-handler';
@@ -46,7 +46,7 @@ export class GitQuickOpenService {
     @inject(LabelProvider) protected readonly labelProvider: LabelProvider;
 
     @inject(Git) protected readonly git: Git;
-    @inject(GitRepositoryProvider) protected readonly repositoryProvider: GitRepositoryProvider;
+    @inject(ScmService) protected readonly scmService: ScmService;
     @inject(QuickOpenService) protected readonly quickOpenService: QuickOpenService;
     @inject(MessageService) protected readonly messageService: MessageService;
     @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService;
@@ -526,7 +526,9 @@ export class GitQuickOpenService {
     }
 
     private getRepository(): Repository | undefined {
-        return this.repositoryProvider.selectedRepository;
+        return this.scmService.selectedRepository
+            ? { localUri: this.scmService.selectedRepository.provider.rootUri }
+            : undefined;
     }
 
     private async getRemotes(): Promise<Remote[]> {

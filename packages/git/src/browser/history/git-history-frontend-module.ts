@@ -21,7 +21,7 @@ import { GitCommitDetailWidget } from './git-commit-detail-widget';
 import { GitCommitDetailHeaderWidget } from './git-commit-detail-header-widget';
 import { GitDiffTreeModel } from '../diff/git-diff-tree-model';
 import { GitCommitDetailOpenHandler } from './git-commit-detail-open-handler';
-import { GitScmProvider } from '../git-scm-provider';
+import { GitCommitDetailUri } from './git-commit-detail-open-handler';
 import { createScmTreeContainer } from '@theia/scm/lib/browser/scm-frontend-module';
 import { GitResourceOpener } from '../diff/git-resource-opener';
 import { GitOpenerInSecondaryArea } from './git-opener-in-secondary-area';
@@ -30,7 +30,7 @@ import '../../../src/browser/style/git-icons.css';
 export function bindGitHistoryModule(bind: interfaces.Bind): void {
 
     bind(WidgetFactory).toDynamicValue(ctx => ({
-        id: GitScmProvider.GIT_COMMIT_DETAIL,
+        id: GitCommitDetailUri.GIT_COMMIT_DETAIL,
         createWidget: (options: GitCommitDetailWidgetOptions) => {
             const child = createGitCommitDetailWidgetContainer(ctx.container, options);
             return child.get(GitCommitDetailWidget);

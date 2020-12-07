@@ -19,13 +19,13 @@ import { Command, CommandContribution, CommandRegistry, DisposableCollection, Me
 import { DiffUris, Widget } from '@theia/core/lib/browser';
 import { TabBarToolbarContribution, TabBarToolbarRegistry, TabBarToolbarItem } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { EditorContextMenu, EditorManager, EditorOpenerOptions, EditorWidget } from '@theia/editor/lib/browser';
-import { Git, GitFileChange, GitFileStatus } from '../common';
+import { Git, GitFileChange, GitFileStatus } from '@theia/git/lib/common';
 import { GitRepositoryTracker } from './git-repository-tracker';
-import { GitAction, GitQuickOpenService } from './git-quick-open-service';
+import { GitAction, GitQuickOpenService } from '@theia/git/lib/browser/git-quick-open-service';
 import { GitSyncService } from './git-sync-service';
 import { WorkspaceService } from '@theia/workspace/lib/browser';
 import { GitRepositoryProvider } from './git-repository-provider';
-import { GitErrorHandler } from '../browser/git-error-handler';
+import { GitErrorHandler } from '@theia/git/lib/browser/git-error-handler';
 import { ScmWidget } from '@theia/scm/lib/browser/scm-widget';
 import { ScmTreeWidget } from '@theia/scm/lib/browser/scm-tree-widget';
 import { ScmResource, ScmCommand } from '@theia/scm/lib/browser/scm-provider';
@@ -435,7 +435,7 @@ export class GitContribution implements CommandContribution, MenuContribution, T
                 return provider && this.withProgress(() => provider.discard(resources));
             },
             isEnabled: (...arg: ScmResource[]) => !!this.repositoryProvider.selectedScmProvider
-                    && arg.some(r => r.sourceUri)
+                && arg.some(r => r.sourceUri)
         });
         registry.registerCommand(GIT_COMMANDS.OPEN_CHANGED_FILE, {
             execute: (...arg: ScmResource[]) => {
@@ -484,8 +484,9 @@ export class GitContribution implements CommandContribution, MenuContribution, T
             }
 
             try {
-                const lastCommit = await scmRepository.provider.amendSupport.getLastCommit();
-                if (lastCommit === undefined) {
+                const repository = { localUri: scmRepository.provider.rootUri };
+                const commits = await this.git.log(repository, { maxCount: 1 });
+                if (commits.length === 0) {
                     scmRepository.input.issue = {
                         type: 'error',
                         message: 'No previous commit to amend'

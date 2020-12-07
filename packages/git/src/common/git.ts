@@ -602,6 +602,10 @@ export namespace Git {
  */
 export interface Git extends Disposable {
 
+    gitIsReady(): Promise<void>;
+
+    getGitEnv(): Promise<Object>;
+
     /**
      * Clones a remote repository into the desired local location.
      *
@@ -609,11 +613,6 @@ export interface Git extends Disposable {
      * @param options the clone options.
      */
     clone(remoteUrl: string, options: Git.Options.Clone): Promise<Repository>;
-
-    /**
-     * Resolves to an array of repositories discovered in the workspace given with the workspace root URI.
-     */
-    repositories(workspaceRootUri: string, options: Git.Options.Repositories): Promise<Repository[]>;
 
     /**
      * Returns with the working directory status of the given Git repository.

@@ -33,7 +33,6 @@ import * as React from 'react';
 import { AlertMessage } from '@theia/core/lib/browser/widgets/alert-message';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 
-export const ScmHistorySupport = Symbol('scm-history-support');
 export interface ScmHistorySupport {
     getCommitHistory(options?: HistoryWidgetOptions): Promise<ScmHistoryCommit[]>;
     readonly onDidChangeHistory: TheiaEvent<void>;

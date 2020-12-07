@@ -14,7 +14,6 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import * as fs from 'fs-extra';
 import * as Path from 'path';
 import { injectable, inject, postConstruct } from 'inversify';
 import { git } from 'dugite-extra/lib/core/git';
@@ -43,7 +42,6 @@ import {
     CommitIdentity, GitResult, CommitWithChanges, GitFileBlame, CommitLine, GitError, Remote, StashEntry
 } from '../common';
 import { GitRepositoryManager } from './git-repository-manager';
-import { GitLocator } from './git-locator/git-locator-protocol';
 import { GitExecProvider } from './git-exec-provider';
 import { GitEnvProvider } from './env/git-env-provider';
 import { GitInit } from './init/git-init';
@@ -291,9 +289,6 @@ export class DugiteGit implements Git {
     @inject(ILogger)
     protected readonly logger: ILogger;
 
-    @inject(GitLocator)
-    protected readonly locator: GitLocator;
-
     @inject(GitRepositoryManager)
     protected readonly manager: GitRepositoryManager;
 
@@ -330,9 +325,16 @@ export class DugiteGit implements Git {
     }
 
     dispose(): void {
-        this.locator.dispose();
         this.execProvider.dispose();
         this.gitInit.dispose();
+    }
+
+    gitIsReady(): Promise<void> {
+        return this.ready.promise;
+    }
+
+    getGitEnv(): Promise<Object> {
+        return this.gitEnv.promise;
     }
 
     async clone(remoteUrl: string, options: Git.Options.Clone): Promise<Repository> {
@@ -341,32 +343,6 @@ export class DugiteGit implements Git {
         const [exec, env] = await Promise.all([this.execProvider.exec(), this.gitEnv.promise]);
         await clone(remoteUrl, this.getFsPath(localUri), { branch }, { exec, env });
         return { localUri };
-    }
-
-    async repositories(workspaceRootUri: string, options: Git.Options.Repositories): Promise<Repository[]> {
-        await this.ready.promise;
-        const workspaceRootPath = this.getFsPath(workspaceRootUri);
-        const repositories: Repository[] = [];
-        const containingPath = await this.resolveContainingPath(workspaceRootPath);
-        if (containingPath) {
-            repositories.push({
-                localUri: this.getUri(containingPath)
-            });
-        }
-        const maxCount = typeof options.maxCount === 'number' ? options.maxCount - repositories.length : undefined;
-        if (typeof maxCount === 'number' && maxCount <= 0) {
-            return repositories;
-        }
-        for (const repositoryPath of await this.locator.locate(workspaceRootPath, {
-            maxCount
-        })) {
-            if (containingPath !== repositoryPath) {
-                repositories.push({
-                    localUri: this.getUri(repositoryPath)
-                });
-            }
-        }
-        return repositories;
     }
 
     async status(repository: Repository): Promise<WorkingDirectoryStatus> {
@@ -753,26 +729,6 @@ export class DugiteGit implements Git {
             return 'index' === options.commitish ? '' : options.commitish;
         }
         return '';
-    }
-
-    // TODO: akitta what about symlinks? What if the workspace root is a symlink?
-    // Maybe, we should use `--show-cdup` here instead of `--show-toplevel` because `show-toplevel` dereferences symlinks.
-    private async resolveContainingPath(repositoryPath: string): Promise<string | undefined> {
-        await this.ready.promise;
-        // Do not log an error if we are not contained in a Git repository. Treat exit code 128 as a success too.
-        const [exec, env] = await Promise.all([this.execProvider.exec(), this.gitEnv.promise]);
-        const options = { successExitCodes: new Set([0, 128]), exec, env };
-        const result = await git(['rev-parse', '--show-toplevel'], repositoryPath, 'rev-parse', options);
-        const out = result.stdout;
-        if (out && out.length !== 0) {
-            try {
-                return fs.realpathSync(out.trim());
-            } catch (e) {
-                this.logger.error(e);
-                return undefined;
-            }
-        }
-        return undefined;
     }
 
     private async getRemotes(repositoryPath: string): Promise<Remote[]> {

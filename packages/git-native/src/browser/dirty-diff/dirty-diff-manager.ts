@@ -23,9 +23,9 @@ import { DirtyDiffUpdate } from '@theia/scm/lib/browser/dirty-diff/dirty-diff-de
 import { DiffComputer, DirtyDiff } from '@theia/scm/lib/browser/dirty-diff/diff-computer';
 import { GitPreferences, GitConfiguration } from '../git-preferences';
 import { PreferenceChangeEvent } from '@theia/core/lib/browser';
-import { GIT_RESOURCE_SCHEME } from '../git-resource';
+import { GIT_RESOURCE_SCHEME } from '@theia/git/lib/browser/git-resource';
 import { GitResourceResolver } from '../git-resource-resolver';
-import { WorkingDirectoryStatus, GitFileStatus, GitFileChange, Repository, Git, GitStatusChangeEvent } from '../../common';
+import { WorkingDirectoryStatus, GitFileStatus, GitFileChange, Repository, Git, GitStatusChangeEvent } from '@theia/git/lib/common';
 import { GitRepositoryTracker } from '../git-repository-tracker';
 
 import throttle = require('lodash.throttle');

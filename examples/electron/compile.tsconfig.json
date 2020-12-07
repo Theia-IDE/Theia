@@ -120,6 +120,9 @@
       "path": "../../packages/vsx-registry/compile.tsconfig.json"
     },
     {
+      "path": "../../packages/git-native/compile.tsconfig.json"
+    },
+    {
       "path": "../../packages/timeline/compile.tsconfig.json"
     }
   ]

@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { injectable, inject, postConstruct } from 'inversify';
+import { injectable, inject } from 'inversify';
 import URI from '@theia/core/lib/common/uri';
 import { DiffUris } from '@theia/core/lib/browser/diff-uris';
 import { Emitter } from '@theia/core';
@@ -23,14 +23,12 @@ import { CommandService } from '@theia/core/lib/common/command';
 import { ConfirmDialog } from '@theia/core/lib/browser/dialogs';
 import { EditorOpenerOptions, EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { WorkspaceCommands } from '@theia/workspace/lib/browser';
-import { Repository, Git, CommitWithChanges, GitFileChange, WorkingDirectoryStatus, GitFileStatus } from '../common';
-import { GIT_RESOURCE_SCHEME } from './git-resource';
-import { GitErrorHandler } from './git-error-handler';
+import { Repository, Git, GitFileChange, WorkingDirectoryStatus, GitFileStatus } from '@theia/git/lib/common';
+import { GIT_RESOURCE_SCHEME } from '@theia/git/lib/browser/git-resource';
+import { GitErrorHandler } from '@theia/git/lib/browser/git-error-handler';
 import { EditorWidget } from '@theia/editor/lib/browser';
-import { ScmProvider, ScmCommand, ScmResourceGroup, ScmAmendSupport, ScmCommit } from '@theia/scm/lib/browser/scm-provider';
-import { ScmHistoryCommit, ScmFileChange } from '@theia/scm-extra/lib/browser/scm-file-change-node';
+import { ScmProvider, ScmCommand, ScmResourceGroup } from '@theia/scm/lib/browser/scm-provider';
 import { LabelProvider } from '@theia/core/lib/browser/label-provider';
-import { GitCommitDetailWidgetOptions } from './history/git-commit-detail-widget-options';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { ScmInput } from '@theia/scm/lib/browser/scm-input';
 
@@ -86,21 +84,11 @@ export class GitScmProvider implements ScmProvider {
         this.toDispose.dispose();
     }
 
-    @postConstruct()
-    protected init(): void {
-        this._amendSupport = new GitAmendSupport(this, this.repository, this.git);
-    }
-
     get repository(): Repository {
         return this.options.repository;
     }
     get rootUri(): string {
         return this.repository.localUri;
-    }
-
-    protected _amendSupport: GitAmendSupport;
-    get amendSupport(): GitAmendSupport {
-        return this._amendSupport;
     }
 
     get acceptInputCommand(): ScmCommand | undefined {
@@ -411,65 +399,18 @@ export class GitScmProvider implements ScmProvider {
         await Promise.all(uris.map(uri => this.delete(new URI(uri))));
     }
 
-    public createScmCommit(gitCommit: CommitWithChanges): ScmCommit {
-        const scmCommit: ScmCommit = {
-            id: gitCommit.sha,
-            summary: gitCommit.summary,
-            authorName: gitCommit.author.name,
-            authorEmail: gitCommit.author.email,
-            authorDateRelative: gitCommit.authorDateRelative,
-        };
-        return scmCommit;
-    }
-
-    public createScmHistoryCommit(gitCommit: CommitWithChanges): ScmHistoryCommit {
-        const range = {
-            fromRevision: gitCommit.sha + '~1',
-            toRevision: gitCommit.sha
-        };
-
-        const scmCommit: GitScmCommit = {
-            ...this.createScmCommit(gitCommit),
-            commitDetailUri: this.toCommitDetailUri(gitCommit.sha),
-            scmProvider: this,
-            gitFileChanges: gitCommit.fileChanges.map(change => new GitScmFileChange(change, this, range)),
-            get fileChanges(): ScmFileChange[] {
-                return this.gitFileChanges;
-            },
-            get commitDetailOptions(): GitCommitDetailWidgetOptions {
-                return {
-                    rootUri: this.scmProvider.rootUri,
-                    commitSha: gitCommit.sha,
-                    commitMessage: gitCommit.summary,
-                    messageBody: gitCommit.body,
-                    authorName: gitCommit.author.name,
-                    authorEmail: gitCommit.author.email,
-                    authorDate: gitCommit.author.timestamp,
-                    authorDateRelative: gitCommit.authorDateRelative,
-                };
-            }
-        };
-        return scmCommit;
-    }
-
     public relativePath(uri: string): string {
         const parsedUri = new URI(uri);
-        const gitRepo = { localUri: this.rootUri };
-        const relativePath = Repository.relativePath(gitRepo, parsedUri);
+        const repositoryUri = new URI(this.rootUri);
+        const relativePath = repositoryUri.relative(new URI(uri));
         if (relativePath) {
             return relativePath.toString();
         }
         return this.labelProvider.getLongName(parsedUri);
     }
-
-    protected toCommitDetailUri(commitSha: string): URI {
-        return new URI('').withScheme(GitScmProvider.GIT_COMMIT_DETAIL).withFragment(commitSha);
-    }
 }
 
 export namespace GitScmProvider {
-    export const GIT_COMMIT_DETAIL = 'git-commit-detail-widget';
-
     export interface State {
         status?: WorkingDirectoryStatus
         stagedChanges: GitFileChange[]
@@ -489,111 +430,4 @@ export namespace GitScmProvider {
 
     export const Factory = Symbol('GitScmProvider.Factory');
     export type Factory = (options: GitScmProviderOptions) => GitScmProvider;
-}
-
-export class GitAmendSupport implements ScmAmendSupport {
-
-    constructor(protected readonly provider: GitScmProvider, protected readonly repository: Repository, protected readonly git: Git) { }
-
-    public async getInitialAmendingCommits(amendingHeadCommitSha: string, latestCommitSha: string | undefined): Promise<ScmCommit[]> {
-        const commits = await this.git.log(
-            this.repository,
-            {
-                range: { toRevision: amendingHeadCommitSha, fromRevision: latestCommitSha },
-                maxCount: 50
-            }
-        );
-
-        return commits.map(commit => this.provider.createScmCommit(commit));
-    }
-
-    public async getMessage(commit: string): Promise<string> {
-        return (await this.git.exec(this.repository, ['log', '-n', '1', '--format=%B', commit])).stdout.trim();
-    }
-
-    public async reset(commit: string): Promise<void> {
-        if (commit === 'HEAD~' && await this.isHeadInitialCommit()) {
-            await this.git.exec(this.repository, ['update-ref', '-d', 'HEAD']);
-        } else {
-            await this.git.exec(this.repository, ['reset', commit, '--soft']);
-        }
-    }
-
-    protected async isHeadInitialCommit(): Promise<boolean> {
-        const result = await this.git.revParse(this.repository, { ref: 'HEAD~' });
-        return !result;
-    }
-
-    public async getLastCommit(): Promise<ScmCommit | undefined> {
-        const commits = await this.git.log(this.repository, { maxCount: 1 });
-        if (commits.length > 0) {
-            return this.provider.createScmCommit(commits[0]);
-        }
-    }
-}
-
-export interface GitScmCommit extends ScmHistoryCommit {
-    scmProvider: GitScmProvider;
-    gitFileChanges: GitScmFileChange[];
-}
-
-export class GitScmFileChange implements ScmFileChange {
-
-    constructor(
-        protected readonly fileChange: GitFileChange,
-        protected readonly scmProvider: GitScmProvider,
-        protected readonly range?: Git.Options.Range
-    ) { }
-
-    get gitFileChange(): GitFileChange {
-        return this.fileChange;
-    }
-
-    get uri(): string {
-        return this.fileChange.uri;
-    }
-
-    getCaption(): string {
-        const provider = this.scmProvider;
-        let result = `${provider.relativePath(this.fileChange.uri)} - ${GitFileStatus.toString(this.fileChange.status, true)}`;
-        if (this.fileChange.oldUri) {
-            result = `${provider.relativePath(this.fileChange.oldUri)} -> ${result}`;
-        }
-        return result;
-    }
-
-    getStatusCaption(): string {
-        return GitFileStatus.toString(this.fileChange.status, true);
-    }
-
-    getStatusAbbreviation(): string {
-        return GitFileStatus.toAbbreviation(this.fileChange.status, this.fileChange.staged);
-    }
-
-    getClassNameForStatus(): string {
-        return 'git-status staged ' + GitFileStatus[this.fileChange.status].toLowerCase();
-    }
-
-    getUriToOpen(): URI {
-        const uri: URI = new URI(this.fileChange.uri);
-        const fromFileURI = this.fileChange.oldUri ? new URI(this.fileChange.oldUri) : uri; // set oldUri on renamed and copied
-        if (!this.range) {
-            return uri;
-        }
-        const fromURI = this.range.fromRevision
-            ? fromFileURI.withScheme(GIT_RESOURCE_SCHEME).withQuery(this.range.fromRevision.toString())
-            : fromFileURI;
-        const toURI = this.range.toRevision
-            ? uri.withScheme(GIT_RESOURCE_SCHEME).withQuery(this.range.toRevision.toString())
-            : uri;
-        let uriToOpen = uri;
-        if (this.fileChange.status === GitFileStatus.Deleted) {
-            uriToOpen = fromURI;
-        } else if (this.fileChange.status === GitFileStatus.New) {
-            uriToOpen = toURI;
-        } else {
-            uriToOpen = DiffUris.encode(fromURI, toURI);
-        }
-        return uriToOpen;
-    }
 }

@@ -16,14 +16,13 @@
 
 import { inject, injectable, postConstruct } from 'inversify';
 import {
-    BaseWidget, Widget, StatefulWidget, Panel, PanelLayout, Message, MessageLoop, PreferenceChangeEvent
+    BaseWidget, Widget, StatefulWidget, Panel, PanelLayout, Message, MessageLoop, PreferenceChangeEvent, LabelProvider
 } from '@theia/core/lib/browser';
 import { EditorManager, DiffNavigatorProvider } from '@theia/editor/lib/browser';
 import { GitDiffTreeModel } from './git-diff-tree-model';
 import { GitWatcher } from '../../common';
 import { GitDiffHeaderWidget } from './git-diff-header-widget';
 import { ScmService } from '@theia/scm/lib/browser/scm-service';
-import { GitRepositoryProvider } from '../git-repository-provider';
 import { ScmTreeWidget } from '@theia/scm/lib/browser/scm-tree-widget';
 import { ScmPreferences, ScmConfiguration } from '@theia/scm/lib/browser/scm-preferences';
 
@@ -35,7 +34,7 @@ export class GitDiffWidget extends BaseWidget implements StatefulWidget {
 
     protected readonly GIT_DIFF_TITLE = 'Diff';
 
-    @inject(GitRepositoryProvider) protected readonly repositoryProvider: GitRepositoryProvider;
+    @inject(LabelProvider) protected readonly labelProvider: LabelProvider;
     @inject(DiffNavigatorProvider) protected readonly diffNavigatorProvider: DiffNavigatorProvider;
     @inject(EditorManager) protected readonly editorManager: EditorManager;
     @inject(GitWatcher) protected readonly gitWatcher: GitWatcher;

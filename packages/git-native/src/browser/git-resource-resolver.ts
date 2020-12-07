@@ -15,11 +15,11 @@
  ********************************************************************************/
 
 import { injectable, inject } from 'inversify';
-import { Git, Repository } from '../common';
+import { Git, Repository } from '@theia/git/lib/common';
 import { Resource, ResourceResolver } from '@theia/core';
 import URI from '@theia/core/lib/common/uri';
 import { GitRepositoryProvider } from './git-repository-provider';
-import { GIT_RESOURCE_SCHEME, GitResource } from './git-resource';
+import { GIT_RESOURCE_SCHEME, GitResource } from '@theia/git/lib/browser/git-resource';
 
 @injectable()
 export class GitResourceResolver implements ResourceResolver {

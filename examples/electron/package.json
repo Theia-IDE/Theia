@@ -26,6 +26,7 @@
     "@theia/filesystem": "^1.8.0",
     "@theia/getting-started": "^1.8.0",
     "@theia/git": "^1.8.0",
+    "@theia/git-native": "^1.8.0",
     "@theia/keymaps": "^1.8.0",
     "@theia/markers": "^1.8.0",
     "@theia/messages": "^1.8.0",

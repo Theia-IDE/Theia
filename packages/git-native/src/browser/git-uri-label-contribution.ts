@@ -17,7 +17,7 @@
 import { injectable, inject } from 'inversify';
 import { LabelProviderContribution, LabelProvider, DidChangeLabelEvent } from '@theia/core/lib/browser/label-provider';
 import URI from '@theia/core/lib/common/uri';
-import { GIT_RESOURCE_SCHEME } from './git-resource';
+import { GIT_RESOURCE_SCHEME } from '@theia/git/lib/browser/git-resource';
 
 @injectable()
 export class GitUriLabelProviderContribution implements LabelProviderContribution {

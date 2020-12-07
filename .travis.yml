@@ -28,6 +28,7 @@ cache:
     - packages/file-search/node_modules
     - packages/filesystem/node_modules
     - packages/getting-started/node_modules
+    - packages/git-native/node_modules
     - packages/git/node_modules
     - packages/keymaps/node_modules
     - packages/markers/node_modules

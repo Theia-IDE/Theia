@@ -23,7 +23,8 @@ import {
     WidgetManager, ApplicationShellLayoutMigration,
     createTreeContainer, TreeWidget, TreeModel, TreeModelImpl
 } from '@theia/core/lib/browser';
-import { ScmService } from './scm-service';
+import { bindContributionProvider } from '@theia/core/lib/common';
+import { ScmService, ScmExtraSupportContribution } from './scm-service';
 import { SCM_WIDGET_FACTORY_ID, ScmContribution, SCM_VIEW_CONTAINER_ID, SCM_VIEW_CONTAINER_TITLE_OPTIONS } from './scm-contribution';
 import { ScmWidget } from './scm-widget';
 import { ScmTreeWidget } from './scm-tree-widget';
@@ -51,6 +52,7 @@ import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator
 export default new ContainerModule(bind => {
     bind(ScmContextKeyService).toSelf().inSingletonScope();
     bind(ScmService).toSelf().inSingletonScope();
+    bindContributionProvider(bind, ScmExtraSupportContribution);
 
     bind(ScmWidget).toSelf();
     bind(WidgetFactory).toDynamicValue(({ container }) => ({

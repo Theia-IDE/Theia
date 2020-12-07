@@ -15,10 +15,10 @@
  ********************************************************************************/
 
 import { injectable, inject, postConstruct } from 'inversify';
-import { Git, Repository, WorkingDirectoryStatus } from '../common';
+import { Git, Repository, WorkingDirectoryStatus } from '@theia/git/lib/common';
 import { Event, Emitter, Disposable, DisposableCollection, CancellationToken, CancellationTokenSource } from '@theia/core';
 import { GitRepositoryProvider } from './git-repository-provider';
-import { GitWatcher, GitStatusChangeEvent } from '../common/git-watcher';
+import { GitWatcher, GitStatusChangeEvent } from '@theia/git/lib/common/git-watcher';
 import URI from '@theia/core/lib/common/uri';
 
 import debounce = require('lodash.debounce');

@@ -1,12 +1,12 @@
 {
-  "name": "@theia/git",
+  "name": "@theia/git-native",
   "version": "1.8.0",
-  "description": "Theia - Git API and Extras",
+  "description": "Theia - Git Source Control Provider",
   "dependencies": {
     "@theia/core": "^1.8.0",
     "@theia/editor": "^1.8.0",
     "@theia/filesystem": "^1.8.0",
-    "@theia/monaco": "^1.8.0",
+    "@theia/git": "^1.8.0",
     "@theia/navigator": "^1.8.0",
     "@theia/scm": "^1.8.0",
     "@theia/scm-extra": "^1.8.0",
@@ -16,6 +16,7 @@
     "diff": "^3.4.0",
     "dugite-extra": "0.1.14",
     "find-git-exec": "^0.0.3",
+    "find-git-repositories": "^0.1.1",
     "moment": "2.24.0",
     "octicons": "^7.1.0",
     "p-queue": "^2.4.2",
@@ -26,16 +27,8 @@
   },
   "theiaExtensions": [
     {
-      "frontend": "lib/browser/git-frontend-module",
-      "backend": "lib/node/git-backend-module"
-    },
-    {
-      "backend": "lib/node/env/git-env-module",
-      "backendElectron": "lib/electron-node/env/electron-git-env-module"
-    },
-    {
-      "frontend": "lib/browser/prompt/git-prompt-module",
-      "frontendElectron": "lib/electron-browser/prompt/electron-git-prompt-module"
+      "frontend": "lib/browser/git-native-frontend-module",
+      "backend": "lib/node/git-native-backend-module"
     }
   ],
   "keywords": [

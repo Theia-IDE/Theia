@@ -16,18 +16,37 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { DisposableCollection, Emitter } from '@theia/core/lib/common';
-import { injectable, inject } from 'inversify';
+import { DisposableCollection, Emitter, ContributionProvider } from '@theia/core/lib/common';
+import { injectable, inject, named } from 'inversify';
 import { ScmContextKeyService } from './scm-context-key-service';
 import { ScmRepository, ScmProviderOptions } from './scm-repository';
 import { ScmCommand, ScmProvider } from './scm-provider';
 import URI from '@theia/core/lib/common/uri';
+
+export const ScmExtraSupportContribution = Symbol('ScmExtraSupportContribution');
+
+export interface ScmExtraSupportContribution {
+
+    /**
+     * The provider id, which ideally would be the same for different provider implementations
+     * of the same repository (eg 'git' for both vs-code builtin and Theia native implementation).
+     */
+    readonly id: string;
+
+    /**
+     * Create the implementation given the repository.
+     */
+    readonly addExtraSupport: (provider: ScmProvider) => void;
+}
 
 @injectable()
 export class ScmService {
 
     @inject(ScmContextKeyService)
     protected readonly contextKeys: ScmContextKeyService;
+
+    @inject(ContributionProvider) @named(ScmExtraSupportContribution)
+    protected readonly extraSupportProviders: ContributionProvider<ScmExtraSupportContribution>;
 
     protected readonly _repositories = new Map<string, ScmRepository>();
     protected _selectedRepository: ScmRepository | undefined;
@@ -83,6 +102,11 @@ export class ScmService {
     }
 
     registerScmProvider(provider: ScmProvider, options: ScmProviderOptions = {}): ScmRepository {
+        const contributions = this.extraSupportProviders.getContributions().filter(c =>  c.id === provider.id);
+        for (const contribution of contributions) {
+            contribution.addExtraSupport(provider);
+        }
+
         const key = provider.id + ':' + provider.rootUri;
         if (this._repositories.has(key)) {
             throw new Error(`${provider.label} provider for '${provider.rootUri}' already exists.`);

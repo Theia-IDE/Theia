@@ -168,6 +168,12 @@
       ],
       "@theia/timeline/*": [
         "packages/timeline/*"
+      ],
+      "@theia/git-native/*": [
+        "packages/git-native/*"
+      ],
+      "@theia/git-native/lib/*": [
+        "packages/git-native/src/*"
       ]
     }
   }

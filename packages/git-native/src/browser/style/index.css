@@ -1,0 +1,61 @@
+/********************************************************************************
+ * Copyright (C) 2018 TypeFox and others.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v. 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * This Source Code may also be made available under the following Secondary
+ * Licenses when the conditions for such availability set forth in the Eclipse
+ * Public License v. 2.0 are satisfied: GNU General Public License, version 2
+ * with the GNU Classpath Exception which is available at
+ * https://www.gnu.org/software/classpath/license.html.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
+ ********************************************************************************/
+
+.theia-git {
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+.theia-side-panel .theia-git {
+    padding-left: 19px;
+}
+
+.theia-git .space-between {
+    justify-content: space-between;
+}
+
+.theia-scm .scmItem .git-status.new {
+    color: var(--theia-gitDecoration-untrackedResourceForeground);
+}
+
+.theia-scm .scmItem .git-status.new.staged {
+    color: var(--theia-gitDecoration-addedResourceForeground);
+}
+
+.theia-scm .scmItem .git-status.modified {
+    color: var(--theia-gitDecoration-modifiedResourceForeground);
+}
+
+.theia-scm .scmItem .git-status.deleted {
+    color: var(--theia-gitDecoration-deletedResourceForeground);
+}
+
+.theia-scm .scmItem .git-status.renamed {
+    color: var(--theia-gitDecoration-untrackedResourceForeground);
+}
+
+.theia-scm .scmItem .git-status.conflicted {
+    color: var(--theia-gitDecoration-conflictingResourceForeground);
+}
+
+.theia-scm .scmItem .git-status.copied {
+    color: var(--theia-gitDecoration-modifiedResourceForeground);
+}
+
+.tab-git-icon {
+    width: 20px!important;
+    height: 20px;
+}
