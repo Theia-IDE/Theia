@@ -17,6 +17,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { MessageConnection, ResponseError } from 'vscode-jsonrpc';
+import { environment } from '@theia/application-package/lib/environment';
 import { ApplicationError } from '../application-error';
 import { Event, Emitter } from '../event';
 import { Disposable } from '../disposable';
@@ -140,7 +141,12 @@ export class JsonRpcProxyFactory<T extends object> implements ProxyHandler<T> {
                 }
             }
         }
-        connection.onDispose(() => this.waitForConnection());
+        connection.onDispose(() => {
+            // The electron frontend can't reconnect when the backend process is gone. (https://github.com/eclipse-theia/theia/issues/8723)
+            if (!environment.electron.is()) {
+                this.waitForConnection();
+            }
+        });
         connection.listen();
         this.connectionPromiseResolve(connection);
     }

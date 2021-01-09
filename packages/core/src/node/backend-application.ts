@@ -185,7 +185,7 @@ export class BackendApplication {
             entryTypes: ['measure']
         });
 
-        this.initialize();
+        this.initialize().then(() => console.log(`Backend is up and running. [PID: ${process.pid}]`));
     }
 
     protected async initialize(): Promise<void> {

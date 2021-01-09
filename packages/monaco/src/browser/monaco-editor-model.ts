@@ -329,6 +329,7 @@ export class MonacoEditorModel implements ITextEditorModel, TextEditorDocument {
                 await operation();
             } catch (e) {
                 console.error(e);
+                throw e;
             }
         });
     }
