@@ -155,6 +155,8 @@ export class HostedPluginProcess implements ServerPluginRunner {
         this.childProcess.on('message', message => {
             if (this.client) {
                 this.client.postMessage(message);
+            } else {
+                this.logger.error('Dropping message: ' + JSON.stringify(message));
             }
         });
     }

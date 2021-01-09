@@ -54,7 +54,7 @@ import { TimelineMainImpl } from './timeline-main';
 import { AuthenticationMainImpl } from './authentication-main';
 import { ThemingMainImpl } from './theming-main';
 
-export function setUpPluginApi(rpc: RPCProtocol, container: interfaces.Container): void {
+export function setUpPluginApi(rpc: RPCProtocol, container: interfaces.Container): () => void {
     const authenticationMain = new AuthenticationMainImpl(rpc, container);
     rpc.set(PLUGIN_RPC_CONTEXT.AUTHENTICATION_MAIN, authenticationMain);
 
@@ -91,9 +91,6 @@ export function setUpPluginApi(rpc: RPCProtocol, container: interfaces.Container
     const monacoEditorService = container.get(MonacoEditorService);
     const editorsMain = new TextEditorsMainImpl(editorsAndDocuments, rpc, bulkEditService, monacoEditorService);
     rpc.set(PLUGIN_RPC_CONTEXT.TEXT_EDITORS_MAIN, editorsMain);
-
-    // start listening only after all clients are subscribed to events
-    editorsAndDocuments.listen();
 
     const statusBarMessageRegistryMain = new StatusBarMessageRegistryMainImpl(container);
     rpc.set(PLUGIN_RPC_CONTEXT.STATUS_BAR_MESSAGE_REGISTRY_MAIN, statusBarMessageRegistryMain);
@@ -163,4 +160,9 @@ export function setUpPluginApi(rpc: RPCProtocol, container: interfaces.Container
 
     const themingMain = new ThemingMainImpl(rpc);
     rpc.set(PLUGIN_RPC_CONTEXT.THEMING_MAIN, themingMain);
+
+    return () => {
+        // start listening only after all clients are subscribed to events
+        editorsAndDocuments.listen();
+    };
 }

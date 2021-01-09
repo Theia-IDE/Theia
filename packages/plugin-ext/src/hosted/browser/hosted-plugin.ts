@@ -435,6 +435,8 @@ export class HostedPluginSupport {
         if (!manager) {
             const pluginId = getPluginId(hostContributions[0].plugin.metadata.model);
             const rpc = this.initRpc(host, pluginId);
+            const apiStartfunction = setUpPluginApi(rpc, this.container);
+            this.mainPluginApiProviders.getContributions().forEach(p => p.initialize(rpc, this.container));
             toDisconnect.push(rpc);
 
             manager = rpc.getProxy(MAIN_RPC_CONTEXT.HOSTED_PLUGIN_MANAGER_EXT);
@@ -475,6 +477,8 @@ export class HostedPluginSupport {
                 },
                 jsonValidation
             });
+            // now the ext services are fully set up
+            apiStartfunction();
             if (toDisconnect.disposed) {
                 return undefined;
             }
@@ -483,10 +487,7 @@ export class HostedPluginSupport {
     }
 
     protected initRpc(host: PluginHost, pluginId: string): RPCProtocol {
-        const rpc = host === 'frontend' ? new PluginWorker().rpc : this.createServerRpc(pluginId, host);
-        setUpPluginApi(rpc, this.container);
-        this.mainPluginApiProviders.getContributions().forEach(p => p.initialize(rpc, this.container));
-        return rpc;
+        return host === 'frontend' ? new PluginWorker().rpc : this.createServerRpc(pluginId, host);
     }
 
     private createServerRpc(pluginID: string, hostID: string): RPCProtocol {

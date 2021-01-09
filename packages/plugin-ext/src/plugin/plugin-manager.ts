@@ -26,7 +26,8 @@ import {
     ConfigStorage,
     PluginManagerInitializeParams,
     PluginManagerStartParams,
-    TerminalServiceExt
+    MAIN_RPC_CONTEXT,
+    PluginAPIFactory
 } from '../common/plugin-api-rpc';
 import { PluginMetadata, PluginJsonValidationContribution } from '../common/plugin-protocol';
 import * as theia from '@theia/plugin';
@@ -38,13 +39,20 @@ import { ExtPluginApi } from '../common/plugin-ext-api-contribution';
 import { RPCProtocol } from '../common/rpc-protocol';
 import { Emitter } from '@theia/core/lib/common/event';
 import { WebviewsExtImpl } from './webviews';
+import { ClipboardExt } from './clipboard-ext';
+import { EditorsAndDocumentsExtImpl } from './editors-and-documents';
+import { MessageRegistryExt } from './message-registry';
+import { DebugExtImpl } from './node/debug/debug';
+import { createAPIFactory } from './plugin-context';
+import { TerminalServiceExtImpl } from './terminal-ext';
+import { WorkspaceExtImpl } from './workspace';
 
 export interface PluginHost {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     loadPlugin(plugin: Plugin): any;
 
-    init(data: PluginMetadata[]): Promise<[Plugin[], Plugin[]]> | [Plugin[], Plugin[]];
+    init(apiFactory: PluginAPIFactory, data: PluginMetadata[]): Promise<[Plugin[], Plugin[]]> | [Plugin[], Plugin[]];
 
     initExtApi(extApi: ExtPluginApi[]): void;
 
@@ -96,6 +104,14 @@ export class PluginManagerExtImpl implements PluginManagerExt, PluginManager {
     private onDidChangeEmitter = new Emitter<void>();
     private messageRegistryProxy: MessageRegistryMain;
     private notificationMain: NotificationMain;
+
+    private terminalService: TerminalServiceExtImpl;
+    private storageProxy: KeyValueStorageProxy;
+    private preferencesManager: PreferenceRegistryExtImpl;
+    private webview: WebviewsExtImpl;
+
+    apiFactory: PluginAPIFactory;
+
     protected fireOnDidChange(): void {
         this.onDidChangeEmitter.fire(undefined);
     }
@@ -105,14 +121,12 @@ export class PluginManagerExtImpl implements PluginManagerExt, PluginManager {
     constructor(
         private readonly host: PluginHost,
         private readonly envExt: EnvExtImpl,
-        private readonly terminalService: TerminalServiceExt,
-        private readonly storageProxy: KeyValueStorageProxy,
-        private readonly preferencesManager: PreferenceRegistryExtImpl,
-        private readonly webview: WebviewsExtImpl,
+        private readonly debugExt: DebugExtImpl,
         private readonly rpc: RPCProtocol
     ) {
         this.messageRegistryProxy = this.rpc.getProxy(PLUGIN_RPC_CONTEXT.MESSAGE_REGISTRY_MAIN);
         this.notificationMain = this.rpc.getProxy(PLUGIN_RPC_CONTEXT.NOTIFICATION_MAIN);
+        this.rpc.set(MAIN_RPC_CONTEXT.DEBUG_EXT, this.debugExt);
     }
 
     async $stop(pluginId?: string): Promise<void> {
@@ -182,6 +196,29 @@ export class PluginManagerExtImpl implements PluginManagerExt, PluginManager {
     }
 
     async $init(params: PluginManagerInitializeParams): Promise<void> {
+        this.storageProxy = this.rpc.set(MAIN_RPC_CONTEXT.STORAGE_EXT, new KeyValueStorageProxy(this.rpc));
+        this.terminalService = this.rpc.set(MAIN_RPC_CONTEXT.TERMINAL_EXT, new TerminalServiceExtImpl(this.rpc));
+        const editorsAndDocumentsExt = this.rpc.set(MAIN_RPC_CONTEXT.EDITORS_AND_DOCUMENTS_EXT, new EditorsAndDocumentsExtImpl(this.rpc));
+        const messageRegistryExt = new MessageRegistryExt(this.rpc);
+        const workspaceExt = this.rpc.set(MAIN_RPC_CONTEXT.WORKSPACE_EXT, new WorkspaceExtImpl(this.rpc, editorsAndDocumentsExt, messageRegistryExt));
+        this.preferencesManager = this.rpc.set(MAIN_RPC_CONTEXT.PREFERENCE_REGISTRY_EXT, new PreferenceRegistryExtImpl(this.rpc, workspaceExt));
+        this.webview = this.rpc.set(MAIN_RPC_CONTEXT.WEBVIEWS_EXT, new WebviewsExtImpl(this.rpc, workspaceExt));
+        const clipboardExt = new ClipboardExt(this.rpc);
+
+        this.apiFactory = createAPIFactory(
+            this.rpc,
+            this,
+            this.envExt,
+            this.debugExt,
+            this.preferencesManager,
+            editorsAndDocumentsExt,
+            workspaceExt,
+            messageRegistryExt,
+            clipboardExt,
+            this.webview,
+            this.terminalService
+        );
+
         this.storageProxy.init(params.globalState, params.workspaceState);
 
         this.envExt.setQueryParameters(params.env.queryParams);
@@ -203,7 +240,7 @@ export class PluginManagerExtImpl implements PluginManagerExt, PluginManager {
     async $start(params: PluginManagerStartParams): Promise<void> {
         this.configStorage = params.configStorage;
 
-        const [plugins, foreignPlugins] = await this.host.init(params.plugins);
+        const [plugins, foreignPlugins] = await this.host.init(this.apiFactory, params.plugins);
         // add foreign plugins
         for (const plugin of foreignPlugins) {
             this.registerPlugin(plugin);

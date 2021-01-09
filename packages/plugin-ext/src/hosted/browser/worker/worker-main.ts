@@ -17,22 +17,13 @@
 import { Emitter } from '@theia/core/lib/common/event';
 import { RPCProtocolImpl } from '../../../common/rpc-protocol';
 import { PluginManagerExtImpl } from '../../../plugin/plugin-manager';
-import { MAIN_RPC_CONTEXT, Plugin, emptyPlugin, TerminalServiceExt } from '../../../common/plugin-api-rpc';
-import { createAPIFactory } from '../../../plugin/plugin-context';
+import { MAIN_RPC_CONTEXT, Plugin, emptyPlugin, PluginAPIFactory } from '../../../common/plugin-api-rpc';
 import { getPluginId, PluginMetadata } from '../../../common/plugin-protocol';
 import * as theia from '@theia/plugin';
-import { PreferenceRegistryExtImpl } from '../../../plugin/preference-registry';
 import { ExtPluginApi } from '../../../common/plugin-ext-api-contribution';
 import { createDebugExtStub } from './debug-stub';
-import { EditorsAndDocumentsExtImpl } from '../../../plugin/editors-and-documents';
-import { WorkspaceExtImpl } from '../../../plugin/workspace';
-import { MessageRegistryExt } from '../../../plugin/message-registry';
 import { WorkerEnvExtImpl } from './worker-env-ext';
-import { ClipboardExt } from '../../../plugin/clipboard-ext';
-import { KeyValueStorageProxy } from '../../../plugin/plugin-storage';
-import { WebviewsExtImpl } from '../../../plugin/webviews';
 import { loadManifest } from './plugin-manifest-loader';
-import { TerminalServiceExtImpl } from '../../../plugin/terminal-ext';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ctx = self as any;
@@ -55,15 +46,7 @@ function initialize(contextPath: string, pluginMetadata: PluginMetadata): void {
     ctx.importScripts('/context/' + contextPath);
 }
 const envExt = new WorkerEnvExtImpl(rpc);
-const storageProxy = new KeyValueStorageProxy(rpc);
-const editorsAndDocuments = new EditorsAndDocumentsExtImpl(rpc);
-const messageRegistryExt = new MessageRegistryExt(rpc);
-const workspaceExt = new WorkspaceExtImpl(rpc, editorsAndDocuments, messageRegistryExt);
-const preferenceRegistryExt = new PreferenceRegistryExtImpl(rpc, workspaceExt);
 const debugExt = createDebugExtStub(rpc);
-const clipboardExt = new ClipboardExt(rpc);
-const webviewExt = new WebviewsExtImpl(rpc, workspaceExt);
-const terminalService: TerminalServiceExt = new TerminalServiceExtImpl(rpc);
 
 const pluginManager = new PluginManagerExtImpl({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,7 +67,7 @@ const pluginManager = new PluginManagerExtImpl({
             return ctx[plugin.lifecycle.frontendModuleName];
         }
     },
-    async init(rawPluginData: PluginMetadata[]): Promise<[Plugin[], Plugin[]]> {
+    async init(apiFactory: PluginAPIFactory, rawPluginData: PluginMetadata[]): Promise<[Plugin[], Plugin[]]> {
         const result: Plugin[] = [];
         const foreign: Plugin[] = [];
         // Process the plugins concurrently, making sure to keep the order.
@@ -148,20 +131,8 @@ const pluginManager = new PluginManagerExtImpl({
             }
         }
     }
-}, envExt, terminalService, storageProxy, preferenceRegistryExt, webviewExt, rpc);
+}, envExt, debugExt, rpc);
 
-const apiFactory = createAPIFactory(
-    rpc,
-    pluginManager,
-    envExt,
-    debugExt,
-    preferenceRegistryExt,
-    editorsAndDocuments,
-    workspaceExt,
-    messageRegistryExt,
-    clipboardExt,
-    webviewExt
-);
 let defaultApi: typeof theia;
 
 const handler = {
@@ -174,7 +145,7 @@ const handler = {
         }
 
         if (!defaultApi) {
-            defaultApi = apiFactory(emptyPlugin);
+            defaultApi = pluginManager.apiFactory(emptyPlugin);
         }
 
         return defaultApi;
@@ -183,11 +154,6 @@ const handler = {
 ctx['theia'] = new Proxy(Object.create(null), handler);
 
 rpc.set(MAIN_RPC_CONTEXT.HOSTED_PLUGIN_MANAGER_EXT, pluginManager);
-rpc.set(MAIN_RPC_CONTEXT.EDITORS_AND_DOCUMENTS_EXT, editorsAndDocuments);
-rpc.set(MAIN_RPC_CONTEXT.WORKSPACE_EXT, workspaceExt);
-rpc.set(MAIN_RPC_CONTEXT.PREFERENCE_REGISTRY_EXT, preferenceRegistryExt);
-rpc.set(MAIN_RPC_CONTEXT.STORAGE_EXT, storageProxy);
-rpc.set(MAIN_RPC_CONTEXT.WEBVIEWS_EXT, webviewExt);
 
 function isElectron(): boolean {
     if (typeof navigator === 'object' && typeof navigator.userAgent === 'string' && navigator.userAgent.indexOf('Electron') >= 0) {
