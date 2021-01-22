@@ -349,11 +349,13 @@ export class WorkspaceExtImpl implements WorkspaceExt {
 
     updateWorkspaceFolders(start: number, deleteCount: number, ...workspaceFoldersToAdd: { uri: theia.Uri, name?: string }[]): boolean {
         const rootsToAdd = new Set<string>();
+        const rootsNameMap = new Map<string, string | undefined>();
         if (Array.isArray(workspaceFoldersToAdd)) {
             workspaceFoldersToAdd.forEach(folderToAdd => {
                 const uri = URI.isUri(folderToAdd.uri) && folderToAdd.uri.toString();
                 if (uri && !rootsToAdd.has(uri)) {
                     rootsToAdd.add(uri);
+                    rootsNameMap.set(uri, folderToAdd.name);
                 }
             });
         }
@@ -388,7 +390,7 @@ export class WorkspaceExtImpl implements WorkspaceExt {
         }
 
         // Trigger on main side
-        this.proxy.$updateWorkspaceFolders(start, deleteCount, ...rootsToAdd).then(undefined, error =>
+        this.proxy.$updateWorkspaceFolders(start, deleteCount, ...Array.from(rootsToAdd).map(uri => ({ uri, name: rootsNameMap.get(uri) }))).then(undefined, error =>
             this.messageService.showMessage(MainMessageType.Error, `Failed to update workspace folders: ${error}`)
         );
 

@@ -514,7 +514,7 @@ export class WorkspaceRootUriAwareCommandHandler extends UriAwareCommandHandler<
     protected getUri(...args: any[]): URI | undefined {
         const uri = super.getUri(...args);
         // Return the `uri` immediately if the resource exists in any of the workspace roots and is of `file` scheme.
-        if (uri && uri.scheme === 'file' && this.workspaceService.getWorkspaceRootUri(uri)) {
+        if (uri && this.workspaceService.getWorkspaceRootUri(uri)) {
             return uri;
         }
         // Return the first root if available.

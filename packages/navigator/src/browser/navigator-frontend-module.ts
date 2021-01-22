@@ -20,7 +20,8 @@ import { ContainerModule } from 'inversify';
 import {
     KeybindingContext, bindViewContribution,
     FrontendApplicationContribution, ViewContainer,
-    ApplicationShellLayoutMigration
+    ApplicationShellLayoutMigration,
+    LabelProviderContribution
 } from '@theia/core/lib/browser';
 import { FileNavigatorWidget, FILE_NAVIGATOR_ID, EXPLORER_VIEW_CONTAINER_ID, EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS } from './navigator-widget';
 import { NavigatorActiveContext } from './navigator-keybinding-context';
@@ -35,6 +36,7 @@ import { NavigatorDiff } from './navigator-diff';
 import { NavigatorLayoutVersion3Migration } from './navigator-layout-migrations';
 import { NavigatorTabBarDecorator } from './navigator-tab-bar-decorator';
 import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator';
+import { WorkspaceRootLabelProvider } from './navigator-label-provider';
 
 export default new ContainerModule(bind => {
     bindFileNavigatorPreferences(bind);
@@ -77,4 +79,8 @@ export default new ContainerModule(bind => {
     bind(NavigatorTabBarDecorator).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(NavigatorTabBarDecorator);
     bind(TabBarDecorator).toService(NavigatorTabBarDecorator);
+
+    bind(WorkspaceRootLabelProvider).toSelf().inSingletonScope();
+    bind(LabelProviderContribution).toService(WorkspaceRootLabelProvider);
+
 });

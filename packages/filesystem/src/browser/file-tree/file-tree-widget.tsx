@@ -100,7 +100,7 @@ export class FileTreeWidget extends TreeViewWelcomeWidget {
 
     protected getNodeTooltip(node: TreeNode): string | undefined {
         const uri = UriSelection.getUri(node);
-        return uri ? uri.path.toString() : undefined;
+        return uri ? (uri.scheme === 'ssh' ? uri.toString() : uri.path.toString()) : undefined;
     }
 
     protected handleDragStartEvent(node: TreeNode, event: React.DragEvent): void {

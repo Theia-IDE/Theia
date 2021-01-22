@@ -273,8 +273,8 @@ export class WorkspaceMainImpl implements WorkspaceMain, Disposable {
         this.resourceResolver.onContentChange(uri, content);
     }
 
-    async $updateWorkspaceFolders(start: number, deleteCount?: number, ...rootsToAdd: string[]): Promise<void> {
-        await this.workspaceService.spliceRoots(start, deleteCount, ...rootsToAdd.map(root => new URI(root)));
+    async $updateWorkspaceFolders(start: number, deleteCount?: number, ...rootsToAdd: { uri: string, name?: string }[]): Promise<void> {
+        await this.workspaceService.spliceRoots(start, deleteCount, ...rootsToAdd);
     }
 
 }
