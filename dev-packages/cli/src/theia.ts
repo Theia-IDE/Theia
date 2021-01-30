@@ -162,6 +162,11 @@ function rebuildCommand(command: string, target: ApplicationProps.Target): yargs
                     describe: 'Ignore errors while downloading plugins',
                     boolean: true,
                     default: false,
+                },
+                'open-vsx-url': {
+                    alias: 'o',
+                    describe: 'Alternate open-vsx URL',
+                    type: 'string'
                 }
             },
             handler: async args => {
