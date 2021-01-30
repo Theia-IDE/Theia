@@ -19,13 +19,15 @@
 import fetch, { Response, RequestInit } from 'node-fetch';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { getProxyForUrl } from 'proxy-from-env';
-import { promises as fs, createWriteStream } from 'fs';
+import { promises as fs, createReadStream } from 'fs';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import * as process from 'process';
 import * as stream from 'stream';
 import * as decompress from 'decompress';
 import * as temp from 'temp';
+import { checkStream } from 'ssri';
+import URI from '@theia/core/lib/common/uri';
 
 import { green, red } from 'colors/safe';
 
@@ -103,9 +105,10 @@ async function downloadPluginAsync(failures: string[], plugin: string, pluginUrl
         return;
     }
     let fileExt: string;
-    if (pluginUrl.endsWith('tar.gz')) {
+    const pluginUri = new URI(pluginUrl);
+    if (pluginUri.path.toString().endsWith('tar.gz')) {
         fileExt = '.tar.gz';
-    } else if (pluginUrl.endsWith('vsix')) {
+    } else if (pluginUri.path.toString().endsWith('vsix')) {
         fileExt = '.vsix';
     } else {
         failures.push(red(`error: '${plugin}' has an unsupported file type: '${pluginUrl}'`));
@@ -154,14 +157,17 @@ async function downloadPluginAsync(failures: string[], plugin: string, pluginUrl
         return;
     }
 
+    const tempFile = temp.createWriteStream('theia-plugin-download');
+    await pipelineAsPromised(response.body, tempFile);
+    if (! await checkIntegrity(tempFile.path, pluginUri)) {
+        failures.push(red(`x ${plugin}: failed to verify checksum`));
+        return;
+    }
     if (fileExt === '.vsix' && packed === true) {
         // Download .vsix without decompressing.
-        const file = createWriteStream(targetPath);
-        await pipelineAsPromised(response.body, file);
+        await fs.copyFile(tempFile.path, targetPath);
     } else {
         await mkdirpAsPromised(targetPath);
-        const tempFile = temp.createWriteStream('theia-plugin-download');
-        await pipelineAsPromised(response.body, tempFile);
         await decompress(tempFile.path, targetPath);
     }
 
@@ -176,6 +182,20 @@ async function downloadPluginAsync(failures: string[], plugin: string, pluginUrl
  */
 async function isDownloaded(filePath: string): Promise<boolean> {
     return fs.stat(filePath).then(() => true, () => false);
+}
+
+/**
+ * Check downloaded file match integrity.
+ * @param filePath path of downloaded file
+ * @param uri URI of the plugin, containing a subresource integrity tag in fragment
+ */
+async function checkIntegrity(filePath: string | Buffer, uri: URI): Promise<boolean> {
+    const sri = uri.fragment;
+
+    if (!sri) {
+        return Promise.resolve(true);
+    }
+    return checkStream(createReadStream(filePath), sri).then(() => true, () => false);
 }
 
 /**

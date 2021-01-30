@@ -48,10 +48,12 @@
     "proxy-from-env": "^1.1.0",
     "puppeteer": "^2.0.0",
     "puppeteer-to-istanbul": "^1.2.2",
+    "ssri": "^8.0.0",
     "temp": "^0.9.1",
     "yargs": "^15.3.1"
   },
   "devDependencies": {
-    "@types/proxy-from-env": "^1.0.1"
+    "@types/proxy-from-env": "^1.0.1",
+    "@types/ssri": "^7.1.0"
   }
 }
