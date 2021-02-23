@@ -8,6 +8,17 @@
   --theia-private-horizontal-tab-scrollbar-rail-height: 7px;
   --theia-private-horizontal-tab-scrollbar-height: 5px;
   --theia-tabbar-toolbar-z-index: 1001;
+
+  /* Most of these colors are overridden in CommonFrontendContribution.registerColors */
+  --theia-panelTitle-activeBorder: transparent;
+  --theia-tab-activeModifiedBorder: transparent;
+  --theia-tab-activeBorderTop: transparent;
+  --theia-tab-activeBorder: transparent;
+  --theia-tab-inactiveModifiedBorder: transparent;
+  --theia-tab-unfocusedActiveModifiedBorder: transparent;
+  --theia-tab-unfocusedActiveBorderTop: transparent;
+  --theia-tab-unfocusedActiveBorder: transparent;
+  --theia-tab-unfocusedInactiveModifiedBorder: transparent;
 }
 
 /*-----------------------------------------------------------------------------
