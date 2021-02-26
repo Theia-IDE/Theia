@@ -76,6 +76,7 @@ export interface PreferenceItem {
     additionalProperties?: object | boolean;
     [name: string]: any;
     overridable?: boolean;
+    hidden?: boolean;
 }
 
 export interface PreferenceSchemaProperty extends PreferenceItem {
@@ -98,6 +99,22 @@ export namespace PreferenceDataProperty {
         }
         return <PreferenceDataProperty>schemaProps;
     }
+}
+
+export interface PreferenceSchemaModification {
+    properties: PreferenceSchemaPropertyModifications
+}
+
+export interface PreferenceSchemaPropertyModifications {
+    [name: string]: PreferenceSchemaPropertyModification
+}
+
+export interface PreferenceSchemaPropertyModification {
+    minimum?: number;
+    default?: any;
+    enum?: string[];
+    description?: string;
+    hidden?: boolean;
 }
 
 export type JsonType = 'string' | 'array' | 'number' | 'integer' | 'object' | 'boolean' | 'null';

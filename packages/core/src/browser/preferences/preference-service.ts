@@ -494,14 +494,21 @@ export class PreferenceServiceImpl implements PreferenceService {
     }
     protected doResolve<T>(preferenceName: string, defaultValue?: T, resourceUri?: string): PreferenceResolveResult<T> {
         const result: PreferenceResolveResult<T> = {};
-        for (const scope of PreferenceScope.getScopes()) {
-            if (this.schema.isValidInScope(preferenceName, scope)) {
-                const provider = this.getProvider(scope);
-                if (provider) {
-                    const { configUri, value } = provider.resolve<T>(preferenceName, resourceUri);
-                    if (value !== undefined) {
-                        result.configUri = configUri;
-                        result.value = PreferenceProvider.merge(result.value as any, value as any) as any;
+        const propertyIsHidden = this.schema.isPropertyHidden(preferenceName);
+        if (propertyIsHidden) {
+            const { configUri, value } = this.schema.resolve<T>(preferenceName, resourceUri);
+            result.configUri = configUri;
+            result.value = value;
+        } else {
+            for (const scope of PreferenceScope.getScopes()) {
+                if (this.schema.isValidInScope(preferenceName, scope)) {
+                    const provider = this.getProvider(scope);
+                    if (provider) {
+                        const { configUri, value } = provider.resolve<T>(preferenceName, resourceUri);
+                        if (value !== undefined) {
+                            result.configUri = configUri;
+                            result.value = PreferenceProvider.merge(result.value as any, value as any) as any;
+                        }
                     }
                 }
             }
