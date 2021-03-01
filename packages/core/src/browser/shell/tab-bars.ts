@@ -232,9 +232,9 @@ export class TabBarRenderer extends TabBar.Renderer {
             return h.div({});
         }
         const limitedBadge = badge >= 100 ? '99+' : badge;
-        return isInSidePanel
-            ? h.div({ className: 'theia-badge-decorator-sidebar' }, `${limitedBadge}`)
-            : h.div({ className: 'theia-badge-decorator-horizontal' }, `${limitedBadge}`);
+        const location = isInSidePanel ? 'sidebar' : 'horizontal';
+        return h.div({ className: `theia-badge-decorator-${location} notification-count-container` },
+            h.span({ className: 'notification-count' }, `${limitedBadge}`));
     }
 
     protected readonly decorations = new Map<Title<Widget>, WidgetDecoration.Data[]>();

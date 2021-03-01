@@ -20,7 +20,6 @@
 
 :root {
   --theia-private-sidebar-tab-width: 50px;
-  --theia-private-sidebar-tab-height: 32px;
   --theia-private-sidebar-tab-padding-top-and-bottom: 11px;
   --theia-private-sidebar-tab-padding-left-and-right: 10px;
   --theia-private-sidebar-scrollbar-rail-width: 7px;
@@ -52,7 +51,6 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  min-height: var(--theia-private-sidebar-tab-height);
   cursor: pointer;
 }
 
@@ -76,8 +74,6 @@
 .p-TabBar.theia-app-sides .p-TabBar-tab:hover {
   color: var(--theia-activityBar-foreground);
   background-color: var(--theia-activityBar-activeBackground);
-  min-height: var(--theia-private-sidebar-tab-height);
-  height: var(--theia-private-sidebar-tab-height);
   border-top: none;
 }
 
@@ -258,7 +254,10 @@
     background: inherit;
 }
 
+/* Default empty border to ensure consistent vertical alignment */
 #theia-bottom-content-panel .p-TabBar-tab {
+    border-top: var(--theia-border-width) solid transparent;
+    border-bottom: var(--theia-border-width) solid transparent;
     background: inherit;
 }
 
@@ -268,7 +267,7 @@
 
 #theia-bottom-content-panel .p-TabBar-tab.p-mod-current {
     color: var(--theia-panelTitle-activeForeground);
-    border-top: var(--theia-border-width) solid var(--theia-panelTitle-activeBorder);
+    border-top-color: var(--theia-panelTitle-activeBorder);
 }
 
 #theia-bottom-content-panel .p-TabBar-tab.p-mod-current.theia-mod-active {

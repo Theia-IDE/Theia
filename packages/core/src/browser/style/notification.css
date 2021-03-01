@@ -16,7 +16,6 @@
 
 :root {
     --theia-notification-count-height: 15.5px;
-    --theia-notification-count-width: 15.5px;
 }
 
 .notification-count-container {

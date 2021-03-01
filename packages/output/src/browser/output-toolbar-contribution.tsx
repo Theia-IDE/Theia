@@ -90,7 +90,7 @@ export class OutputToolbarContribution implements TabBarToolbarContribution {
         if (channelOptionElements.length === 0) {
             channelOptionElements.push(<option key={this.NONE} value={this.NONE}>{this.NONE}</option>);
         }
-        return <select
+        return <div><select
             className='theia-select'
             id='outputChannelList'
             key='outputChannelList'
@@ -98,7 +98,7 @@ export class OutputToolbarContribution implements TabBarToolbarContribution {
             onChange={this.changeChannel}
         >
             {channelOptionElements}
-        </select>;
+        </select></div>;
     }
 
     protected changeChannel = (event: React.ChangeEvent<HTMLSelectElement>) => {
