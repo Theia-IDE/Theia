@@ -24,6 +24,7 @@ import { FileService } from '../file-service';
 import { FileOperationError, FileOperationResult, FileChangesEvent, FileChangeType, FileChange, FileOperation, FileOperationEvent } from '../../common/files';
 import { MessageService } from '@theia/core/lib/common/message-service';
 import { EnvVariablesServer } from '@theia/core/lib/common/env-variables';
+import { FileSystemUtils } from '../../common/filesystem-utils';
 
 @injectable()
 export class FileTreeModel extends TreeModelImpl implements LocationService {
@@ -150,7 +151,13 @@ export class FileTreeModel extends TreeModelImpl implements LocationService {
     }
 
     async copy(source: URI, target: Readonly<FileStatNode>): Promise<URI> {
-        const targetUri = target.uri.resolve(source.path.base);
+        let targetUri = target.uri.resolve(source.path.base);
+        // duplicate file or folder
+        if (source.path.toString() === target.uri.path.toString()) {
+            const parent = await this.fileService.resolve(source.parent);
+            const name = source.path.name + '_copy';
+            targetUri = FileSystemUtils.generateUniqueResourceURI(source.parent, parent, name, source.path.ext);
+        }
         try {
             await this.fileService.copy(source, targetUri);
         } catch (e) {
