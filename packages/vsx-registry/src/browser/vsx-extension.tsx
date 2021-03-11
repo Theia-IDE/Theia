@@ -20,20 +20,21 @@ import URI from '@theia/core/lib/common/uri';
 import { TreeElement } from '@theia/core/lib/browser/source-tree';
 import { OpenerService, open, OpenerOptions } from '@theia/core/lib/browser/opener-service';
 import { HostedPluginSupport } from '@theia/plugin-ext/lib/hosted/browser/hosted-plugin';
-import { PluginServer, DeployedPlugin, PluginType } from '@theia/plugin-ext/lib/common/plugin-protocol';
+import { PluginServer, DeployedPlugin, PluginType, PluginDeployOptions } from '@theia/plugin-ext/lib/common/plugin-protocol';
 import { VSXExtensionUri } from '../common/vsx-extension-uri';
 import { ProgressService } from '@theia/core/lib/common/progress-service';
 import { Endpoint } from '@theia/core/lib/browser/endpoint';
 import { VSXEnvironment } from '../common/vsx-environment';
 import { VSXExtensionsSearchModel } from './vsx-extensions-search-model';
 import { VSXExtensionNamespaceAccess, VSXUser } from '../common/vsx-registry-types';
-import { MenuPath } from '@theia/core/lib/common';
+import { CommandRegistry, MenuPath } from '@theia/core/lib/common';
 import { ContextMenuRenderer } from '@theia/core/lib/browser';
 
 export const EXTENSIONS_CONTEXT_MENU: MenuPath = ['extensions_context_menu'];
 
 export namespace VSXExtensionsContextMenu {
-    export const COPY = [...EXTENSIONS_CONTEXT_MENU, '1_copy'];
+    export const INSTALL = [...EXTENSIONS_CONTEXT_MENU, '1_install'];
+    export const COPY = [...EXTENSIONS_CONTEXT_MENU, '2_copy'];
 }
 
 @injectable()
@@ -102,14 +103,17 @@ export class VSXExtension implements VSXExtensionData, TreeElement {
     @inject(ProgressService)
     protected readonly progressService: ProgressService;
 
-    @inject(ContextMenuRenderer)
-    protected readonly contextMenuRenderer: ContextMenuRenderer;
+    @inject(CommandRegistry)
+    protected readonly commandRegistry: CommandRegistry;
 
     @inject(VSXEnvironment)
     readonly environment: VSXEnvironment;
 
     @inject(VSXExtensionsSearchModel)
     readonly search: VSXExtensionsSearchModel;
+
+    @inject(ContextMenuRenderer)
+    protected readonly contextMenuRenderer: ContextMenuRenderer;
 
     protected readonly data: Partial<VSXExtensionData> = {};
 
@@ -248,11 +252,11 @@ export class VSXExtension implements VSXExtensionData, TreeElement {
         return !!this._busy;
     }
 
-    async install(): Promise<void> {
+    async install(options?: PluginDeployOptions): Promise<void> {
         this._busy++;
         try {
             await this.progressService.withProgress(`"Installing '${this.id}' extension...`, 'extensions', () =>
-                this.pluginServer.deploy(this.uri.toString())
+                this.pluginServer.deploy(this.uri.toString(), undefined, options)
             );
         } finally {
             this._busy--;
