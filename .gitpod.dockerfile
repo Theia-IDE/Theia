@@ -13,7 +13,7 @@ RUN sudo apt-get update \
     && sudo apt-get install -y libx11-dev libxkbfile-dev \
     && sudo rm -rf /var/lib/apt/lists/*
 
-ENV NODE_VERSION="12.14.1"
+ENV NODE_VERSION="12.18.3"
 RUN bash -c ". .nvm/nvm.sh \
     && nvm install $NODE_VERSION \
     && nvm use $NODE_VERSION \

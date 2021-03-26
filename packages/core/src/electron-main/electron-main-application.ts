@@ -242,6 +242,7 @@ export class ElectronMainApplication {
                 // Setting the following option to `true` causes some features to break, somehow.
                 // Issue: https://github.com/eclipse-theia/theia/issues/8577
                 nodeIntegrationInWorker: false,
+                enableRemoteModule: true
             },
             ...windowOptionsFromConfig,
         };

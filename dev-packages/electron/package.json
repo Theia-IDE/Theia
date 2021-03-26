@@ -20,9 +20,9 @@
     "electron-replace-ffmpeg": "electron-replace-ffmpeg.js"
   },
   "dependencies": {
-    "electron": "^9.0.2",
+    "electron": "^11.3.0",
     "electron-download": "^4.1.1",
-    "electron-store": "^5.1.1",
+    "electron-store": "^7.0.2",
     "fix-path": "^3.0.0",
     "native-keymap": "^2.1.2",
     "node-gyp": "^7.0.0",
