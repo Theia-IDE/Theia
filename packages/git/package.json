@@ -14,7 +14,7 @@
     "@types/diff": "^3.2.2",
     "@types/p-queue": "^2.3.1",
     "diff": "^3.4.0",
-    "dugite-extra": "0.1.14",
+    "dugite-no-gpl": "1.69.0",
     "find-git-exec": "^0.0.3",
     "find-git-repositories": "^0.1.1",
     "moment": "2.24.0",

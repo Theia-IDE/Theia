@@ -233,7 +233,9 @@ export interface Remote {
 
 /**
  * The branch type. Either local or remote.
- * The order matters.
+ *
+ * NOTE: The values here matter as they are used to sort
+ * local and remote branches, Local should come before Remote.
  */
 export enum BranchType {
 
@@ -352,7 +354,7 @@ export interface CommitWithChanges extends Commit {
 }
 
 /**
- * A tuple of name, email, and a date for the author or commit info in a commit.
+ * A tuple of name, email, and timestamp information for the author or commit info in a commit.
  */
 export interface CommitIdentity {
 
@@ -370,6 +372,11 @@ export interface CommitIdentity {
      * The date of the commit in ISO format.
      */
     readonly timestamp: string;
+
+    /**
+     * The timezone offet from GMT, in minutes, which can be positive or negative.
+     */
+    readonly tzOffset?: number;
 
 }
 

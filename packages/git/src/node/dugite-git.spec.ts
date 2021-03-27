@@ -21,10 +21,9 @@ import * as temp from 'temp';
 import * as fs from 'fs-extra';
 import { expect } from 'chai';
 import { Git } from '../common/git';
-import { git as gitExec } from 'dugite-extra/lib/core/git';
+import { git as gitExec } from './git-exec-provider';
 import { FileUri } from '@theia/core/lib/node/file-uri';
 import { WorkingDirectoryStatus, Repository, GitUtils, GitFileStatus, GitFileChange } from '../common';
-import { initRepository, createTestRepository } from 'dugite-extra/lib/command/test-helper';
 import { createGit } from './test/binding-helper';
 import { isWindows } from '@theia/core/lib/common/os';
 
@@ -38,6 +37,24 @@ describe('git', async function (): Promise<void> {
 
     after(async () => {
         track.cleanupSync();
+    });
+
+    describe('git', () => {
+
+        it('No embedded Git, no GPL', () => {
+            // __dirname is <theia>/packages/git/lib/node
+            const git_node_modules = path.join(__dirname, '..', '..', 'node_modules');
+            expect(fs.existsSync(git_node_modules)).to.be.true;
+            expect(fs.existsSync(path.join(git_node_modules, 'dugite'))).to.be.false;
+            expect(fs.existsSync(path.join(git_node_modules, 'dugite-no-gpl'))).to.be.false;
+
+            const node_modules = path.join(__dirname, '..', '..', '..', '..', 'node_modules');
+            expect(fs.existsSync(node_modules)).to.be.true;
+            expect(fs.existsSync(path.join(node_modules, 'dugite'))).to.be.false;
+            expect(fs.existsSync(path.join(node_modules, 'dugite-no-gpl'))).to.be.true;
+            expect(fs.existsSync(path.join(node_modules, 'dugite-no-gpl', 'git'))).to.be.false;
+        });
+
     });
 
     describe('repositories', async () => {
@@ -143,7 +160,7 @@ describe('git', async function (): Promise<void> {
 
             // Check the status again. Expect one single change.
             status = await git.status(repository);
-            expect(status.changes).to.be.have.lengthOf(1);
+            expect(status.changes).to.have.lengthOf(1);
             expect(status.changes[0].uri).to.be.equal(fileUri);
             expect(status.changes[0].staged).to.be.true;
 
@@ -153,10 +170,76 @@ describe('git', async function (): Promise<void> {
 
             // We expect two changes; one is staged, the other is in the working directory.
             status = await git.status(repository);
-            expect(status.changes).to.be.have.lengthOf(2);
+            expect(status.changes).to.have.lengthOf(2);
             expect(status.changes.map(f => f.uri)).to.be.deep.equal([fileUri, fileUri]);
             expect(status.changes.map(f => f.staged).sort()).to.be.deep.equal([false, true]);
 
+        });
+
+        it('adding, staging, then deleting a file should result in two changes', async () => {
+
+            // Init repository.
+            const root = await createTestRepository(track.mkdirSync('status-test'));
+            const localUri = FileUri.create(root).toString();
+            const repository = { localUri };
+            const git = await createGit();
+
+            // Create a new file.
+            const filePath = path.join(root, 'D.txt');
+            const fileUri = FileUri.create(filePath).toString();
+            fs.writeFileSync(filePath, 'new content');
+            await git.add(repository, fileUri);
+
+            // Delete the file
+            await fs.unlink(filePath);
+
+            // We expect two changes; one is staged, the other is in the working directory.
+            const status = await git.status(repository);
+            expect(status.changes).to.have.deep.members([
+                {
+                    uri: fileUri,
+                    staged: true,
+                    status: GitFileStatus.New
+                },
+                {
+                    uri: fileUri,
+                    staged: false,
+                    status: GitFileStatus.Deleted
+                }
+            ]);
+        });
+
+        it('adding, staging, then modifying a file should result in two changes', async () => {
+
+            // Init repository.
+            const root = await createTestRepository(track.mkdirSync('status-test'));
+            const localUri = FileUri.create(root).toString();
+            const repository = { localUri };
+            const git = await createGit();
+
+            // Create a new file.
+            const filePath = path.join(root, 'D.txt');
+            const fileUri = FileUri.create(filePath).toString();
+            fs.writeFileSync(filePath, 'initial content');
+            await git.add(repository, fileUri);
+
+            // Modify the file
+            fs.writeFileSync(filePath, 'new content');
+
+            // We expect two changes; one is staged, the other is in the working directory.
+            const status = await git.status(repository);
+            expect(status.changes).to.have.deep.members([
+                {
+                    uri: fileUri,
+                    staged: true,
+                    status: GitFileStatus.New
+                },
+                {
+                    uri: fileUri,
+                    staged: false,
+                    status: GitFileStatus.Modified
+                }
+            ]);
         });
 
     });
@@ -440,7 +523,8 @@ describe('git', async function (): Promise<void> {
             const repository = { localUri };
 
             const writeContentLines = async (lines: string[]) => fs.writeFile(filePath, lines.join('\n'), { encoding: 'utf8' });
-            const add = async () => {
+            const addToIndex = async () => {
+                // await git.add(repository, FileUri.create(filePath).toString().toString());
                 await git.exec(repository, ['add', '.']);
             };
             const expectUndefinedBlame = async () => {
@@ -456,7 +540,7 @@ describe('git', async function (): Promise<void> {
             await writeContentLines(['🍏', '🍏', '🍏', '🍏', '🍏', '🍏']);
             await expectUndefinedBlame();
 
-            await add();
+            await addToIndex();
             await expectUndefinedBlame();
 
             await writeContentLines(['🍏', '🍐', '🍐', '🍏', '🍏', '🍏']);
@@ -799,6 +883,130 @@ describe('log', function (): void {
 
 function toPathSegment(repository: Repository, uri: string): string {
     return upath.relative(FileUri.fsPath(repository.localUri), FileUri.fsPath(uri));
+}
+
+/**
+ * Initializes a new Git repository to the destination folder. On demand, creates the desired folder structure and commits the changes.
+ *
+ * @param repositoryPath the desired destination folder for the new Git repository.
+ * @param addToIndex `true` if all the repository content has to be added to the index.
+ * @param commit `true` if the directory structure has to be committed.
+ */
+async function initRepository(repositoryPath: string, addToIndex?: boolean, commit?: boolean): Promise<string> {
+    if ((await gitExec(['init'], repositoryPath, 'init')).exitCode !== 0) {
+        throw new Error(`Error while initializing a repository under ${repositoryPath}.`);
+    }
+    if ((await gitExec(['config', 'user.email', '"jon@doe.com"'], repositoryPath, 'config')).exitCode !== 0) {
+        throw new Error('Error while setting user email to the Git configuration.');
+    }
+    if ((await gitExec(['config', 'user.name', '"Jon Doe"'], repositoryPath, 'config')).exitCode !== 0) {
+        throw new Error('Error while setting user name to the Git configuration.');
+    }
+    // To make sure we have `\n` as the line ending on both Windows and *NIX when asserting the tests.
+    // Otherwise, a `git checkout-index -u` will convert `\n` to `\r\n` on Windows.
+    if ((await gitExec(['config', 'core.autocrlf', 'false'], repositoryPath, 'config')).exitCode !== 0) {
+        throw new Error('Error while adjusting core.autocrlf in the Git configuration.');
+    }
+    if (addToIndex) {
+        if ((await gitExec(['add', '.'], repositoryPath, 'add')).exitCode !== 0) {
+            throw new Error('Error while staging changes into the repository.');
+        }
+        if (commit) {
+            if ((await gitExec(['commit', '-F', '-'], repositoryPath, 'createCommit', { stdin: 'Initial commit.' })).exitCode !== 0) {
+                throw new Error('Error while committing changes into the repository');
+            }
+        }
+    }
+    return repositoryPath;
+}
+
+async function createTestRepository(root: string): Promise<string> {
+    fs.mkdirSync(path.join(root, 'folder'));
+    fs.writeFileSync(path.join(root, 'A.txt'), 'A', { encoding: 'utf8' });
+    fs.writeFileSync(path.join(root, 'B.txt'), 'B', { encoding: 'utf8' });
+    fs.writeFileSync(path.join(root, 'folder', 'C.txt'), 'C', { encoding: 'utf8' });
+    await initRepository(root, true, true);
+    return root;
+}
+
+export async function usesLocalGit(): Promise<boolean> {
+    return process.env.USE_LOCAL_GIT === 'true';
+}
+
+export function remove(repositoryPath: string, filesToDelete: string | string[]): string[] {
+    const files = (Array.isArray(filesToDelete) ? filesToDelete : [filesToDelete]).map(f => path.join(repositoryPath, f));
+    for (const f of files) {
+        if (!fs.existsSync(f)) {
+            throw new Error(`Cannot delete file ${f}, it does not exist.`);
+        }
+        if (!fs.statSync(f).isFile()) {
+            throw new Error(`Only files can be deleted, directories not: ${f}.`);
+        }
+        fs.unlinkSync(f);
+        if (fs.existsSync(f)) {
+            throw new Error(`Cannot delete file: ${f}.`);
+        }
+    }
+    return files;
+}
+
+export function add(repositoryPath: string, filesToCreate: { path: string, data?: string } | { path: string, data?: string }[]): string[] {
+    const files = (Array.isArray(filesToCreate) ? filesToCreate : [filesToCreate])
+        .map(f => ({ path: path.join(repositoryPath, f.path), data: f.data || '' }));
+    for (const f of files) {
+        if (fs.existsSync(f.path)) {
+            throw new Error(`File ${f.path}, already exists.`);
+        }
+        fs.writeFileSync(f.path, f.data);
+        if (!fs.existsSync(f.path)) {
+            throw new Error(`Cannot create new file: ${f.path}.`);
+        }
+    }
+    return files.map(f => f.path);
+}
+
+export function modify(repositoryPath: string, filesToModify: { path: string, data: string } | { path: string, data: string }[]): string[] {
+    const files = (Array.isArray(filesToModify) ? filesToModify : [filesToModify])
+        .map(f => ({ path: path.join(repositoryPath, f.path), data: f.data }));
+    for (const f of files) {
+        if (!fs.existsSync(f.path)) {
+            throw new Error(`Cannot modify the content of the file ${f.path}, it does not exist.`);
+        }
+        if (!fs.statSync(f.path).isFile()) {
+            throw new Error(`Only files can be modified, directories not: ${f.path}.`);
+        }
+        fs.writeFileSync(f.path, f.data);
+        if (!fs.existsSync(f.path) || fs.readFileSync(f.path, 'utf-8') !== f.data) {
+            throw new Error(`Cannot modify the file content file: ${f.path}.`);
+        }
+    }
+    return files.map(f => f.path);
+}
+
+export function rename(repositoryPath: string, filesToRename: { oldPath: string, newPath: string } | { oldPath: string, newPath: string }[]): string[] {
+    const files = (Array.isArray(filesToRename) ? filesToRename : [filesToRename])
+        .map(f => ({ oldPath: path.join(repositoryPath, f.oldPath), newPath: path.join(repositoryPath, f.newPath) }));
+    for (const f of files) {
+        if (!fs.existsSync(f.oldPath)) {
+            throw new Error(`Cannot rename the file ${f.oldPath}, it does not exist.`);
+        }
+        if (fs.existsSync(f.newPath)) {
+            throw new Error(`Cannot rename the file ${f.oldPath}, a file already exists in the destination: ${f.newPath}.`);
+        }
+        if (!fs.statSync(f.oldPath).isFile()) {
+            throw new Error(`Only files can be renamed, directories not: ${f.oldPath}.`);
+        }
+        fs.renameSync(f.oldPath, f.newPath);
+        if (!fs.existsSync(f.newPath) || fs.existsSync(f.oldPath)) {
+            throw new Error(`Cannot rename file: ${f.oldPath} -> ${f.newPath}.`);
+        }
+    }
+    return [...files.map(f => f.oldPath), ...files.map(f => f.newPath)];
+}
+
+export function contentIsEqual(repositoryPath: string, fileNameOrPath: string, content: string): boolean {
+    const fileContent = fs.readFileSync(path.join(repositoryPath, fileNameOrPath), { encoding: 'utf8' });
+    return fileContent === content;
 }
 
 interface ChangeDelta {
