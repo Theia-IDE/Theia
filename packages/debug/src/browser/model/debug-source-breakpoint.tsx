@@ -184,7 +184,7 @@ export class DebugSourceBreakpoint extends DebugBreakpoint<SourceBreakpoint> imp
 
     protected getUnsupportedBreakpointDecoration(message: string): DebugBreakpointDecoration {
         return {
-            className: 'theia-debug-breakpoint-unsupported',
+            className: 'codicon-debug-breakpoint-unsupported',
             message: [message]
         };
     }
@@ -192,18 +192,18 @@ export class DebugSourceBreakpoint extends DebugBreakpoint<SourceBreakpoint> imp
     protected getBreakpointDecoration(message?: string[]): DebugBreakpointDecoration {
         if (this.logMessage) {
             return {
-                className: 'theia-debug-logpoint',
+                className: 'codicon-debug-breakpoint-log',
                 message: message || ['Logpoint']
             };
         }
         if (this.condition || this.hitCondition) {
             return {
-                className: 'theia-debug-conditional-breakpoint',
+                className: 'codicon-debug-breakpoint-conditional',
                 message: message || ['Conditional Breakpoint']
             };
         }
         return {
-            className: 'theia-debug-breakpoint',
+            className: 'codicon-debug-breakpoint',
             message: message || ['Breakpoint']
         };
     }

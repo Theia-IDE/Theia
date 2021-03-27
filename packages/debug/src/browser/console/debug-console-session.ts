@@ -151,7 +151,9 @@ export class DebugConsoleSession extends ConsoleSession {
         const severity = category === 'stderr' ? Severity.Error : event.body.category === 'console' ? Severity.Warning : Severity.Info;
         if (variablesReference) {
             const items = await new ExpressionContainer({ session: () => session, variablesReference }).getElements();
-            this.items.push(...items);
+            for (const item of items) {
+                this.items.push(Object.assign(item, { severity }));
+            }
         } else if (typeof body.output === 'string') {
             for (const line of body.output.split('\n')) {
                 this.items.push(new AnsiConsoleItem(line, severity));

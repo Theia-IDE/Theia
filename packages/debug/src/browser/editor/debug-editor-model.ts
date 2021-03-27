@@ -243,7 +243,7 @@ export class DebugEditorModel implements Disposable {
                 glyphMarginClassName: className,
                 glyphMarginHoverMessage: message.map(value => ({ value })),
                 stickiness: DebugEditorModel.STICKINESS,
-                beforeContentClassName: renderInline ? `theia-debug-breakpoint-column ${className}-column` : undefined
+                beforeContentClassName: renderInline ? `theia-debug-breakpoint-column codicon ${className}` : undefined
             }
         };
     }
@@ -427,16 +427,16 @@ export class DebugEditorModel implements Disposable {
     static STICKINESS = monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges;
 
     static BREAKPOINT_HINT_DECORATION: monaco.editor.IModelDecorationOptions = {
-        glyphMarginClassName: 'theia-debug-breakpoint-hint',
+        glyphMarginClassName: 'codicon-debug-hint',
         stickiness: DebugEditorModel.STICKINESS
     };
 
     static TOP_STACK_FRAME_MARGIN: monaco.editor.IModelDecorationOptions = {
-        glyphMarginClassName: 'theia-debug-top-stack-frame',
+        glyphMarginClassName: 'codicon-debug-stackframe',
         stickiness: DebugEditorModel.STICKINESS
     };
     static FOCUSED_STACK_FRAME_MARGIN: monaco.editor.IModelDecorationOptions = {
-        glyphMarginClassName: 'theia-debug-focused-stack-frame',
+        glyphMarginClassName: 'codicon-debug-stackframe-focused',
         stickiness: DebugEditorModel.STICKINESS
     };
     static TOP_STACK_FRAME_DECORATION: monaco.editor.IModelDecorationOptions = {

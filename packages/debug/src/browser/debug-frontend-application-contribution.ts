@@ -16,7 +16,6 @@
 
 import { AbstractViewContribution, ApplicationShell, KeybindingRegistry, Widget, CompositeTreeNode, LabelProvider } from '@theia/core/lib/browser';
 import { injectable, inject } from 'inversify';
-import { ThemeService } from '@theia/core/lib/browser/theming';
 import { MenuModelRegistry, CommandRegistry, MAIN_MENU_BAR, Command, Emitter, Mutable } from '@theia/core/lib/common';
 import { DebugViewLocation } from '../common/debug-configuration';
 import { EditorKeybindingContexts, EditorManager } from '@theia/editor/lib/browser';
@@ -361,22 +360,6 @@ export namespace DebugBreakpointWidgetCommands {
         id: 'debug.breakpointWidget.close'
     };
 }
-
-const darkCss = require('../../src/browser/style/debug-dark.useable.css');
-const lightCss = require('../../src/browser/style/debug-bright.useable.css');
-
-function updateTheme(): void {
-    const themeType = ThemeService.get().getCurrentTheme().type;
-    if (themeType === 'dark' || themeType === 'hc') {
-        lightCss.unuse();
-        darkCss.use();
-    } else if (themeType === 'light') {
-        darkCss.unuse();
-        lightCss.use();
-    }
-}
-updateTheme();
-ThemeService.get().onThemeChange(() => updateTheme());
 
 @injectable()
 export class DebugFrontendApplicationContribution extends AbstractViewContribution<DebugWidget> implements TabBarToolbarContribution, ColorContribution {
@@ -1067,7 +1050,7 @@ export class DebugFrontendApplicationContribution extends AbstractViewContributi
         const toggleBreakpointsEnabled: Mutable<TabBarToolbarItem> = {
             id: DebugCommands.TOGGLE_BREAKPOINTS_ENABLED.id,
             command: DebugCommands.TOGGLE_BREAKPOINTS_ENABLED.id,
-            icon: 'fa breakpoints-activate',
+            icon: 'codicon codicon-activate-breakpoints',
             onDidChange: onDidChangeToggleBreakpointsEnabled.event,
             priority: 1
         };
@@ -1254,10 +1237,10 @@ export class DebugFrontendApplicationContribution extends AbstractViewContributi
                 defaults: { dark: '#ffff0033', light: '#ffff6673', hc: '#fff600' },
                 description: 'Background color for the highlight of line at the top stack frame position.'
             }, {
-                id: 'editor.focusedStackFrameHighlightBackground',
-                defaults: { dark: '#7abd7a4d', light: '#cee7ce73', hc: '#cee7ce' },
-                description: 'Background color for the highlight of line at focused stack frame position.'
-            },
+            id: 'editor.focusedStackFrameHighlightBackground',
+            defaults: { dark: '#7abd7a4d', light: '#cee7ce73', hc: '#cee7ce' },
+            description: 'Background color for the highlight of line at focused stack frame position.'
+        },
             // Status bar colors should be aligned with debugging colors from https://code.visualstudio.com/api/references/theme-color#status-bar-colors
             {
                 id: 'statusBar.debuggingBackground', defaults: {
@@ -1287,9 +1270,120 @@ export class DebugFrontendApplicationContribution extends AbstractViewContributi
                     dark: '#a31515', light: '#a31515', hc: '#a31515'
                 }, description: 'Exception widget border color.',
             }, {
-                id: 'debugExceptionWidget.background', defaults: {
-                    dark: '#420b0d', light: '#f1dfde', hc: '#420b0d'
-                }, description: 'Exception widget background color.'
+            id: 'debugExceptionWidget.background', defaults: {
+                dark: '#420b0d', light: '#f1dfde', hc: '#420b0d'
+            }, description: 'Exception widget background color.'
+        },
+            // Debug Icon colors should be aligned with
+            // https://code.visualstudio.com/api/references/theme-color#debug-icons-colors
+            {
+                id: 'debugIcon.breakpointForeground', defaults: {
+                    dark: '#E51400', light: '#E51400', hc: '#E51400'
+                },
+                description: 'Icon color for breakpoints.'
+            },
+            {
+                id: 'debugIcon.breakpointDisabledForeground', defaults: {
+                    dark: '#848484', light: '#848484', hc: '#848484'
+                },
+                description: 'Icon color for disabled breakpoints.'
+            },
+            {
+                id: 'debugIcon.breakpointUnverifiedForeground', defaults: {
+                    dark: '#848484', light: '#848484', hc: '#848484'
+                },
+                description: 'Icon color for unverified breakpoints.'
+            },
+            {
+                id: 'debugIcon.breakpointCurrentStackframeForeground', defaults: {
+                    dark: '#FFCC00', light: '#FFCC00', hc: '#FFCC00'
+                },
+                description: 'Icon color for the current breakpoint stack frame.'
+            },
+            {
+                id: 'debugIcon.breakpointStackframeForeground', defaults: {
+                    dark: '#89D185', light: '#89D185', hc: '#89D185'
+                },
+                description: 'Icon color for all breakpoint stack frames.'
+            },
+            {
+                id: 'debugIcon.startForeground', defaults: {
+                    dark: '#89D185', light: '#388A34', hc: '#89D185'
+                }, description: 'Debug toolbar icon for start debugging.'
+            },
+            {
+                id: 'debugIcon.pauseForeground', defaults: {
+                    dark: '#75BEFF', light: '#007ACC', hc: '#75BEFF'
+                }, description: 'Debug toolbar icon for pause.'
+            },
+            {
+                id: 'debugIcon.stopForeground', defaults: {
+                    dark: '#F48771', light: '#A1260D', hc: '#F48771'
+                }, description: 'Debug toolbar icon for stop.'
+            },
+            {
+                id: 'debugIcon.disconnectForeground', defaults: {
+                    dark: '#F48771', light: '#A1260D', hc: '#F48771'
+                }, description: 'Debug toolbar icon for disconnect.'
+            },
+            {
+                id: 'debugIcon.restartForeground', defaults: {
+                    dark: '#89D185', light: '#388A34', hc: '#89D185'
+                }, description: 'Debug toolbar icon for restart.'
+            },
+            {
+                id: 'debugIcon.stepOverForeground', defaults: {
+                    dark: '#75BEFF', light: '#007ACC', hc: '#75BEFF'
+                }, description: 'Debug toolbar icon for step over.'
+            },
+            {
+                id: 'debugIcon.stepIntoForeground', defaults: {
+                    dark: '#75BEFF', light: '#007ACC', hc: '#75BEFF'
+                }, description: 'Debug toolbar icon for step into.'
+            },
+            {
+                id: 'debugIcon.stepOutForeground', defaults: {
+                    dark: '#75BEFF', light: '#007ACC', hc: '#75BEFF'
+                }, description: 'Debug toolbar icon for step over.'
+            },
+            {
+                id: 'debugIcon.continueForeground', defaults: {
+                    dark: '#75BEFF', light: '#007ACC', hc: '#75BEFF'
+                }, description: 'Debug toolbar icon for continue.'
+            },
+            {
+                id: 'debugIcon.stepBackForeground', defaults: {
+                    dark: '#75BEFF', light: '#007ACC', hc: '#75BEFF'
+                }, description: 'Debug toolbar icon for step back.'
+            },
+            {
+                id: 'debugConsole.infoForeground', defaults: {
+                    dark: 'editorInfo.foreground', light: 'editorInfo.foreground', hc: 'foreground'
+                }, description: 'Foreground color for info messages in debug REPL console.'
+            },
+            {
+                id: 'debugConsole.warningForeground', defaults: {
+                    dark: 'editorWarning.foreground', light: 'editorWarning.foreground', hc: '#008000'
+                },
+                description: 'Foreground color for warning messages in debug REPL console.'
+            },
+            {
+                id: 'debugConsole.errorForeground', defaults: {
+                    dark: 'errorForeground', light: 'errorForeground', hc: 'errorForeground'
+                },
+                description: 'Foreground color for error messages in debug REPL console.',
+            },
+            {
+                id: 'debugConsole.sourceForeground', defaults: {
+                    dark: 'foreground', light: 'foreground', hc: 'foreground'
+                },
+                description: 'Foreground color for source filenames in debug REPL console.',
+            },
+            {
+                id: 'debugConsoleInputIcon.foreground', defaults: {
+                    dark: 'foreground', light: 'foreground', hc: 'foreground'
+                },
+                description: 'Foreground color for debug console input marker icon.'
             }
         );
     }

@@ -167,6 +167,16 @@
 
 /** Console */
 
+#debug-console .theia-console-info {
+    color: var(--theia-debugConsole-infoForeground) !important;
+}
+#debug-console .theia-console-warning {
+    color: var(--theia-debugConsole-warningForeground) !important;
+}
+#debug-console .theia-console-error {
+    color: var(--theia-debugConsole-errorForeground) !important;
+}
+
 .theia-debug-console-unavailable {
     font-style: italic;
 }
@@ -202,140 +212,126 @@
 }
 
 /** Editor **/
-.monaco-editor .theia-debug-breakpoint-hint {
-	background: url('breakpoint-hint.svg') center center no-repeat;
-}
-
 .theia-debug-breakpoint-icon {
+    font-size: 19px !important;
     width: 19px;
     height: 19px;
     min-width: 19px;
     margin-left: 0px !important;
 }
 
-.monaco-editor .theia-debug-breakpoint-column::before,
+.codicon-debug-hint {
+	cursor: pointer;
+}
+.codicon-debug-hint:not([class*='codicon-debug-breakpoint']):not([class*='codicon-debug-stackframe']) {
+	opacity: 0.4 !important;
+}
+
+.codicon-debug-breakpoint,
+.codicon-debug-breakpoint-conditional,
+.codicon-debug-breakpoint-log,
+.codicon-debug-breakpoint-function,
+.codicon-debug-breakpoint-data,
+.codicon-debug-breakpoint-unsupported,
+.codicon-debug-hint:not([class*='codicon-debug-breakpoint']):not([class*='codicon-debug-stackframe']),
+.codicon-debug-breakpoint.codicon-debug-stackframe-focused::after,
+.codicon-debug-breakpoint.codicon-debug-stackframe::after {
+    color: var(--theia-debugIcon-breakpointForeground) !important;
+}
+
+.codicon[class*='-disabled'] {
+	color: var(--theia-debugIcon-breakpointDisabledForeground) !important;
+}
+
+.codicon[class*='-unverified'] {
+    color: var(--theia-debugIcon-breakpointUnverifiedForeground) !important;
+}
+
+.codicon-debug-stackframe,
+.monaco-editor .theia-debug-top-stack-frame-column::before {
+    color: var(--theia-debugIcon-breakpointCurrentStackframeForeground) !important;
+}
+
+.codicon-debug-stackframe-focused {
+    color: var(--theia-debugIcon-breakpointStackframeForeground) !important;
+}
+
+.codicon-debug-breakpoint.codicon-debug-stackframe-focused::after,
+.codicon-debug-breakpoint.codicon-debug-stackframe::after {
+	content: '\eb8a';
+	position: absolute;
+}
+
+.monaco-editor .theia-debug-breakpoint-column::before {
+	height: .9em;
+	display: inline-flex;
+	vertical-align: middle;
+}
+
 .monaco-editor .theia-debug-top-stack-frame-column::before {
 	content: ' ';
-	width: 1.3em;
-	height: 1.3em;
-	display: inline-block;
-	vertical-align: text-bottom;
+	width: 0.9em;
+	display: inline-flex;
+	vertical-align: middle;
+	margin-top: -1px; /* TODO @misolori: figure out a way to not use negative margin for alignment */
 }
 
 .monaco-editor .theia-debug-top-stack-frame-column {
-	background: url('current-arrow.svg') center center no-repeat;
+	display: inline-flex;
+	vertical-align: middle;
 }
 
-.theia-debug-breakpoint,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-breakpoint-column {
-	background: url('breakpoint.svg') center center no-repeat;
-}
-.theia-debug-breakpoint-disabled,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-breakpoint-disabled-column {
-    background: url('breakpoint-disabled.svg') center center no-repeat;
-}
-.theia-debug-breakpoint-unverified,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-breakpoint-unverified-column {
-    background: url('breakpoint-unverified.svg') center center no-repeat;
-}
-.theia-debug-breakpoint-unsupported,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-breakpoint-unsupported-column {
-    background: url('breakpoint-unsupported.svg') center center no-repeat;
+.monaco-editor .theia-debug-top-stack-frame-column::before {
+	content: '\eb8b';
+	font: normal normal normal 16px/1 codicon;
+	text-rendering: auto;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	margin-left: 0;
+	margin-right: 4px;
 }
 
-.theia-debug-conditional-breakpoint,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-conditional-breakpoint-column {
-    background: url('breakpoint-conditional.svg') center center no-repeat;
-}
-.theia-debug-conditional-breakpoint-disabled,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-conditional-breakpoint-disabled-column {
-    background: url('breakpoint-conditional-disabled.svg') center center no-repeat;
-}
-.theia-debug-conditional-breakpoint-unverified,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-conditional-breakpoint-unverified-column {
-    background: url('breakpoint-conditional-unverified.svg') center center no-repeat;
-}
-
-.theia-debug-logpoint,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-logpoint-column {
-	background: url('breakpoint-log.svg') center center no-repeat;
-}
-.theia-debug-logpoint-disabled,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-logpoint-disabled-columne {
-    background: url('breakpoint-log-disabled.svg') center center no-repeat;
-}
-.theia-debug-logpoint-unverified,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-logpoint-unverified-column {
-    background: url('breakpoint-log-unverified.svg') center center no-repeat;
-}
-
-.theia-debug-function {
-	background: url('breakpoint-function.svg') center center no-repeat;
-}
-.theia-debug-function-disabled {
-	background: url('breakpoint-function-disabled.svg') center center no-repeat;
-}
-.theia-debug-function-unverified {
-	background: url('breakpoint-function-unverified.svg') center center no-repeat;
-}
-
-.monaco-editor .theia-debug-top-stack-frame {
-	background: url('current-arrow.svg') center center no-repeat;
-}
-.monaco-editor .theia-debug-top-stack-frame.theia-debug-breakpoint,
-.monaco-editor .theia-debug-breakpoint-column.theia-debug-breakpoint-column.debug-top-stack-frame-column {
-	background: url('current-and-breakpoint.svg') center center no-repeat;
-}
 .monaco-editor .view-overlays .theia-debug-top-stack-frame-line {
     background: var(--theia-editor-stackFrameHighlightBackground);
 }
 
-.monaco-editor .theia-debug-focused-stack-frame {
-	background: url('stackframe-arrow.svg') center center no-repeat;
-}
-.monaco-editor .theia-debug-focused-stack-frame.theia-debug-breakpoint {
-	background: url('stackframe-and-breakpoint.svg') center center no-repeat;
-}
 .monaco-editor .view-overlays .theia-debug-focused-stack-frame-line {
     background: var(--theia-editor-focusedStackFrameHighlightBackground);
 }
 
 /** Toolbars */
 
-.theia-debug-configure {
-    background: var(--theia-debug-configure) center center no-repeat;
+.codicon-debug-start {
+    color: var(--theia-debugIcon-startForeground) !important;
 }
-.theia-debug-repl {
-    background: var(--theia-debug-repl) center center no-repeat;
+.codicon-debug-pause {
+    color: var(--theia-debugIcon-pauseForeground) !important;
 }
-
-.theia-debug-start {
-    background: var(--theia-debug-start) center center no-repeat;
+.codicon-debug-stop {
+    color: var(--theia-debugIcon-stopForeground) !important;
 }
-.theia-debug-stop {
-    background: var(--theia-debug-stop) center center no-repeat;
+.codicon-debug-disconnect {
+    color: var(--theia-debugIcon-disconnectForeground) !important;
 }
-.theia-debug-restart {
-    background: var(--theia-debug-restart) center center no-repeat;
+.codicon-debug-restart,
+.codicon-debug-restart-frame {
+    color: var(--theia-debugIcon-restartForeground) !important;
 }
-.theia-debug-pause {
-    background: var(--theia-debug-pause) center center no-repeat;
+.codicon-debug-step-over {
+    color: var(--theia-debugIcon-stepOverForeground) !important;
 }
-.theia-debug-continue {
-    background: var(--theia-debug-continue) center center no-repeat;
+.codicon-debug-step-into {
+    color: var(--theia-debugIcon-stepIntoForeground) !important;
 }
-.theia-debug-step-over {
-    background: var(--theia-debug-step-over) center center no-repeat;
+.codicon-debug-step-out {
+    color: var(--theia-debugIcon-stepOutForeground) !important;
 }
-.theia-debug-step-into {
-    background: var(--theia-debug-step-into) center center no-repeat;
+.codicon-debug-continue,
+.codicon-debug-reverse-continue {
+    color: var(--theia-debugIcon-continueForeground) !important;
 }
-.theia-debug-step-out {
-    background: var(--theia-debug-step-out) center center no-repeat;
-}
-
-.breakpoints-activate {
-	background: var(--breakpoints-activate-url) center center no-repeat;
+.codicon-debug-step-back {
+    color: var(--theia-debugIcon-stepBackForeground) !important;
 }
 
 /** Hover */

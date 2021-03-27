@@ -70,7 +70,7 @@ export class DebugFunctionBreakpoint extends DebugBreakpoint<FunctionBreakpoint>
 
     protected getBreakpointDecoration(message?: string[]): DebugBreakpointDecoration {
         return {
-            className: 'theia-debug-function',
+            className: 'codicon-debug-breakpoint-function',
             message: message || ['Function Breakpoint']
         };
     }

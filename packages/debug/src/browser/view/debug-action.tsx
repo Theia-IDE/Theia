@@ -21,7 +21,7 @@ export class DebugAction extends React.Component<DebugAction.Props> {
 
     render(): React.ReactNode {
         const { enabled, label, iconClass } = this.props;
-        const classNames = ['debug-action', 'theia-debug-' + iconClass];
+        const classNames = ['debug-action', 'codicon', 'codicon-' + iconClass];
         if (enabled === false) {
             classNames.push(DISABLED_CLASS);
         }

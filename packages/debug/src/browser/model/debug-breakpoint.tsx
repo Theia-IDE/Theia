@@ -97,7 +97,7 @@ export abstract class DebugBreakpoint<T extends BaseBreakpoint = BaseBreakpoint>
         }
         const decoration = this.getDecoration();
         return <div title={decoration.message.join('\n')} className={classNames.join(' ')}>
-            <span className={'theia-debug-breakpoint-icon ' + decoration.className} />
+            <span className={'theia-debug-breakpoint-icon codicon ' + decoration.className} />
             <input className='theia-input' type='checkbox' checked={this.origin.enabled} onChange={this.setBreakpointEnabled} />
             {this.doRender()}
         </div>;

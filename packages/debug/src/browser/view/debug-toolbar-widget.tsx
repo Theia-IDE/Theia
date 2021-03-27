@@ -58,26 +58,26 @@ export class DebugToolBar extends ReactWidget {
         const { state } = this.model;
         return <React.Fragment>
             {this.renderContinue()}
-            <DebugAction enabled={state === DebugState.Stopped} run={this.stepOver} label='Step Over' iconClass='step-over' ref={this.setStepRef} />
-            <DebugAction enabled={state === DebugState.Stopped} run={this.stepIn} label='Step Into' iconClass='step-into' />
-            <DebugAction enabled={state === DebugState.Stopped} run={this.stepOut} label='Step Out' iconClass='step-out' />
-            <DebugAction enabled={state !== DebugState.Inactive} run={this.restart} label='Restart' iconClass='restart' />
+            <DebugAction enabled={state === DebugState.Stopped} run={this.stepOver} label='Step Over' iconClass='debug-step-over' ref={this.setStepRef} />
+            <DebugAction enabled={state === DebugState.Stopped} run={this.stepIn} label='Step Into' iconClass='debug-step-into' />
+            <DebugAction enabled={state === DebugState.Stopped} run={this.stepOut} label='Step Out' iconClass='debug-step-out' />
+            <DebugAction enabled={state !== DebugState.Inactive} run={this.restart} label='Restart' iconClass='debug-restart' />
             {this.renderStart()}
         </React.Fragment>;
     }
     protected renderStart(): React.ReactNode {
         const { state } = this.model;
         if (state === DebugState.Inactive && this.model.sessionCount === 1) {
-            return <DebugAction run={this.start} label='Start' iconClass='start' />;
+            return <DebugAction run={this.start} label='Start' iconClass='debug-start' />;
         }
-        return <DebugAction enabled={state !== DebugState.Inactive} run={this.stop} label='Stop' iconClass='stop' />;
+        return <DebugAction enabled={state !== DebugState.Inactive} run={this.stop} label='Stop' iconClass='debug-stop' />;
     }
     protected renderContinue(): React.ReactNode {
         const { state } = this.model;
         if (state === DebugState.Stopped) {
-            return <DebugAction run={this.continue} label='Continue' iconClass='continue' />;
+            return <DebugAction run={this.continue} label='Continue' iconClass='debug-continue' />;
         }
-        return <DebugAction enabled={state === DebugState.Running} run={this.pause} label='Pause' iconClass='pause' />;
+        return <DebugAction enabled={state === DebugState.Running} run={this.pause} label='Pause' iconClass='debug-pause' />;
     }
 
     protected start = () => this.model.start();
