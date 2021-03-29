@@ -24,11 +24,11 @@ import { bindVSXCommand } from './vsx/sample-vsx-command-contribution';
 
 import '../../src/browser/style/branding.css';
 
-export default new ContainerModule(bind => {
+export default new ContainerModule((bind, unbind, isBound, rebind) => {
     bindDynamicLabelProvider(bind);
     bindSampleUnclosableView(bind);
     bindSampleOutputChannelWithSeverity(bind);
-    bindSampleMenu(bind);
+    bindSampleMenu(bind, unbind, isBound, rebind);
     bindSampleFileWatching(bind);
     bindVSXCommand(bind);
 });

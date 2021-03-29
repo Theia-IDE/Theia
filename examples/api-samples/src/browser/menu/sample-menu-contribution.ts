@@ -14,8 +14,21 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { Command, CommandContribution, CommandRegistry, MAIN_MENU_BAR, MenuContribution, MenuModelRegistry, MenuNode, SubMenuOptions } from '@theia/core/lib/common';
 import { injectable, interfaces } from 'inversify';
+import {
+    Command,
+    CommandContribution,
+    CommandRegistry,
+    MAIN_MENU_BAR,
+    MenuContribution,
+    MenuModelRegistry,
+    MenuNode,
+    MenuNodeFactory,
+    SubMenuOptions,
+    CompositeMenuNode,
+    MenuAction,
+    ActionMenuNode
+} from '@theia/core/lib/common';
 
 const SampleCommand: Command = {
     id: 'sample-command',
@@ -24,6 +37,19 @@ const SampleCommand: Command = {
 const SampleCommand2: Command = {
     id: 'sample-command2',
     label: 'Sample Command2'
+};
+
+const SampleFoo1Command: Command = {
+    id: 'sample-foo-1-command',
+    label: 'Sample & Foo 1'
+};
+const SampleFoo2Command: Command = {
+    id: 'sample-foo-2-command',
+    label: 'sample & foo 2'
+};
+const SampleFoo3Command: Command = {
+    id: 'sample-foo-3-command',
+    label: 'SAMPLE & FOO 3'
 };
 
 @injectable()
@@ -39,6 +65,7 @@ export class SampleCommandContribution implements CommandContribution {
                 alert('This is sample command2!');
             }
         });
+        [SampleFoo1Command, SampleFoo2Command, SampleFoo3Command].forEach(command => commands.registerCommand(command, { execute: () => { } }));
     }
 
 }
@@ -70,6 +97,9 @@ export class SampleMenuContribution implements MenuContribution {
         });
         const placeholder = new PlaceholderMenuNode([...subSubMenuPath, 'placeholder'].join('-'), 'Placeholder', { order: '0' });
         menus.registerMenuNode(subSubMenuPath, placeholder);
+        const fooSubmenu = [...subMenuPath, 'foo'];
+        menus.registerSubmenu(fooSubmenu, 'Foo Submenu');
+        [SampleFoo1Command, SampleFoo2Command, SampleFoo3Command].forEach(({ id }) => menus.registerMenuAction(fooSubmenu, { commandId: id }));
     }
 
 }
@@ -91,7 +121,30 @@ export class PlaceholderMenuNode implements MenuNode {
 
 }
 
-export const bindSampleMenu = (bind: interfaces.Bind) => {
+@injectable()
+class SampleMenuNodeFactory extends MenuNodeFactory {
+
+    createCompositeNode({ id, label, options }: { id: string, label?: string, options?: SubMenuOptions }): CompositeMenuNode {
+        return new CompositeMenuNode(id, label, options);
+    }
+
+    createActionNode(menuAction: MenuAction): ActionMenuNode {
+        return new SampleActionMenuNode(menuAction, this.commands, this);
+    }
+
+}
+
+class SampleActionMenuNode extends ActionMenuNode {
+
+    get sortString(): string {
+        return (this.action.order || this.label).toLocaleLowerCase();
+    }
+
+}
+
+export const bindSampleMenu = (bind: interfaces.Bind, unbind: interfaces.Unbind, isBound: interfaces.IsBound, rebind: interfaces.Rebind) => {
     bind(CommandContribution).to(SampleCommandContribution).inSingletonScope();
     bind(MenuContribution).to(SampleMenuContribution).inSingletonScope();
+    bind(SampleMenuNodeFactory).toSelf().inSingletonScope();
+    rebind(MenuNodeFactory).toService(SampleMenuNodeFactory);
 };

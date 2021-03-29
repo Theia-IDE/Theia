@@ -15,7 +15,9 @@
  ********************************************************************************/
 
 import { injectable, ContainerModule } from 'inversify';
-import { CompositeMenuNode } from '@theia/core/lib/common/menu';
+import * as electron from 'electron';
+import { isOSX } from '@theia/core/lib/common';
+import { CompositeMenuNode, MAIN_MENU_BAR, MenuPath } from '@theia/core/lib/common/menu';
 import { ElectronMainMenuFactory, ElectronMenuOptions } from '@theia/core/lib/electron-browser/menu/electron-main-menu-factory';
 import { PlaceholderMenuNode } from '../../browser/menu/sample-menu-contribution';
 
@@ -36,6 +38,37 @@ class SampleElectronMainMenuFactory extends ElectronMainMenuFactory {
             }];
         }
         return [];
+    }
+
+    createMenuBar(): Electron.Menu {
+        const menuModel = this.menuProvider.getMenu(MAIN_MENU_BAR);
+        const template = this.fillMenuTemplate([], menuModel);
+        if (isOSX) {
+            template.unshift(this.createOSXMenu());
+        }
+        const menu = electron.remote.Menu.buildFromTemplate(this.escapeAmpersand(template));
+        this._menu = menu;
+        return menu;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    createContextMenu(menuPath: MenuPath, args?: any[]): Electron.Menu {
+        const menuModel = this.menuProvider.getMenu(menuPath);
+        const template = this.fillMenuTemplate([], menuModel, args, { showDisabled: false });
+        return electron.remote.Menu.buildFromTemplate(this.escapeAmpersand(template));
+    }
+
+    private escapeAmpersand(template: Electron.MenuItemConstructorOptions[]): Electron.MenuItemConstructorOptions[] {
+        for (const option of template) {
+            if (option.label && option.label.indexOf('&') !== -1) {
+                console.log('before', option.label, 'after', option.label.replace(/\&+/g, '&$&'));
+                option.label = option.label.replace(/\&+/g, '&$&');
+            }
+            if (option.submenu) {
+                this.escapeAmpersand(option.submenu as Electron.MenuItemConstructorOptions[]);
+            }
+        }
+        return template;
     }
 
 }

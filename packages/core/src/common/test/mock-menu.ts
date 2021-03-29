@@ -16,13 +16,14 @@
 
 import { Disposable } from '../disposable';
 import { CommandRegistry } from '../command';
-import { MenuModelRegistry, MenuPath, MenuAction } from '../menu';
+import { MenuModelRegistry, MenuPath, MenuAction, MenuNodeFactory } from '../menu';
 
 export class MockMenuModelRegistry extends MenuModelRegistry {
 
     constructor() {
         const commands = new CommandRegistry({ getContributions: () => [] });
-        super({ getContributions: () => [] }, commands);
+        const factory = new MenuNodeFactory(commands);
+        super({ getContributions: () => [] }, commands, factory);
     }
 
     registerMenuAction(menuPath: MenuPath, item: MenuAction): Disposable {

@@ -25,7 +25,7 @@ import {
     SelectionService,
     ResourceResolver,
     CommandContribution, CommandRegistry, CommandService, commandServicePath,
-    MenuModelRegistry, MenuContribution,
+    MenuModelRegistry, MenuContribution, MenuNodeFactory,
     MessageClient,
     InMemoryResources,
     messageServicePath
@@ -205,6 +205,7 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
 
     bind(MenuModelRegistry).toSelf().inSingletonScope();
     bindContributionProvider(bind, MenuContribution);
+    bind(MenuNodeFactory).toSelf().inSingletonScope();
 
     bind(KeyboardLayoutService).toSelf().inSingletonScope();
     bind(KeybindingRegistry).toSelf().inSingletonScope();

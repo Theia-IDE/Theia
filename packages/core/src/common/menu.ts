@@ -120,6 +120,21 @@ export interface MenuContribution {
     registerMenus(menus: MenuModelRegistry): void;
 }
 
+@injectable()
+export class MenuNodeFactory {
+
+    constructor(@inject(CommandRegistry) protected readonly commands: CommandRegistry) { }
+
+    createCompositeNode({ id, label, options }: { id: string, label?: string, options?: SubMenuOptions }): CompositeMenuNode {
+        return new CompositeMenuNode(id, label, options);
+    }
+
+    createActionNode(menuAction: MenuAction): ActionMenuNode {
+        return new ActionMenuNode(menuAction, this.commands, this);
+    }
+
+}
+
 /**
  * The MenuModelRegistry allows to register and unregister menus, submenus and actions
  * via strings and {@link MenuAction}s without the need to access the underlying UI
@@ -127,13 +142,16 @@ export interface MenuContribution {
  */
 @injectable()
 export class MenuModelRegistry {
-    protected readonly root = new CompositeMenuNode('');
+
+    protected readonly root: CompositeMenuNode;
 
     constructor(
-        @inject(ContributionProvider) @named(MenuContribution)
-        protected readonly contributions: ContributionProvider<MenuContribution>,
-        @inject(CommandRegistry) protected readonly commands: CommandRegistry
-    ) { }
+        @inject(ContributionProvider) @named(MenuContribution) protected readonly contributions: ContributionProvider<MenuContribution>,
+        @inject(CommandRegistry) protected readonly commands: CommandRegistry,
+        @inject(MenuNodeFactory) protected readonly menuFactory: MenuNodeFactory
+    ) {
+        this.root = this.menuFactory.createCompositeNode({ id: '' });
+    }
 
     onStart(): void {
         for (const contrib of this.contributions.getContributions()) {
@@ -147,7 +165,7 @@ export class MenuModelRegistry {
      * @returns a disposable which, when called, will remove the menu action again.
      */
     registerMenuAction(menuPath: MenuPath, item: MenuAction): Disposable {
-        const menuNode = new ActionMenuNode(item, this.commands);
+        const menuNode = this.menuFactory.createActionNode(item);
         return this.registerMenuNode(menuPath, menuNode);
     }
 
@@ -186,7 +204,7 @@ export class MenuModelRegistry {
         const parent = this.findGroup(groupPath, options);
         let groupNode = this.findSubMenu(parent, menuId, options);
         if (!groupNode) {
-            groupNode = new CompositeMenuNode(menuId, label, options);
+            groupNode = this.menuFactory.createCompositeNode({ id: menuId, label, options });
             return parent.addNode(groupNode);
         } else {
             if (!groupNode.label) {
@@ -274,7 +292,7 @@ export class MenuModelRegistry {
         if (sub) {
             throw new Error(`'${menuId}' is not a menu group.`);
         }
-        const newSub = new CompositeMenuNode(menuId, undefined, options);
+        const newSub = this.menuFactory.createCompositeNode({ id: menuId, options });
         current.addNode(newSub);
         return newSub;
     }
@@ -412,10 +430,11 @@ export class ActionMenuNode implements MenuNode {
 
     constructor(
         public readonly action: MenuAction,
-        protected readonly commands: CommandRegistry
+        protected readonly commands: CommandRegistry,
+        protected readonly factory: MenuNodeFactory
     ) {
         if (action.alt) {
-            this.altNode = new ActionMenuNode({ commandId: action.alt }, commands);
+            this.altNode = this.factory.createActionNode({ commandId: action.alt });
         }
     }
 

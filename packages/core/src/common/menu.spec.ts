@@ -15,7 +15,7 @@
  ********************************************************************************/
 
 import { CommandContribution, CommandRegistry } from './command';
-import { CompositeMenuNode, MenuContribution, MenuModelRegistry } from './menu';
+import { CompositeMenuNode, MenuContribution, MenuModelRegistry, MenuNodeFactory } from './menu';
 import * as chai from 'chai';
 
 const expect = chai.expect;
@@ -67,7 +67,8 @@ describe('menu-model-registry', () => {
 function createMenuRegistry(menuContrib: MenuContribution, commandContrib: CommandContribution): MenuModelRegistry {
     const cmdReg = new CommandRegistry({ getContributions: () => [commandContrib] });
     cmdReg.onStart();
-    const menuReg = new MenuModelRegistry({ getContributions: () => [menuContrib] }, cmdReg);
+    const menuNodeFactory = new MenuNodeFactory(cmdReg);
+    const menuReg = new MenuModelRegistry({ getContributions: () => [menuContrib] }, cmdReg, menuNodeFactory);
     menuReg.onStart();
     return menuReg;
 }
