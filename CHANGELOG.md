@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.13.0
+
+- [electron] 'Save As...' menu item visibility and enablement now tracked, to bring into line with the browser [#9208](https://github.com/eclipse-theia/theia/pull/9208)
+
 ## v1.12.0 - 3/25/2020
 
 [1.12.0 Milestone](https://github.com/eclipse-theia/theia/milestone/17)

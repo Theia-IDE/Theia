@@ -107,6 +107,11 @@ export interface CommandHandler {
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     isToggled?(...args: any[]): boolean;
+    /**
+     * Track whether this handler is visible (active), visible but disabled, or hidden.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    trackActiveState?(...args: any[]): HandlerPropertyTracker;
 }
 
 export const CommandContribution = Symbol('CommandContribution');
@@ -152,6 +157,18 @@ export interface CommandService {
      * An event is emitted when a command was executed.
      */
     readonly onDidExecuteCommand: Event<CommandEvent>;
+}
+
+export enum CommandState {
+    Active,
+    Disabled,
+    Hidden
+}
+
+export interface HandlerPropertyTracker extends Disposable {
+    readonly value: CommandState;
+    readonly untrackable: boolean;
+    readonly onChange: Event<CommandState>;
 }
 
 /**
@@ -271,6 +288,58 @@ export class CommandRegistry implements CommandService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     isVisible(command: string, ...args: any[]): boolean {
         return typeof this.getVisibleHandler(command, ...args) !== 'undefined';
+    }
+
+    /**
+     * Ideally all handlers with dynamic enablement will implement `trackEnabled`. ('Dynamic enablement' meaning handlers where isEnabled can
+     * return different values for the identical args) However some implement only `isEnabled` and `isVisible`.
+     * This means we can't fire change events when the enablement or visibility changes.  So, if any handler
+     * implements`isEnabled` or `isVisible` but not `trackActiveState` then we indicate this is untrackable.
+     * This will result in menu items for such commands always being visible and enabled in Electron.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    trackActiveState(commandId: string, ...args: any[]): HandlerPropertyTracker {
+        const onChangeEmitter: Emitter<CommandState> = new Emitter();
+        const toDispose = new DisposableCollection(onChangeEmitter);
+
+        const handlers = this._handlers[commandId];
+        const handlerTrackers = !handlers ? [] : handlers.map(handler => {
+            try {
+                if (handler.trackActiveState) {
+                    const handlerTracker = handler.trackActiveState(...args);
+                    toDispose.push(handlerTracker);
+                    const tracker = { value: handlerTracker.value, untrackable: false };
+                    handlerTracker.onChange(newValue => {
+                        tracker.value = newValue;
+                        onChangeEmitter.fire(this.getCommandStateGivenHandlerStates(handlerTrackers));
+                    });
+                    return tracker;
+                } else {
+                    const enabled = handler.isEnabled ? handler.isEnabled(...args) : true;
+                    const visible = handler.isVisible ? handler.isVisible(...args) : true;
+                    return {
+                        value: visible ? enabled ? CommandState.Active : CommandState.Disabled : CommandState.Hidden,
+                        untrackable: true
+                    };
+                }
+            } catch (error) {
+                console.error(error);
+                return { value: CommandState.Hidden, untrackable: false };
+            }
+        });
+
+        return {
+            value: this.getCommandStateGivenHandlerStates(handlerTrackers),
+            untrackable: handlerTrackers.some(t => t.untrackable),
+            onChange: onChangeEmitter.event,
+            dispose: () => toDispose.dispose()
+        };
+    }
+
+    protected getCommandStateGivenHandlerStates(handlerTrackers: { value: CommandState, untrackable: boolean }[]): CommandState {
+        return handlerTrackers.some(t => t.value === CommandState.Active) ? CommandState.Active
+            : handlerTrackers.some(t => t.value === CommandState.Disabled) ? CommandState.Disabled
+                : CommandState.Hidden;
     }
 
     /**

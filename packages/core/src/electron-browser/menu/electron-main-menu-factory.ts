@@ -20,7 +20,9 @@ import * as electron from '../../../shared/electron';
 import { inject, injectable } from 'inversify';
 import {
     CommandRegistry, isOSX, ActionMenuNode, CompositeMenuNode,
-    MAIN_MENU_BAR, MenuModelRegistry, MenuPath, MenuNode
+    MAIN_MENU_BAR, MenuModelRegistry, MenuPath, MenuNode,
+    DisposableCollection,
+    CommandState
 } from '../../common';
 import { Keybinding } from '../../common/keybinding';
 import { PreferenceService, KeybindingRegistry, CommonCommands } from '../../browser';
@@ -37,6 +39,22 @@ export interface ElectronMenuOptions {
      * Defaults to `true`.
      */
     readonly showDisabled?: boolean;
+
+    /**
+     * Legacy menu contributions may be untrackable, meaning the isVisible and isEnabled
+     * state may change and we won't be notified.  In some cases this is ok, for example
+     * in a context menu this is ok because the menu is rebuilt each time it is shown.
+     * However for items in the main menu this means we cannot update the menu and we must
+     * therefore always show the menu item as visible and enabled.
+     * Defaults to `false`.
+     */
+    untrackableAlwaysActive?: boolean;
+}
+
+export interface MenuItemTracker {
+    node: ActionMenuNode;
+    visible: boolean;
+    enabled: boolean;
 }
 
 /**
@@ -57,6 +75,7 @@ export type ElectronMenuItemRole = ('undo' | 'redo' | 'cut' | 'copy' | 'paste' |
 export class ElectronMainMenuFactory {
 
     protected _menu: Electron.Menu | undefined;
+    protected readonly toDisposeOnMenuRecreation = new DisposableCollection();
     protected _toggledCommands: Set<string> = new Set();
 
     @inject(ContextKeyService)
@@ -71,27 +90,25 @@ export class ElectronMainMenuFactory {
         @inject(MenuModelRegistry) protected readonly menuProvider: MenuModelRegistry,
         @inject(KeybindingRegistry) protected readonly keybindingRegistry: KeybindingRegistry
     ) {
+        const thisFactory = this;
         preferencesService.onPreferenceChanged(debounce(() => {
-            if (this._menu) {
+            if (thisFactory._menu) {
                 for (const item of this._toggledCommands) {
-                    this._menu.getMenuItemById(item).checked = this.commandRegistry.isToggled(item);
+                    thisFactory._menu.getMenuItemById(item).checked = this.commandRegistry.isToggled(item);
                 }
-                electron.remote.getCurrentWindow().setMenu(this._menu);
+                electron.remote.getCurrentWindow().setMenu(thisFactory._menu);
             }
         }, 10));
         keybindingRegistry.onKeybindingsChanged(() => {
             const createdMenuBar = this.createMenuBar();
-            if (isOSX) {
-                electron.remote.Menu.setApplicationMenu(createdMenuBar);
-            } else {
-                electron.remote.getCurrentWindow().setMenu(createdMenuBar);
-            }
+            this.setMenu(createdMenuBar);
         });
     }
 
     createMenuBar(): Electron.Menu {
+        this.toDisposeOnMenuRecreation.dispose();
         const menuModel = this.menuProvider.getMenu(MAIN_MENU_BAR);
-        const template = this.fillMenuTemplate([], menuModel);
+        const template = this.fillMenuTemplate([], menuModel, [], { untrackableAlwaysActive: true });
         if (isOSX) {
             template.unshift(this.createOSXMenu());
         }
@@ -102,16 +119,25 @@ export class ElectronMainMenuFactory {
 
     createContextMenu(menuPath: MenuPath, args?: any[]): Electron.Menu {
         const menuModel = this.menuProvider.getMenu(menuPath);
-        const template = this.fillMenuTemplate([], menuModel, args, { showDisabled: false });
+        const template = this.fillMenuTemplate([], menuModel, args, { showDisabled: false, untrackableAlwaysActive: false });
         return electron.remote.Menu.buildFromTemplate(template);
     }
+
+    protected setMenu = debounce((createdMenuBar: Electron.Menu) => {
+        if (isOSX) {
+            electron.remote.Menu.setApplicationMenu(createdMenuBar);
+        } else {
+            electron.remote.getCurrentWindow().setMenu(createdMenuBar);
+        }
+    }, 10);
 
     protected fillMenuTemplate(items: Electron.MenuItemConstructorOptions[],
         menuModel: CompositeMenuNode,
         args: any[] = [],
         options?: ElectronMenuOptions
     ): Electron.MenuItemConstructorOptions[] {
-        const showDisabled = (options?.showDisabled === undefined) ? true : options?.showDisabled;
+        const untrackableAlwaysActive = options ? !!options.untrackableAlwaysActive : false;
+
         for (const menu of menuModel.children) {
             if (menu instanceof CompositeMenuNode) {
                 if (menu.children.length > 0) {
@@ -158,15 +184,8 @@ export class ElectronMainMenuFactory {
                     throw new Error(`Unknown command with ID: ${commandId}.`);
                 }
 
-                if (!this.commandRegistry.isVisible(commandId, ...args)
-                    || (!!node.action.when && !this.contextKeyService.match(node.action.when))) {
-                    continue;
-                }
-
-                // We should omit rendering context-menu items which are disabled.
-                if (!showDisabled && !this.commandRegistry.isEnabled(commandId, ...args)) {
-                    continue;
-                }
+                const stateTracker = this.commandRegistry.trackActiveState(commandId, ...args);
+                this.toDisposeOnMenuRecreation.push(stateTracker);
 
                 const bindings = this.keybindingRegistry.getKeybindingsForCommand(commandId);
 
@@ -178,13 +197,19 @@ export class ElectronMainMenuFactory {
                     accelerator = this.acceleratorFor(binding);
                 }
 
+                const itemTracker = {
+                    node,
+                    enabled: this.isMenuItemEnabled(node, stateTracker.value, options),
+                    visible: this.isMenuItemVisible(node, stateTracker.value, options),
+                };
+
                 const menuItem = {
                     id: node.id,
                     label: node.label,
                     type: this.commandRegistry.getToggledHandler(commandId, ...args) ? 'checkbox' : 'normal',
                     checked: this.commandRegistry.isToggled(commandId, ...args),
-                    enabled: true, // https://github.com/eclipse-theia/theia/issues/446
-                    visible: true,
+                    enabled: (untrackableAlwaysActive && stateTracker.untrackable) || itemTracker.enabled,
+                    visible: (untrackableAlwaysActive && stateTracker.untrackable) || itemTracker.visible,
                     accelerator,
                     click: () => this.execute(commandId, args)
                 } as Electron.MenuItemConstructorOptions;
@@ -196,6 +221,9 @@ export class ElectronMainMenuFactory {
                         delete menuItem.click;
                     }
                 }
+
+                stateTracker.onChange(v => this.updateMenuItemState(itemTracker, v, options));
+
                 items.push(menuItem);
 
                 if (this.commandRegistry.getToggledHandler(commandId, ...args)) {
@@ -206,6 +234,35 @@ export class ElectronMainMenuFactory {
             }
         }
         return items;
+    }
+
+    protected updateMenuItemState(item: MenuItemTracker, menuItemState: CommandState, options?: ElectronMenuOptions): void {
+        // The menu will most likely have been built by the time the first change comes in, but just
+        // in case not, update the menu item options before updating the menu itself.
+        const visible = this.isMenuItemVisible(item.node, menuItemState, options);
+        const enabled = this.isMenuItemEnabled(item.node, menuItemState, options);
+        if (item.visible !== visible || item.enabled !== enabled) {
+            item.visible = visible;
+            item.enabled = enabled;
+            if (this._menu) {
+                const menuItem = this._menu.getMenuItemById(item.node.id);
+                menuItem.visible = visible;
+                menuItem.enabled = enabled;
+                this.setMenu(this._menu);
+            }
+        }
+    }
+
+    protected isMenuItemVisible(node: ActionMenuNode, menuItemState: CommandState, options?: ElectronMenuOptions): boolean {
+        // We should omit rendering context-menu items which are disabled.
+        const showDisabled = (options?.showDisabled === undefined) ? true : options.showDisabled;
+        return menuItemState !== CommandState.Hidden
+            && (showDisabled || menuItemState === CommandState.Active)
+            && (!node.action.when || this.contextKeyService.match(node.action.when));
+    }
+
+    protected isMenuItemEnabled(node: ActionMenuNode, menuItemState: CommandState, options?: ElectronMenuOptions): boolean {
+        return menuItemState === CommandState.Active;
     }
 
     protected handleDefault(menuNode: MenuNode, args: any[] = [], options?: ElectronMenuOptions): Electron.MenuItemConstructorOptions[] {
@@ -260,7 +317,7 @@ export class ElectronMainMenuFactory {
     protected async execute(command: string, args: any[]): Promise<void> {
         try {
             // This is workaround for https://github.com/eclipse-theia/theia/issues/446.
-            // Electron menus do not update based on the `isEnabled`, `isVisible` property of the command.
+            // Electron menus do not always update based on the `isEnabled`, `isVisible` property of the command.
             // We need to check if we can execute it.
             if (this.commandRegistry.isEnabled(command, ...args)) {
                 await this.commandRegistry.executeCommand(command, ...args);
