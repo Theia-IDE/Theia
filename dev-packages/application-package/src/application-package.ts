@@ -20,7 +20,7 @@ import { NpmRegistry, NodePackage, PublishedNodePackage, sortByKey } from './npm
 import { Extension, ExtensionPackage, RawExtensionPackage } from './extension-package';
 import { ExtensionPackageCollector } from './extension-package-collector';
 import { ApplicationProps } from './application-props';
-const merge = require('deepmerge');
+import * as deepmerge from 'deepmerge';
 
 // tslint:disable:no-implicit-dependencies
 
@@ -88,7 +88,7 @@ export class ApplicationPackage {
             theia.target = defaultTarget;
         }
 
-        return this._props = merge(ApplicationProps.DEFAULT, theia);
+        return this._props = deepmerge(ApplicationProps.DEFAULT, theia);
     }
 
     protected _pck: NodePackage | undefined;
