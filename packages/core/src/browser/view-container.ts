@@ -886,6 +886,7 @@ export class ViewContainerPart extends BaseWidget {
         const toolbar = this.toolbarFactory();
         toolbar.addClass('theia-view-container-part-title');
         this.toHideToolbar.push(toolbar);
+        this.toHideToolbar.push(this.toolbarRegistry.onDidChange(() => this.updateToolbar()));
 
         Widget.attach(toolbar, this.header);
         this.toHideToolbar.push(Disposable.create(() => Widget.detach(toolbar)));
@@ -893,8 +894,14 @@ export class ViewContainerPart extends BaseWidget {
         this.toolbar = toolbar;
         this.toHideToolbar.push(Disposable.create(() => this.toolbar = undefined));
 
-        const items = this.toolbarRegistry.visibleItems(this.wrapped);
-        toolbar.updateItems(items, this.wrapped);
+        this.updateToolbar();
+    }
+
+    protected updateToolbar(): void {
+        if (this.toolbar) {
+            const items = this.toolbarRegistry.visibleItems(this.wrapped);
+            this.toolbar.updateItems(items, this.wrapped);
+        }
     }
 
     get toolbarHidden(): boolean {

@@ -23,6 +23,9 @@
     },
     {
       "path": "../../packages/workspace/compile.tsconfig.json"
+    },
+    {
+      "path": "../../packages/navigator/compile.tsconfig.json"
     }
   ]
 }

@@ -8,7 +8,8 @@
     "@theia/filesystem": "1.12.0",
     "@theia/output": "1.12.0",
     "@theia/workspace": "1.12.0",
-    "@theia/vsx-registry": "1.12.0"
+    "@theia/vsx-registry": "1.12.0",
+    "@theia/navigator": "1.12.0"
   },
   "theiaExtensions": [
     {
