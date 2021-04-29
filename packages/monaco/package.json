@@ -10,7 +10,6 @@
     "@theia/monaco-editor-core": "^0.20.0",
     "@theia/outline-view": "1.12.0",
     "@theia/workspace": "1.12.0",
-    "deepmerge": "2.0.1",
     "fast-plist": "^0.1.2",
     "idb": "^4.0.5",
     "jsonc-parser": "^2.2.0",
