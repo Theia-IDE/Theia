@@ -729,26 +729,31 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
      * @param node the tree node.
      * @param icon the icon.
      */
-    protected decorateIcon(node: TreeNode, icon: React.ReactNode | null): React.ReactNode {
-        // eslint-disable-next-line no-null/no-null
-        if (icon === null) {
-            // eslint-disable-next-line no-null/no-null
-            return null;
+    protected decorateIcon(node: TreeNode, icon: React.ReactNode): React.ReactNode {
+        // icon can be null or undefined
+        if (!icon) {
+            return;
         }
-
         const overlayIcons: React.ReactNode[] = [];
-        new Map(this.getDecorationData(node, 'iconOverlay').reverse().filter(notEmpty)
-            .map(overlay => [overlay.position, overlay] as [TreeDecoration.IconOverlayPosition, TreeDecoration.IconOverlay | TreeDecoration.IconClassOverlay]))
-            .forEach((overlay, position) => {
-                const iconClasses = [TreeDecoration.Styles.DECORATOR_SIZE_CLASS, TreeDecoration.IconOverlayPosition.getStyle(position)];
+        // if multiple overlays have the same overlay.position attribute, we'll de-duplicate those and only process the first one from the decoration array
+        const seenPositions = new Set<TreeDecoration.IconOverlayPosition>();
+        const overlays = this.getDecorationData(node, 'iconOverlay').filter(notEmpty);
+
+        for (const overlay of overlays) {
+            if (!seenPositions.has(overlay.position)) {
+                seenPositions.add(overlay.position);
+                const iconClasses = [TreeDecoration.Styles.DECORATOR_SIZE_CLASS, TreeDecoration.IconOverlayPosition.getStyle(overlay.position)];
                 const style = (color?: string) => color === undefined ? {} : { color };
+
                 if (overlay.background) {
-                    overlayIcons.push(<span key={node.id + 'bg'} className={this.getIconClass(overlay.background.shape, iconClasses)} style={style(overlay.background.color)}>
-                    </span>);
+                    overlayIcons.push(<span key={node.id + 'bg'} className={this.getIconClass(overlay.background.shape, iconClasses)}
+                        style={style(overlay.background.color)}></span>);
                 }
-                const overlayIcon = (overlay as TreeDecoration.IconOverlay).icon || (overlay as TreeDecoration.IconClassOverlay).iconClass;
+
+                const overlayIcon = 'icon' in overlay ? overlay.icon : overlay.iconClass;
                 overlayIcons.push(<span key={node.id} className={this.getIconClass(overlayIcon, iconClasses)} style={style(overlay.color)}></span>);
-            });
+            }
+        }
 
         if (overlayIcons.length > 0) {
             return <div className={TreeDecoration.Styles.ICON_WRAPPER_CLASS}>{icon}{overlayIcons}</div>;
@@ -763,14 +768,49 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
      * @param props the node properties.
      */
     protected renderTailDecorations(node: TreeNode, props: NodeProps): React.ReactNode {
+        const tailDecorations = this.getDecorationData(node, 'tailDecorations').filter(notEmpty).reduce((acc, current) => acc.concat(current), []);
+
+        if (tailDecorations.length === 0) {
+            return;
+        }
+
+        if (CompositeTreeNode.is(node)) {
+            return this.renderTailDecorationsForCompositeNode(node, props, tailDecorations);
+        } else {
+            return this.renderTailDecorationsForNode(node, props, tailDecorations);
+        }
+    }
+
+    protected renderTailDecorationsForCompositeNode(node: TreeNode, props: NodeProps, tailDecorations:
+        (TreeDecoration.TailDecoration | TreeDecoration.TailDecorationIcon | TreeDecoration.TailDecorationIconClass)[]): React.ReactNode {
+        // If the node is a composite, we just want to use the decorationData with the highest priority (last element).
+        const decoration = tailDecorations[tailDecorations.length - 1];
+        const { tooltip } = decoration as TreeDecoration.TailDecoration;
+        const { fontData } = decoration as TreeDecoration.TailDecoration;
+        const color = (decoration as TreeDecoration.TailDecorationIcon).color;
+        const className = [TREE_NODE_SEGMENT_CLASS, TREE_NODE_TAIL_CLASS].join(' ');
+        const style = fontData ? this.applyFontStyles({}, fontData) : color ? { color } : undefined;
+        const content = <span className={this.getIconClass('circle', [TreeDecoration.Styles.DECORATOR_SIZE_CLASS])}></span>;
+
+        return <div className={className} style={style} title={tooltip}>
+            {content}
+        </div>;
+    }
+
+    /**
+     * Render the tree node tail decorations if the node is not a `CompositeTreeNode`.
+     */
+    protected renderTailDecorationsForNode(node: TreeNode, props: NodeProps, tailDecorations:
+        (TreeDecoration.TailDecoration | TreeDecoration.TailDecorationIcon | TreeDecoration.TailDecorationIconClass)[]): React.ReactNode {
+
         return <React.Fragment>
-            {this.getDecorationData(node, 'tailDecorations').filter(notEmpty).reduce((acc, current) => acc.concat(current), []).map((decoration, index) => {
+            {tailDecorations.map((decoration, index) => {
                 const { tooltip } = decoration;
                 const { data, fontData } = decoration as TreeDecoration.TailDecoration;
                 const color = (decoration as TreeDecoration.TailDecorationIcon).color;
-                const icon = (decoration as TreeDecoration.TailDecorationIcon).icon || (decoration as TreeDecoration.TailDecorationIconClass).iconClass;
                 const className = [TREE_NODE_SEGMENT_CLASS, TREE_NODE_TAIL_CLASS].join(' ');
                 const style = fontData ? this.applyFontStyles({}, fontData) : color ? { color } : undefined;
+                const icon = (decoration as TreeDecoration.TailDecorationIcon).icon || (decoration as TreeDecoration.TailDecorationIconClass).iconClass;
                 const content = data ? data : icon ? <span key={node.id + 'icon' + index} className={this.getIconClass(icon)}></span> : '';
                 return <div key={node.id + className + index} className={className} style={style} title={tooltip}>
                     {content}
