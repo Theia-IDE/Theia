@@ -27,7 +27,7 @@ import { ScmAmendWidget } from './scm-amend-widget';
 import { ScmNoRepositoryWidget } from './scm-no-repository-widget';
 import { ScmService } from './scm-service';
 import { ScmTreeWidget } from './scm-tree-widget';
-import { ScmPreferences } from './scm-preferences';
+import { ScmPreferences, ScmViewMode } from './scm-preferences';
 
 @injectable()
 export class ScmWidget extends BaseWidget implements StatefulWidget {
@@ -43,10 +43,10 @@ export class ScmWidget extends BaseWidget implements StatefulWidget {
     @inject(ScmNoRepositoryWidget) readonly noRepositoryWidget: ScmNoRepositoryWidget;
     @inject(ScmPreferences) protected readonly scmPreferences: ScmPreferences;
 
-    set viewMode(mode: 'tree' | 'list') {
+    set viewMode(mode: ScmViewMode) {
         this.resourceWidget.viewMode = mode;
     }
-    get viewMode(): 'tree' | 'list' {
+    get viewMode(): ScmViewMode {
         return this.resourceWidget.viewMode;
     }
 
@@ -80,10 +80,9 @@ export class ScmWidget extends BaseWidget implements StatefulWidget {
         this.updateViewMode(this.scmPreferences.get('scm.defaultViewMode'));
         this.toDispose.push(this.scmPreferences.onPreferenceChanged(e => {
             if (e.preferenceName === 'scm.defaultViewMode') {
-                this.updateViewMode(e.newValue);
+                this.updateViewMode(e.newValue as ScmViewMode);
             }
         }));
-
     }
 
     get containerLayout(): PanelLayout {
@@ -94,7 +93,7 @@ export class ScmWidget extends BaseWidget implements StatefulWidget {
      * Updates the view mode based on the preference value.
      * @param preference the view mode preference.
      */
-    protected updateViewMode(preference: 'tree' | 'list'): void {
+    protected updateViewMode(preference: ScmViewMode): void {
         this.viewMode = preference;
     }
 

@@ -24,12 +24,18 @@ export const FileNavigatorConfigSchema: PreferenceSchema = {
             type: 'boolean',
             description: 'Selects file under editing in the explorer.',
             default: true
-        }
+        },
+        'explorer.countBadge': {
+            type: 'boolean',
+            description: 'Controls whether badges are enabled for the Explorer.',
+            default: true
+        },
     }
 };
 
 export interface FileNavigatorConfiguration {
     'explorer.autoReveal': boolean;
+    'explorer.countBadge': boolean;
 }
 
 export const FileNavigatorPreferences = Symbol('NavigatorPreferences');

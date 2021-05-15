@@ -20,6 +20,7 @@ import { ProblemManager } from './problem-manager';
 import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator';
 import { Title, Widget } from '@theia/core/lib/browser';
 import { WidgetDecoration } from '@theia/core/lib/browser/widget-decoration';
+import { ProblemPreferences } from './problem-preferences';
 
 @injectable()
 export class ProblemWidgetTabBarDecorator implements TabBarDecorator {
@@ -30,13 +31,17 @@ export class ProblemWidgetTabBarDecorator implements TabBarDecorator {
     @inject(ProblemManager)
     protected readonly problemManager: ProblemManager;
 
+    @inject(ProblemPreferences)
+    protected readonly problemPreferences: ProblemPreferences;
+
     @postConstruct()
     protected init(): void {
         this.problemManager.onDidChangeMarkers(() => this.fireDidChangeDecorations());
     }
 
     decorate(title: Title<Widget>): WidgetDecoration.Data[] {
-        if (title.owner.id === 'problems') {
+        const countBadge = this.problemPreferences['problems.countBadge'];
+        if (countBadge && title.owner.id === 'problems') {
             const { infos, warnings, errors } = this.problemManager.getProblemStat();
             const markerCount = infos + warnings + errors;
             return markerCount > 0 ? [{ badge: markerCount }] : [];

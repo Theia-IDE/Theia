@@ -49,6 +49,11 @@ export const debugPreferencesSchema: PreferenceSchema = {
             enum: ['never', 'always', 'onFirstSessionStart'],
             description: 'Controls when the debug status bar should be visible.',
             default: 'onFirstSessionStart'
+        },
+        'debug.countBadge': {
+            type: 'boolean',
+            default: true,
+            description: 'Controls whether badges are enabled for the Debug view.'
         }
     }
 };
@@ -60,6 +65,7 @@ export class DebugConfiguration {
     'debug.internalConsoleOptions': 'neverOpen' | 'openOnSessionStart' | 'openOnFirstSessionStart';
     'debug.inlineValues': boolean;
     'debug.showInStatusBar': 'never' | 'always' | 'onFirstSessionStart';
+    'debug.countBadge': boolean;
 }
 
 export const DebugPreferences = Symbol('DebugPreferences');

@@ -22,6 +22,7 @@ import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator
 import { Title, Widget } from '@theia/core/lib/browser';
 import { WidgetDecoration } from '@theia/core/lib/browser/widget-decoration';
 import { DisposableCollection } from '@theia/core/lib/common';
+import { DebugPreferences } from './debug-preferences';
 
 @injectable()
 export class DebugTabBarDecorator implements TabBarDecorator {
@@ -33,6 +34,9 @@ export class DebugTabBarDecorator implements TabBarDecorator {
     @inject(DebugSessionManager)
     protected readonly debugSessionManager: DebugSessionManager;
 
+    @inject(DebugPreferences)
+    protected readonly debugPreferences: DebugPreferences;
+
     @postConstruct()
     protected init(): void {
         this.toDispose.pushAll([
@@ -42,7 +46,8 @@ export class DebugTabBarDecorator implements TabBarDecorator {
     }
 
     decorate(title: Title<Widget>): WidgetDecoration.Data[] {
-        return (title.owner.id === DebugWidget.ID)
+        const countBadge = this.debugPreferences['debug.countBadge'];
+        return (countBadge && title.owner.id === DebugWidget.ID)
             ? [{ badge: this.debugSessionManager.sessions.length }]
             : [];
     }

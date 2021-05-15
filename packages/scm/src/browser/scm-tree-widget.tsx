@@ -33,6 +33,7 @@ import { EditorManager, DiffNavigatorProvider } from '@theia/editor/lib/browser'
 import { FileStat } from '@theia/filesystem/lib/common';
 import { IconThemeService } from '@theia/core/lib/browser/icon-theme-service';
 import { ScmFileChangeRootNode, ScmFileChangeGroupNode, ScmFileChangeFolderNode, ScmFileChangeNode } from './scm-tree-model';
+import { ScmViewMode } from './scm-preferences';
 
 @injectable()
 export class ScmTreeWidget extends TreeWidget {
@@ -69,13 +70,13 @@ export class ScmTreeWidget extends TreeWidget {
         this.model = treeModel as ScmTreeModel;
     }
 
-    set viewMode(id: 'tree' | 'list') {
+    set viewMode(id: ScmViewMode) {
         // Close the search box because the structure of the tree will change dramatically
         // and the search results will be out of date.
         this.searchBox.hide();
         this.model.viewMode = id;
     }
-    get viewMode(): 'tree' | 'list' {
+    get viewMode(): ScmViewMode {
         return this.model.viewMode;
     }
 

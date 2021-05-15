@@ -22,6 +22,7 @@ import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator
 import { Title, Widget } from '@theia/core/lib/browser';
 import { WidgetDecoration } from '@theia/core/lib/browser/widget-decoration';
 import { DisposableCollection } from '@theia/core/lib/common/disposable';
+import { ScmPreferences } from '../scm-preferences';
 
 @injectable()
 export class ScmTabBarDecorator implements TabBarDecorator {
@@ -34,6 +35,9 @@ export class ScmTabBarDecorator implements TabBarDecorator {
 
     @inject(ScmService)
     protected readonly scmService: ScmService;
+
+    @inject(ScmPreferences)
+    protected readonly scmPreferences: ScmPreferences;
 
     @postConstruct()
     protected init(): void {
@@ -49,7 +53,8 @@ export class ScmTabBarDecorator implements TabBarDecorator {
     }
 
     decorate(title: Title<Widget>): WidgetDecoration.Data[] {
-        if (title.owner.id === SCM_VIEW_CONTAINER_ID) {
+        const countBadge = this.scmPreferences['scm.countBadge'];
+        if (countBadge && title.owner.id === SCM_VIEW_CONTAINER_ID) {
             const changes = this.collectChangesCount();
             return changes > 0 ? [{ badge: changes }] : [];
         } else {

@@ -23,6 +23,8 @@ import {
     PreferenceContribution
 } from '@theia/core/lib/browser/preferences';
 
+export type ScmViewMode = 'tree' | 'list';
+
 export const scmPreferenceSchema: PreferenceSchema = {
     type: 'object',
     properties: {
@@ -35,12 +37,18 @@ export const scmPreferenceSchema: PreferenceSchema = {
             ],
             description: 'Controls the default source control view mode.',
             default: 'list'
+        },
+        'scm.countBadge': {
+            type: 'boolean',
+            description: 'Controls whether badges are enabled for the Source Control Manager.',
+            default: true
         }
     }
 };
 
 export interface ScmConfiguration {
-    'scm.defaultViewMode': 'tree' | 'list'
+    'scm.defaultViewMode': ScmViewMode;
+    'scm.countBadge': boolean;
 }
 
 export const ScmPreferences = Symbol('ScmPreferences');

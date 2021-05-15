@@ -25,7 +25,7 @@ import { GitDiffHeaderWidget } from './git-diff-header-widget';
 import { ScmService } from '@theia/scm/lib/browser/scm-service';
 import { GitRepositoryProvider } from '../git-repository-provider';
 import { ScmTreeWidget } from '@theia/scm/lib/browser/scm-tree-widget';
-import { ScmPreferences } from '@theia/scm/lib/browser/scm-preferences';
+import { ScmPreferences, ScmViewMode } from '@theia/scm/lib/browser/scm-preferences';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -78,15 +78,15 @@ export class GitDiffWidget extends BaseWidget implements StatefulWidget {
         this.updateViewMode(this.scmPreferences.get('scm.defaultViewMode'));
         this.toDispose.push(this.scmPreferences.onPreferenceChanged(e => {
             if (e.preferenceName === 'scm.defaultViewMode') {
-                this.updateViewMode(e.newValue);
+                this.updateViewMode(e.newValue as ScmViewMode);
             }
         }));
     }
 
-    set viewMode(mode: 'tree' | 'list') {
+    set viewMode(mode: ScmViewMode) {
         this.resourceWidget.viewMode = mode;
     }
-    get viewMode(): 'tree' | 'list' {
+    get viewMode(): ScmViewMode {
         return this.resourceWidget.viewMode;
     }
 
@@ -104,7 +104,7 @@ export class GitDiffWidget extends BaseWidget implements StatefulWidget {
      * Updates the view mode based on the preference value.
      * @param preference the view mode preference.
      */
-    protected updateViewMode(preference: 'tree' | 'list'): void {
+    protected updateViewMode(preference: ScmViewMode): void {
         this.viewMode = preference;
     }
 

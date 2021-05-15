@@ -19,6 +19,7 @@ import { TreeModelImpl, TreeNode, TreeProps, CompositeTreeNode, SelectableTreeNo
 import URI from '@theia/core/lib/common/uri';
 import { ScmProvider, ScmResourceGroup, ScmResource, ScmResourceDecorations } from './scm-provider';
 import { ScmContextKeyService } from './scm-context-key-service';
+import { ScmViewMode } from './scm-preferences';
 
 export const ScmTreeModelProps = Symbol('ScmTreeModelProps');
 export interface ScmTreeModelProps {
@@ -94,8 +95,8 @@ export abstract class ScmTreeModel extends TreeModelImpl {
 
     abstract canTabToWidget(): boolean;
 
-    protected _viewMode: 'tree' | 'list' = 'list';
-    set viewMode(id: 'tree' | 'list') {
+    protected _viewMode: ScmViewMode = 'list';
+    set viewMode(id: ScmViewMode) {
         const oldSelection = this.selectedNodes;
         this._viewMode = id;
         if (this.root) {
@@ -109,7 +110,7 @@ export abstract class ScmTreeModel extends TreeModelImpl {
             }
         }
     }
-    get viewMode(): 'tree' | 'list' {
+    get viewMode(): ScmViewMode {
         return this._viewMode;
     }
 

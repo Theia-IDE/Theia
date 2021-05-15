@@ -34,6 +34,11 @@ export const ProblemConfigSchema: PreferenceSchema = {
             'type': 'boolean',
             'description': 'Controls whether Problems view should reveal markers when file is opened.',
             'default': true
+        },
+        'problems.countBadge': {
+            type: 'boolean',
+            description: 'Controls whether badges are enabled for the Problems view.',
+            default: true
         }
     }
 };
@@ -41,7 +46,8 @@ export const ProblemConfigSchema: PreferenceSchema = {
 export interface ProblemConfiguration {
     'problems.decorations.enabled': boolean,
     'problems.decorations.tabbar.enabled': boolean,
-    'problems.autoReveal': boolean
+    'problems.autoReveal': boolean,
+    'problems.countBadge': boolean
 }
 
 export const ProblemPreferences = Symbol('ProblemPreferences');

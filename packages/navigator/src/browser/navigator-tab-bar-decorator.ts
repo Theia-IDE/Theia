@@ -14,16 +14,21 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { injectable } from '@theia/core/shared/inversify';
+import { inject, injectable } from '@theia/core/shared/inversify';
 import { Emitter, Event } from '@theia/core/lib/common/event';
 import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator';
 import { EXPLORER_VIEW_CONTAINER_ID } from './navigator-widget-factory';
 import { ApplicationShell, FrontendApplication, FrontendApplicationContribution, Saveable, Title, Widget } from '@theia/core/lib/browser';
 import { WidgetDecoration } from '@theia/core/lib/browser/widget-decoration';
 import { Disposable, DisposableCollection } from '@theia/core/lib/common/disposable';
+import { FileNavigatorPreferences } from './navigator-preferences';
 
 @injectable()
 export class NavigatorTabBarDecorator implements TabBarDecorator, FrontendApplicationContribution {
+
+    @inject(FileNavigatorPreferences)
+    protected readonly fileNavigatorPreferences: FileNavigatorPreferences;
+
     readonly id = 'theia-navigator-tabbar-decorator';
     protected applicationShell: ApplicationShell;
 
@@ -48,7 +53,8 @@ export class NavigatorTabBarDecorator implements TabBarDecorator, FrontendApplic
     }
 
     decorate(title: Title<Widget>): WidgetDecoration.Data[] {
-        if (title.owner.id === EXPLORER_VIEW_CONTAINER_ID) {
+        const countBadge = this.fileNavigatorPreferences['explorer.countBadge'];
+        if (countBadge && title.owner.id === EXPLORER_VIEW_CONTAINER_ID) {
             const changes = this.getDirtyEditorsCount();
             return changes > 0 ? [{ badge: changes }] : [];
         } else {

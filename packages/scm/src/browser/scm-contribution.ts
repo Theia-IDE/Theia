@@ -37,6 +37,7 @@ import { ScmQuickOpenService } from './scm-quick-open-service';
 import { ColorContribution } from '@theia/core/lib/browser/color-application-contribution';
 import { ColorRegistry, Color } from '@theia/core/lib/browser/color-registry';
 import { ScmCommand } from './scm-provider';
+import { ScmViewMode } from './scm-preferences';
 
 export const SCM_WIDGET_FACTORY_ID = ScmWidget.ID;
 export const SCM_VIEW_CONTAINER_ID = 'scm-view-container';
@@ -159,7 +160,7 @@ export class ScmContribution extends AbstractViewContribution<ScmWidget> impleme
                 }
             }
         };
-        const registerToggleViewItem = (command: Command, mode: 'tree' | 'list') => {
+        const registerToggleViewItem = (command: Command, mode: ScmViewMode) => {
             const id = command.id;
             const item: TabBarToolbarItem = {
                 id,

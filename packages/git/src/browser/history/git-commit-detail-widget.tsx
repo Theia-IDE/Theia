@@ -26,7 +26,7 @@ import { GitCommitDetailHeaderWidget } from './git-commit-detail-header-widget';
 import { ScmService } from '@theia/scm/lib/browser/scm-service';
 import { GitDiffTreeModel } from '../diff/git-diff-tree-model';
 import { ScmTreeWidget } from '@theia/scm/lib/browser/scm-tree-widget';
-import { ScmPreferences } from '@theia/scm/lib/browser/scm-preferences';
+import { ScmPreferences, ScmViewMode } from '@theia/scm/lib/browser/scm-preferences';
 
 @injectable()
 export class GitCommitDetailWidget extends BaseWidget implements StatefulWidget {
@@ -39,10 +39,10 @@ export class GitCommitDetailWidget extends BaseWidget implements StatefulWidget 
     @inject(GitDiffTreeModel) protected readonly model: GitDiffTreeModel;
     @inject(ScmPreferences) protected readonly scmPreferences: ScmPreferences;
 
-    set viewMode(mode: 'tree' | 'list') {
+    set viewMode(mode: ScmViewMode) {
         this.resourceWidget.viewMode = mode;
     }
-    get viewMode(): 'tree' | 'list' {
+    get viewMode(): ScmViewMode {
         return this.resourceWidget.viewMode;
     }
 
@@ -78,7 +78,7 @@ export class GitCommitDetailWidget extends BaseWidget implements StatefulWidget 
         this.updateViewMode(this.scmPreferences.get('scm.defaultViewMode'));
         this.toDispose.push(this.scmPreferences.onPreferenceChanged(e => {
             if (e.preferenceName === 'scm.defaultViewMode') {
-                this.updateViewMode(e.newValue);
+                this.updateViewMode(e.newValue as ScmViewMode);
             }
         }));
 
@@ -99,7 +99,7 @@ export class GitCommitDetailWidget extends BaseWidget implements StatefulWidget 
      * Updates the view mode based on the preference value.
      * @param preference the view mode preference.
      */
-    protected updateViewMode(preference: 'tree' | 'list'): void {
+    protected updateViewMode(preference: ScmViewMode): void {
         this.viewMode = preference;
     }
 
