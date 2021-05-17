@@ -466,6 +466,9 @@ export class PluginViewRegistry implements FrontendApplicationContribution {
             }
             const part = containerWidget.getPartFor(widget);
             if (part) {
+                part.node.addEventListener('mouseenter', () => {
+                    this.viewContextKeys.view.set(viewId);
+                });
                 // if a view is explicitly hidden then suppress updating visibility based on `when` closure
                 part.onDidChangeVisibility(() => widget.suppressUpdateViewVisibility = part.isHidden);
 
