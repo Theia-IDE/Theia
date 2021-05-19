@@ -29,7 +29,7 @@ import {
 import { RPCProtocol } from '../common/rpc-protocol';
 import { Emitter, Event } from '@theia/core/lib/common/event';
 import * as theia from '@theia/plugin';
-import { AuthenticationSession, AuthenticationSessionsChangeEvent } from '../common/plugin-api-rpc-model';
+import { AuthenticationSession } from '../common/plugin-api-rpc-model';
 
 export class AuthenticationExtImpl implements AuthenticationExt {
     private proxy: AuthenticationMain;
@@ -75,50 +75,50 @@ export class AuthenticationExtImpl implements AuthenticationExt {
         return this.proxy.$logout(providerId, sessionId);
     }
 
-    registerAuthenticationProvider(provider: theia.AuthenticationProvider): theia.Disposable {
-        if (this.authenticationProviders.get(provider.id)) {
-            throw new Error(`An authentication provider with id '${provider.id}' is already registered.`);
+    registerAuthenticationProvider(id: string, label: string, provider: theia.AuthenticationProvider, options?: theia.AuthenticationProviderOptions): theia.Disposable {
+        if (this.authenticationProviders.get(id)) {
+            throw new Error(`An authentication provider with id '${id}' is already registered.`);
         }
 
-        this.authenticationProviders.set(provider.id, provider);
-        if (this._providerIds.indexOf(provider.id) === -1) {
-            this._providerIds.push(provider.id);
+        this.authenticationProviders.set(id, provider);
+        if (this._providerIds.indexOf(id) === -1) {
+            this._providerIds.push(id);
         }
 
-        if (!this._providers.find(p => p.id === provider.id)) {
+        if (!this._providers.find(p => p.id === id)) {
             this._providers.push({
-                id: provider.id,
-                label: provider.label
+                id,
+                label
             });
         }
 
         const listener = provider.onDidChangeSessions(e => {
-            this.proxy.$updateSessions(provider.id, e);
+            this.proxy.$updateSessions(id, e);
         });
 
-        this.proxy.$registerAuthenticationProvider(provider.id, provider.label, provider.supportsMultipleAccounts);
+        this.proxy.$registerAuthenticationProvider(id, label, options?.supportsMultipleAccounts ?? false);
 
         return new Disposable(() => {
             listener.dispose();
-            this.authenticationProviders.delete(provider.id);
-            const index = this._providerIds.findIndex(id => id === provider.id);
+            this.authenticationProviders.delete(id);
+            const index = this._providerIds.findIndex(pid => id === pid);
             if (index > -1) {
                 this._providerIds.splice(index);
             }
 
-            const i = this._providers.findIndex(p => p.id === provider.id);
+            const i = this._providers.findIndex(p => p.id === id);
             if (i > -1) {
                 this._providers.splice(i);
             }
 
-            this.proxy.$unregisterAuthenticationProvider(provider.id);
+            this.proxy.$unregisterAuthenticationProvider(id);
         });
     }
 
     $login(providerId: string, scopes: string[]): Promise<AuthenticationSession> {
         const authProvider = this.authenticationProviders.get(providerId);
         if (authProvider) {
-            return Promise.resolve(authProvider.login(scopes));
+            return Promise.resolve(authProvider.createSession(scopes));
         }
 
         throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
@@ -127,7 +127,7 @@ export class AuthenticationExtImpl implements AuthenticationExt {
     $logout(providerId: string, sessionId: string): Promise<void> {
         const authProvider = this.authenticationProviders.get(providerId);
         if (authProvider) {
-            return Promise.resolve(authProvider.logout(sessionId));
+            return Promise.resolve(authProvider.removeSession(sessionId));
         }
 
         throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
@@ -158,7 +158,7 @@ export class AuthenticationExtImpl implements AuthenticationExt {
         throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
     }
 
-    $onDidChangeAuthenticationSessions(id: string, label: string, event: AuthenticationSessionsChangeEvent): Promise<void> {
+    $onDidChangeAuthenticationSessions(id: string, label: string, event: theia.AuthenticationProviderAuthenticationSessionsChangeEvent): Promise<void> {
         this.onDidChangeSessionsEmitter.fire({ provider: { id, label }, ...event });
         return Promise.resolve();
     }

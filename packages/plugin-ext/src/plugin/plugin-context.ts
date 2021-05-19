@@ -170,6 +170,7 @@ import { TimelineExtImpl } from './timeline';
 import { ThemingExtImpl } from './theming';
 import { CommentsExtImpl } from './comments';
 import { CustomEditorsExtImpl } from './custom-editors';
+import {AuthenticationProvider} from '@theia/core/lib/browser/authentication-service';
 
 export function createAPIFactory(
     rpc: RPCProtocol,
@@ -212,26 +213,13 @@ export function createAPIFactory(
 
     return function (plugin: InternalPlugin): typeof theia {
         const authentication: typeof theia.authentication = {
-            registerAuthenticationProvider(provider: theia.AuthenticationProvider): theia.Disposable {
-                return authenticationExt.registerAuthenticationProvider(provider);
+            registerAuthenticationProvider(
+                id: string, label: string, provider: AuthenticationProvider, options?: theia.AuthenticationProviderOptions | undefined): theia.Disposable {
+                return authenticationExt.registerAuthenticationProvider(id, label, provider, options);
             },
-            get onDidChangeAuthenticationProviders(): theia.Event<theia.AuthenticationProvidersChangeEvent> {
-                return authenticationExt.onDidChangeAuthenticationProviders;
-            },
-            getProviderIds(): Thenable<ReadonlyArray<string>> {
-                return authenticationExt.getProviderIds();
-            },
-            get providerIds(): string[] {
-                return authenticationExt.providerIds;
-            },
-            get providers(): ReadonlyArray<theia.AuthenticationProviderInformation> {
-                return authenticationExt.providers;
-            },
+
             getSession(providerId: string, scopes: string[], options: theia.AuthenticationGetSessionOptions) {
                 return authenticationExt.getSession(plugin, providerId, scopes, options as any);
-            },
-            logout(providerId: string, sessionId: string): Thenable<void> {
-                return authenticationExt.logout(providerId, sessionId);
             },
             get onDidChangeSessions(): theia.Event<theia.AuthenticationSessionsChangeEvent> {
                 return authenticationExt.onDidChangeSessions;
