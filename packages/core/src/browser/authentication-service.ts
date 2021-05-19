@@ -27,8 +27,6 @@ import { Disposable } from '../common/disposable';
 import { ACCOUNTS_MENU, ACCOUNTS_SUBMENU, MenuModelRegistry } from '../common/menu';
 import { Command, CommandRegistry } from '../common/command';
 import { DisposableCollection } from '../common/disposable';
-import {AuthenticationProviderAuthenticationSessionsChangeEvent} from '@theia/plugin';
-import * as theia from '@theia/plugin';
 
 export interface AuthenticationSession {
     id: string;
@@ -45,6 +43,26 @@ export interface AuthenticationProviderInformation {
     label: string;
 }
 
+/**
+ * An [event](#Event) which fires when an [AuthenticationSession](#AuthenticationSession) is added, removed, or changed.
+ */
+export interface AuthenticationProviderAuthenticationSessionsChangeEvent {
+    /**
+     * The [AuthenticationSession](#AuthenticationSession)s of the [AuthenticationProvider](#AuthentiationProvider) that have been added.
+     */
+    readonly added: ReadonlyArray<AuthenticationSession>;
+
+    /**
+     * The [AuthenticationSession](#AuthenticationSession)s of the [AuthenticationProvider](#AuthentiationProvider) that have been removed.
+     */
+    readonly removed: ReadonlyArray<AuthenticationSession>;
+
+    /**
+     * The [AuthenticationSession](#AuthenticationSession)s of the [AuthenticationProvider](#AuthentiationProvider) that have been changed.
+     */
+    readonly changed: ReadonlyArray<AuthenticationSession>;
+}
+
 export interface SessionRequest {
     disposables: Disposable[];
     requestingExtensionIds: string[];
@@ -54,7 +72,7 @@ export interface SessionRequestInfo {
     [scopes: string]: SessionRequest;
 }
 
-export interface AuthenticationProvider extends theia.AuthenticationProvider {
+export interface AuthenticationProvider {
     id: string;
 
     supportsMultipleAccounts: boolean;
@@ -72,6 +90,33 @@ export interface AuthenticationProvider extends theia.AuthenticationProvider {
     login(scopes: string[]): Promise<AuthenticationSession>;
 
     logout(sessionId: string): Promise<void>;
+
+    /**
+     * An [event](#Event) which fires when the array of sessions has changed, or data
+     * within a session has changed.
+     */
+    readonly onDidChangeSessions: Event<AuthenticationProviderAuthenticationSessionsChangeEvent>;
+
+    /**
+     * Get a list of sessions.
+     * @param scopes An optional list of scopes. If provided, the sessions returned should match
+     * these permissions, otherwise all sessions should be returned.
+     * @returns A promise that resolves to an array of authentication sessions.
+     */
+    getSessions(scopes?: string[]): Thenable<ReadonlyArray<AuthenticationSession>>;
+
+    /**
+     * Prompts a user to login.
+     * @param scopes A list of scopes, permissions, that the new session should be created with.
+     * @returns A promise that resolves to an authentication session.
+     */
+    createSession(scopes: string[]): Thenable<AuthenticationSession>;
+
+    /**
+     * Removes the session corresponding to session id.
+     * @param sessionId The id of the session to remove.
+     */
+    removeSession(sessionId: string): Thenable<void>;
 }
 export const AuthenticationService = Symbol('AuthenticationService');
 
