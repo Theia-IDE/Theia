@@ -85,7 +85,6 @@
   ],
   "theiaPluginsDir": "plugins",
   "theiaPlugins": {
-    "redhat": "http://localhost:8000/vscode-redhat-account-0.0.3.vsix",
     "vscode-builtin-bat": "https://open-vsx.org/api/vscode/bat/1.45.1/file/vscode.bat-1.45.1.vsix",
     "vscode-builtin-clojure": "https://open-vsx.org/api/vscode/clojure/1.45.1/file/vscode.clojure-1.45.1.vsix",
     "vscode-builtin-coffeescript": "https://open-vsx.org/api/vscode/coffeescript/1.45.1/file/vscode.coffeescript-1.45.1.vsix",
