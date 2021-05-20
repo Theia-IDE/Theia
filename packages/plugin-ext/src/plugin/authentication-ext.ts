@@ -62,8 +62,6 @@ export class AuthenticationExtImpl implements AuthenticationExt {
     }
 
     async getSession(requestingExtension: InternalPlugin, providerId: string, scopes: string[],
-                     options: theia.AuthenticationGetSessionOptions & { createIfNone: true }): Promise<theia.AuthenticationSession>;
-    async getSession(requestingExtension: InternalPlugin, providerId: string, scopes: string[],
                      options: theia.AuthenticationGetSessionOptions = {}): Promise<theia.AuthenticationSession | undefined> {
         const extensionName = requestingExtension.model.displayName || requestingExtension.model.name;
         const extensionId = requestingExtension.model.id.toLowerCase();

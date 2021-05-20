@@ -170,7 +170,6 @@ import { TimelineExtImpl } from './timeline';
 import { ThemingExtImpl } from './theming';
 import { CommentsExtImpl } from './comments';
 import { CustomEditorsExtImpl } from './custom-editors';
-import {AuthenticationProvider} from '@theia/core/lib/browser/authentication-service';
 
 export function createAPIFactory(
     rpc: RPCProtocol,
@@ -214,7 +213,7 @@ export function createAPIFactory(
     return function (plugin: InternalPlugin): typeof theia {
         const authentication: typeof theia.authentication = {
             registerAuthenticationProvider(
-                id: string, label: string, provider: AuthenticationProvider, options?: theia.AuthenticationProviderOptions | undefined): theia.Disposable {
+                id: string, label: string, provider: theia.AuthenticationProvider, options?: theia.AuthenticationProviderOptions | undefined): theia.Disposable {
                 return authenticationExt.registerAuthenticationProvider(id, label, provider, options);
             },
 

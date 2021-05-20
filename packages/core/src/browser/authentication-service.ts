@@ -95,7 +95,7 @@ export interface AuthenticationProvider {
      * An [event](#Event) which fires when the array of sessions has changed, or data
      * within a session has changed.
      */
-    readonly onDidChangeSessions: Event<AuthenticationProviderAuthenticationSessionsChangeEvent>;
+    readonly onDidChangeSessions: Omit<Event<AuthenticationProviderAuthenticationSessionsChangeEvent>, 'maxListeners'>;
 
     /**
      * Get a list of sessions.
