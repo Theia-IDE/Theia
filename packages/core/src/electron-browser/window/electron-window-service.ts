@@ -45,6 +45,10 @@ export class ElectronWindowService extends DefaultWindowService {
         return undefined;
     }
 
+    openNewDefaultWindow(): void {
+        this.delegate.openNewDefaultWindow();
+    }
+
     @postConstruct()
     protected init(): void {
         // Update the default zoom level on startup when the preferences event is fired.

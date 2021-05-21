@@ -146,10 +146,12 @@ export class FileMenuContribution implements MenuContribution {
 
     registerMenus(registry: MenuModelRegistry): void {
         registry.registerMenuAction(CommonMenus.FILE_NEW, {
-            commandId: WorkspaceCommands.NEW_FILE.id
+            commandId: WorkspaceCommands.NEW_FILE.id,
+            order: 'a'
         });
         registry.registerMenuAction(CommonMenus.FILE_NEW, {
-            commandId: WorkspaceCommands.NEW_FOLDER.id
+            commandId: WorkspaceCommands.NEW_FOLDER.id,
+            order: 'b'
         });
         const downloadUploadMenu = [...CommonMenus.FILE, '4_downloadupload'];
         registry.registerMenuAction(downloadUploadMenu, {
