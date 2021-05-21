@@ -54,7 +54,7 @@ export class TaskConfigurations implements Disposable {
     /**
      * Map of source (path of root folder that the task configs come from) and task customizations map.
      */
-    protected taskCustomizationMap = new Map<string, TaskCustomization[]>();
+    protected taskCustomizationMap = new Map<string, TaskConfiguration[]>();
 
     protected client: TaskConfigurationClient | undefined = undefined;
 
@@ -129,16 +129,14 @@ export class TaskConfigurations implements Disposable {
      *
      * The invalid task configs are not returned.
      */
-    async getTasks(token: number): Promise<TaskConfiguration[]> {
+    async getTasks(): Promise<TaskConfiguration[]> {
         const configuredTasks = Array.from(this.tasksMap.values()).reduce((acc, labelConfigMap) => acc.concat(Array.from(labelConfigMap.values())), [] as TaskConfiguration[]);
         const detectedTasksAsConfigured: TaskConfiguration[] = [];
-        for (const [rootFolder, customizations] of Array.from(this.taskCustomizationMap.entries())) {
+        for (const [, customizations] of Array.from(this.taskCustomizationMap.entries())) {
             for (const cus of customizations) {
-                // TODO: getTasksToCustomize() will ask all task providers to contribute tasks. Doing this in a loop is bad.
-                const detected = await this.providedTaskConfigurations.getTaskToCustomize(token, cus, rootFolder);
+                const detected = this.taskDefinitionRegistry.getDefinition(cus);
                 if (detected) {
-                    // there might be a provided task that has a different scope from the task we're inspecting
-                    detectedTasksAsConfigured.push({ ...detected, ...cus });
+                    detectedTasksAsConfigured.push(cus);
                 }
             }
         }
@@ -311,7 +309,7 @@ export class TaskConfigurations implements Disposable {
             return;
         }
 
-        const configuredAndCustomizedTasks = await this.getTasks(token);
+        const configuredAndCustomizedTasks = await this.getTasks();
         if (!configuredAndCustomizedTasks.some(t => this.taskDefinitionRegistry.compareTasks(t, task))) {
             await this.saveTask(scope, task);
         }
@@ -374,8 +372,8 @@ export class TaskConfigurations implements Disposable {
      */
     protected reorganizeTasks(): void {
         const newTaskMap = new Map<string, Map<string, TaskConfiguration>>();
-        const newTaskCustomizationMap = new Map<string, TaskCustomization[]>();
-        const addCustomization = (rootFolder: string, customization: TaskCustomization) => {
+        const newTaskCustomizationMap = new Map<string, TaskConfiguration[]>();
+        const addCustomization = (rootFolder: string, customization: TaskConfiguration) => {
             if (newTaskCustomizationMap.has(rootFolder)) {
                 newTaskCustomizationMap.get(rootFolder)!.push(customization);
             } else {
@@ -401,7 +399,11 @@ export class TaskConfigurations implements Disposable {
                 }
                 const transformedTask = this.getTransformedRawTask(taskConfig, scope);
                 if (this.isDetectedTask(transformedTask)) {
-                    addCustomization(scopeKey, transformedTask);
+                    // TODO: `getTransformedRawTask` is it safe to assume `transformedTask` is a `TaskConfiguration`?
+                    //       - all branches in `getTransformedRawTask` seem to add the `_scope` property.
+                    //       - the `else` branch of this if statement seems to assume a `label` property exists.
+                    //       - These two properties are what `TaskConfiguration` adds "on top" of `TaskCustomization`...
+                    addCustomization(scopeKey, transformedTask as TaskConfiguration);
                 } else {
                     addConfiguredTask(scopeKey, transformedTask['label'] as string, transformedTask);
                 }
@@ -452,7 +454,7 @@ export class TaskConfigurations implements Disposable {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async updateTaskConfig(token: number, task: TaskConfiguration, update: { [name: string]: any }): Promise<void> {
         const scope = task._scope;
-        const configuredAndCustomizedTasks = await this.getTasks(token);
+        const configuredAndCustomizedTasks = await this.getTasks();
         if (configuredAndCustomizedTasks.some(t => this.taskDefinitionRegistry.compareTasks(t, task))) { // task is already in `tasks.json`
             const jsonTasks = this.taskConfigurationManager.getTasks(scope);
             if (jsonTasks) {

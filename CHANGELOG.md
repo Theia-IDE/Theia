@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.14.0
+
+- [task] fixed incorrect filtering of some auto-detected tasks that have been customized [#9501](https://github.com/eclipse-theia/theia/pull/9501)
+
 ## v1.13.0 - 4/29/2021
 
 [1.13.0 Milestone](https://github.com/eclipse-theia/theia/milestone/19)

@@ -390,7 +390,7 @@ export class TaskService implements TaskConfigurationClient {
             }
         }
 
-        const validTaskConfigs = await this.taskConfigurations.getTasks(token);
+        const validTaskConfigs = await this.taskConfigurations.getTasks();
         return validTaskConfigs;
     }
 
