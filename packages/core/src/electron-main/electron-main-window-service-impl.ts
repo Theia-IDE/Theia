@@ -37,4 +37,8 @@ export class ElectronMainWindowServiceImpl implements ElectronMainWindowService 
         return undefined;
     }
 
+    openNewDefaultWindow(): void {
+        this.app.openDefaultWindow();
+    }
+
 }

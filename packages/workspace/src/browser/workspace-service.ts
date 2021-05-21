@@ -17,7 +17,7 @@
 import { injectable, inject, postConstruct } from '@theia/core/shared/inversify';
 import URI from '@theia/core/lib/common/uri';
 import { WorkspaceServer, THEIA_EXT, VSCODE_EXT, getTemporaryWorkspaceFileUri } from '../common';
-import { WindowService } from '@theia/core/lib/browser/window/window-service';
+import { DEFAULT_WINDOW_HASH, WindowService } from '@theia/core/lib/browser/window/window-service';
 import {
     FrontendApplicationContribution, PreferenceServiceImpl, PreferenceScope, PreferenceSchemaProvider, LabelProvider
 } from '@theia/core/lib/browser';
@@ -122,6 +122,13 @@ export class WorkspaceService implements FrontendApplicationContribution {
     }
 
     protected async doGetDefaultWorkspaceUri(): Promise<string | undefined> {
+
+        // If an empty window is explicitly requested do not restore a previous workspace.
+        if (window.location.hash === DEFAULT_WINDOW_HASH) {
+            window.location.hash = '';
+            return undefined;
+        }
+
         // Prefer the workspace path specified as the URL fragment, if present.
         if (window.location.hash.length > 1) {
             // Remove the leading # and decode the URI.
