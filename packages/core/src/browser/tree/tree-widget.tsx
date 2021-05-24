@@ -768,20 +768,29 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
      * @param props the node properties.
      */
     protected renderTailDecorations(node: TreeNode, props: NodeProps): React.ReactNode {
-        return <div>{ }</div>;
+        const tailDecorations = this.getDecorationData(node, 'tailDecorations').filter(notEmpty).reduce((acc, current) => acc.concat(current), []);
+        if (tailDecorations.length === 0) {
+            return;
+        }
+        return this.renderTailDecorationsForNode(node, props, tailDecorations);
     }
 
-    protected renderTailDecorationsForCompositeNode(node: TreeNode, props: NodeProps, tailDecorations:
-        (TreeDecoration.TailDecoration | TreeDecoration.TailDecorationIcon | TreeDecoration.TailDecorationIconClass)[]): React.ReactNode {
-        return <div>{ }</div>;
-    }
-
-    /**
-     * Render the tree node tail decorations if the node is not a `CompositeTreeNode`.
-     */
     protected renderTailDecorationsForNode(node: TreeNode, props: NodeProps, tailDecorations:
         (TreeDecoration.TailDecoration | TreeDecoration.TailDecorationIcon | TreeDecoration.TailDecorationIconClass)[]): React.ReactNode {
-        return <div>{ }</div>;
+        return <React.Fragment>
+            {tailDecorations.map((decoration, index) => {
+                const { tooltip } = decoration;
+                const { data, fontData } = decoration as TreeDecoration.TailDecoration;
+                const color = (decoration as TreeDecoration.TailDecorationIcon).color;
+                const className = [TREE_NODE_SEGMENT_CLASS, TREE_NODE_TAIL_CLASS].join(' ');
+                const style = fontData ? this.applyFontStyles({}, fontData) : color ? { color } : undefined;
+                const icon = (decoration as TreeDecoration.TailDecorationIcon).icon || (decoration as TreeDecoration.TailDecorationIconClass).iconClass;
+                const content = data ? data : icon ? <span key={node.id + 'icon' + index} className={this.getIconClass(icon)}></span> : '';
+                return <div key={node.id + className + index} className={className} style={style} title={tooltip}>
+                    {content}
+                </div>;
+            })}
+        </React.Fragment>;
     }
 
     /**

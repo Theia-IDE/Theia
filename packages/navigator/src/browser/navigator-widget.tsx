@@ -21,13 +21,13 @@ import { CommandService, notEmpty, SelectionService } from '@theia/core/lib/comm
 import {
     CorePreferences, Key, TreeModel, SelectableTreeNode,
     TREE_NODE_SEGMENT_CLASS, TREE_NODE_TAIL_CLASS,
-    TreeDecoration, NodeProps, CompositeTreeNode
+    TreeDecoration, NodeProps
 } from '@theia/core/lib/browser';
 import {
     ContextMenuRenderer, ExpandableTreeNode,
     TreeProps, TreeNode
 } from '@theia/core/lib/browser';
-import { FileTreeWidget, FileNode, DirNode } from '@theia/filesystem/lib/browser';
+import { FileTreeWidget, FileNode, DirNode, FileStatNode } from '@theia/filesystem/lib/browser';
 import { WorkspaceService, WorkspaceCommands } from '@theia/workspace/lib/browser';
 import { ApplicationShell } from '@theia/core/lib/browser/shell/application-shell';
 import { WorkspaceNode, WorkspaceRootNode } from './navigator-tree';
@@ -36,7 +36,6 @@ import { isOSX, environment } from '@theia/core';
 import * as React from '@theia/core/shared/react';
 import { NavigatorContextKeyService } from './navigator-context-key-service';
 import { FileNavigatorCommands } from './navigator-contribution';
-
 
 export const FILE_NAVIGATOR_ID = 'files';
 export const LABEL = 'No folder opened';
@@ -151,16 +150,17 @@ export class FileNavigatorWidget extends FileTreeWidget {
             return;
         }
 
-        if (CompositeTreeNode.is(node)) {
-            return this.renderTailDecorationsForCompositeNode(node, props, tailDecorations);
+        // Handle rendering of directories versus file nodes.
+        if (FileStatNode.is(node) && node.fileStat.isDirectory) {
+            return this.renderTailDecorationsForDirectoryNode(node, props, tailDecorations);
         } else {
             return this.renderTailDecorationsForNode(node, props, tailDecorations);
         }
     }
 
-    protected renderTailDecorationsForCompositeNode(node: TreeNode, props: NodeProps, tailDecorations:
+    protected renderTailDecorationsForDirectoryNode(node: TreeNode, props: NodeProps, tailDecorations:
         (TreeDecoration.TailDecoration | TreeDecoration.TailDecorationIcon | TreeDecoration.TailDecorationIconClass)[]): React.ReactNode {
-        // If the node is a composite, we just want to use the decorationData with the highest priority (last element).
+        // If the node represents a directory, we just want to use the decorationData with the highest priority (last element).
         const decoration = tailDecorations[tailDecorations.length - 1];
         const { tooltip } = decoration as TreeDecoration.TailDecoration;
         const { fontData } = decoration as TreeDecoration.TailDecoration;
@@ -172,25 +172,6 @@ export class FileNavigatorWidget extends FileTreeWidget {
         return <div className={className} style={style} title={tooltip}>
             {content}
         </div>;
-    }
-
-    protected renderTailDecorationsForNode(node: TreeNode, props: NodeProps, tailDecorations:
-        (TreeDecoration.TailDecoration | TreeDecoration.TailDecorationIcon | TreeDecoration.TailDecorationIconClass)[]): React.ReactNode {
-
-        return <React.Fragment>
-            {tailDecorations.map((decoration, index) => {
-                const { tooltip } = decoration;
-                const { data, fontData } = decoration as TreeDecoration.TailDecoration;
-                const color = (decoration as TreeDecoration.TailDecorationIcon).color;
-                const className = [TREE_NODE_SEGMENT_CLASS, TREE_NODE_TAIL_CLASS].join(' ');
-                const style = fontData ? this.applyFontStyles({}, fontData) : color ? { color } : undefined;
-                const icon = (decoration as TreeDecoration.TailDecorationIcon).icon || (decoration as TreeDecoration.TailDecorationIconClass).iconClass;
-                const content = data ? data : icon ? <span key={node.id + 'icon' + index} className={this.getIconClass(icon)}></span> : '';
-                return <div key={node.id + className + index} className={className} style={style} title={tooltip}>
-                    {content}
-                </div>;
-            })}
-        </React.Fragment>;
     }
 
     protected shouldShowWelcomeView(): boolean {
