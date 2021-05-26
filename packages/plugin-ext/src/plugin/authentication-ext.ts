@@ -49,10 +49,6 @@ export class AuthenticationExtImpl implements AuthenticationExt {
         this.proxy = rpc.getProxy(PLUGIN_RPC_CONTEXT.AUTHENTICATION_MAIN);
     }
 
-    getProviderIds(): Promise<ReadonlyArray<string>> {
-        return this.proxy.$getProviderIds();
-    }
-
     get providerIds(): string[] {
         return this._providerIds;
     }
@@ -72,7 +68,7 @@ export class AuthenticationExtImpl implements AuthenticationExt {
     }
 
     async logout(providerId: string, sessionId: string): Promise<void> {
-        return this.proxy.$logout(providerId, sessionId);
+        return this.proxy.$removeSession(providerId, sessionId);
     }
 
     registerAuthenticationProvider(id: string, label: string, provider: theia.AuthenticationProvider, options?: theia.AuthenticationProviderOptions): theia.Disposable {
@@ -93,7 +89,7 @@ export class AuthenticationExtImpl implements AuthenticationExt {
         }
 
         const listener = provider.onDidChangeSessions(e => {
-            this.proxy.$updateSessions(id, e);
+            this.proxy.$sendDidChangeSessions(id, e);
         });
 
         this.proxy.$registerAuthenticationProvider(id, label, options?.supportsMultipleAccounts ?? false);
@@ -115,7 +111,7 @@ export class AuthenticationExtImpl implements AuthenticationExt {
         });
     }
 
-    $login(providerId: string, scopes: string[]): Promise<AuthenticationSession> {
+    $createSession(providerId: string, scopes: string[]): Promise<AuthenticationSession> {
         const authProvider = this.authenticationProviders.get(providerId);
         if (authProvider) {
             return Promise.resolve(authProvider.createSession(scopes));
@@ -124,7 +120,7 @@ export class AuthenticationExtImpl implements AuthenticationExt {
         throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
     }
 
-    $logout(providerId: string, sessionId: string): Promise<void> {
+    $removeSession(providerId: string, sessionId: string): Promise<void> {
         const authProvider = this.authenticationProviders.get(providerId);
         if (authProvider) {
             return Promise.resolve(authProvider.removeSession(sessionId));
@@ -158,8 +154,8 @@ export class AuthenticationExtImpl implements AuthenticationExt {
         throw new Error(`Unable to find authentication provider with handle: ${providerId}`);
     }
 
-    $onDidChangeAuthenticationSessions(id: string, label: string, event: theia.AuthenticationProviderAuthenticationSessionsChangeEvent): Promise<void> {
-        this.onDidChangeSessionsEmitter.fire({ provider: { id, label }, ...event });
+    $onDidChangeAuthenticationSessions(id: string, label: string): Promise<void> {
+        this.onDidChangeSessionsEmitter.fire({ provider: { id, label }});
         return Promise.resolve();
     }
 
@@ -178,5 +174,10 @@ export class AuthenticationExtImpl implements AuthenticationExt {
         });
 
         this.onDidChangeAuthenticationProvidersEmitter.fire({ added, removed });
+    }
+
+    $setProviders(providers: theia.AuthenticationProviderInformation[]): Promise<void> {
+        this._providers.push(...providers);
+        return Promise.resolve(undefined);
     }
 }

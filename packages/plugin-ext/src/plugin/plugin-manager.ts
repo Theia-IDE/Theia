@@ -86,7 +86,8 @@ export class PluginManagerExtImpl implements PluginManagerExt, PluginManager {
         'onWebviewPanel',
         'onFileSystem',
         'onCustomEditor',
-        'onStartupFinished'
+        'onStartupFinished',
+        'onAuthenticationRequest'
     ]);
 
     private configStorage: ConfigStorage | undefined;
