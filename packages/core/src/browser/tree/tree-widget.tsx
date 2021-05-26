@@ -1117,11 +1117,35 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
     }
 
     /**
+     * Handler preventing single-click event when double-click event evoked
+     * @param node the tree node if available.
+     * @param event the mouse single-click event.
+     */
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected clickTimer: any;
+    protected preventClick = false;
+
+    protected handleClickEvent(node: TreeNode | undefined, event: React.MouseEvent<HTMLElement>): void {
+        event.persist();
+        if (!this.preventClick) {
+            this.clickTimer = setTimeout(() => {
+                if (!this.preventClick) {
+                    this.preventClick = true;
+                    this.doClickAction(node, event);
+                }
+                this.preventClick = false;
+            }, 250);
+        }
+        event.stopPropagation();
+    }
+
+    /**
      * Handle the single-click mouse event.
      * @param node the tree node if available.
      * @param event the mouse single-click event.
      */
-    protected handleClickEvent(node: TreeNode | undefined, event: React.MouseEvent<HTMLElement>): void {
+    protected doClickAction(node: TreeNode | undefined, event: React.MouseEvent<HTMLElement>): void {
         if (node) {
             if (!!this.props.multiSelect) {
                 const shiftMask = this.hasShiftMask(event);
@@ -1156,6 +1180,8 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
      * @param event the double-click mouse event.
      */
     protected handleDblClickEvent(node: TreeNode | undefined, event: React.MouseEvent<HTMLElement>): void {
+        clearTimeout(this.clickTimer);
+        this.preventClick = true;
         this.model.openNode(node);
         event.stopPropagation();
     }

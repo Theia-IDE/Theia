@@ -357,7 +357,7 @@ export class LabelProvider implements FrontendApplicationContribution {
         const contributions = this.findContribution(element);
         for (const contribution of contributions) {
             const value = contribution.getName && contribution.getName(element);
-            if (value === undefined) {
+            if (value === undefined || value === '') {
                 continue;
             }
             return value;
@@ -373,7 +373,7 @@ export class LabelProvider implements FrontendApplicationContribution {
         const contributions = this.findContribution(element);
         for (const contribution of contributions) {
             const value = contribution.getLongName && contribution.getLongName(element);
-            if (value === undefined) {
+            if (value === undefined || value === '') {
                 continue;
             }
             return value;

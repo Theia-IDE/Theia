@@ -28,7 +28,8 @@ import {
     TreeProps,
     TreeExpansionService,
     ApplicationShell,
-    DiffUris
+    DiffUris,
+    OpenerService
 } from '@theia/core/lib/browser';
 import { CancellationTokenSource, Emitter, Event } from '@theia/core';
 import {
@@ -142,6 +143,7 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
     @inject(ColorRegistry) protected readonly colorRegistry: ColorRegistry;
     @inject(FileSystemPreferences) protected readonly filesystemPreferences: FileSystemPreferences;
     @inject(FileService) protected readonly fileService: FileService;
+    @inject(OpenerService) protected readonly openerService: OpenerService;
 
     constructor(
         @inject(TreeProps) readonly props: TreeProps,
@@ -166,6 +168,12 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
 
         this.resultTree = new Map<string, SearchInWorkspaceRootFolderNode>();
         this.toDispose.push(model.onNodeRefreshed(() => this.changeEmitter.fire(this.resultTree)));
+
+        this.toDispose.push(model.onOpenNode(node => {
+            if (SearchInWorkspaceResultLineNode.is(node)) {
+                this.doOpen(node, false);
+            }
+        }));
     }
 
     @postConstruct()
@@ -971,7 +979,7 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
             fileUri = new URI(node.fileUri);
         }
 
-        const opts: EditorOpenerOptions | undefined = !DiffUris.isDiffUri(fileUri) ? {
+        let opts: EditorOpenerOptions | undefined = !DiffUris.isDiffUri(fileUri) ? {
             selection: {
                 start: {
                     line: node.line - 1,
@@ -985,10 +993,15 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
             mode: 'reveal'
         } : undefined;
 
-        const editorWidget = await this.editorManager.open(fileUri, opts);
+        if (preview) {
+            opts = Object.assign(opts || {}, { preview });
+        }
+
+        const opener = await this.openerService.getOpener(fileUri, opts);
+        const editorWidget = await opener.open(fileUri, opts) as EditorWidget;
 
         if (!DiffUris.isDiffUri(fileUri)) {
-            this.decorateEditor(resultNode, editorWidget);
+            this.decorateEditor(resultNode, ('editorWidget' in editorWidget ? editorWidget['editorWidget'] : editorWidget));
         }
 
         return editorWidget;
