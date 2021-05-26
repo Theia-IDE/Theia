@@ -72,6 +72,10 @@ export class FileDialogProps extends DialogProps {
      */
     filters?: FileDialogTreeFilters;
 
+    /**
+     * Disable to show filter that shows all files, defaults to `false`.
+     */
+    disableAllFilesFilter?: boolean;
 }
 
 @injectable()
@@ -173,7 +177,7 @@ export abstract class FileDialog<T> extends AbstractDialog<T> {
 
     protected createFileTreeFiltersRenderer(): FileDialogTreeFiltersRenderer | undefined {
         if (this.props.filters) {
-            return new FileDialogTreeFiltersRenderer(this.props.filters, this.widget.model.tree);
+            return new FileDialogTreeFiltersRenderer(this.props.filters, this.widget.model.tree, this.props.disableAllFilesFilter);
         }
 
         return undefined;

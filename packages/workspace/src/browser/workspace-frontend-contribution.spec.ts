@@ -43,20 +43,20 @@ describe('workspace-frontend-contribution', () => {
 
         ([
 
-            [OS.Type.Linux, 'browser', true, { title, canSelectFiles: true, canSelectFolders: true, filters }],
-            [OS.Type.Linux, 'browser', false, { title, canSelectFiles: false, canSelectFolders: true }],
-            [OS.Type.Linux, 'electron', true, { title, canSelectFiles: true, canSelectFolders: false, filters }],
-            [OS.Type.Linux, 'electron', false, { title, canSelectFiles: false, canSelectFolders: true }],
+            [OS.Type.Linux, 'browser', true, { title, canSelectFiles: true, canSelectFolders: true, filters, disableAllFilesFilter: true }],
+            [OS.Type.Linux, 'browser', false, { title, canSelectFiles: false, canSelectFolders: true, disableAllFilesFilter: true }],
+            [OS.Type.Linux, 'electron', true, { title, canSelectFiles: true, canSelectFolders: false, filters, disableAllFilesFilter: true }],
+            [OS.Type.Linux, 'electron', false, { title, canSelectFiles: false, canSelectFolders: true, disableAllFilesFilter: true }],
 
-            [OS.Type.Windows, 'browser', true, { title, canSelectFiles: true, canSelectFolders: true, filters }],
-            [OS.Type.Windows, 'browser', false, { title, canSelectFiles: false, canSelectFolders: true }],
-            [OS.Type.Windows, 'electron', true, { title, canSelectFiles: true, canSelectFolders: false, filters }],
-            [OS.Type.Windows, 'electron', false, { title, canSelectFiles: false, canSelectFolders: true }],
+            [OS.Type.Windows, 'browser', true, { title, canSelectFiles: true, canSelectFolders: true, filters, disableAllFilesFilter: true }],
+            [OS.Type.Windows, 'browser', false, { title, canSelectFiles: false, canSelectFolders: true, disableAllFilesFilter: true }],
+            [OS.Type.Windows, 'electron', true, { title, canSelectFiles: true, canSelectFolders: false, filters, disableAllFilesFilter: true }],
+            [OS.Type.Windows, 'electron', false, { title, canSelectFiles: false, canSelectFolders: true, disableAllFilesFilter: true }],
 
-            [OS.Type.OSX, 'browser', true, { title, canSelectFiles: true, canSelectFolders: true, filters }],
-            [OS.Type.OSX, 'browser', false, { title, canSelectFiles: false, canSelectFolders: true }],
-            [OS.Type.OSX, 'electron', true, { title, canSelectFiles: true, canSelectFolders: true, filters }],
-            [OS.Type.OSX, 'electron', false, { title, canSelectFiles: true, canSelectFolders: true, filters }]
+            [OS.Type.OSX, 'browser', true, { title, canSelectFiles: true, canSelectFolders: true, filters, disableAllFilesFilter: true }],
+            [OS.Type.OSX, 'browser', false, { title, canSelectFiles: false, canSelectFolders: true, disableAllFilesFilter: true }],
+            [OS.Type.OSX, 'electron', true, { title, canSelectFiles: true, canSelectFolders: true, filters, disableAllFilesFilter: true }],
+            [OS.Type.OSX, 'electron', false, { title, canSelectFiles: true, canSelectFolders: true, filters, disableAllFilesFilter: true }]
 
         ] as [OS.Type, 'browser' | 'electron', boolean, OpenFileDialogProps][]).forEach(test => {
             const [type, environment, supportMultiRootWorkspace, expected] = test;
