@@ -158,8 +158,8 @@ export class SinglePreferenceWrapper extends React.Component<SinglePreferenceWra
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected setPreference = (preferenceName: string, preferenceValue: any): void => {
-        this.props.preferencesService.set(preferenceName, preferenceValue, this.props.currentScope, this.props.currentScopeURI);
+    protected setPreference = async (preferenceName: string, preferenceValue: any): Promise<void> => {
+        await this.props.preferencesService.set(preferenceName, preferenceValue, this.props.currentScope, this.props.currentScopeURI);
     };
 
     getInputType = (preferenceDisplayNode: Preference.NodeWithValueInSingleScope): React.ReactNode => {

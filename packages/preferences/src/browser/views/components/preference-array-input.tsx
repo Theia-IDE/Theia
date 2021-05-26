@@ -20,7 +20,7 @@ import { Preference } from '../../util/preference-types';
 
 interface PreferenceArrayInputProps {
     preferenceDisplayNode: Preference.NodeWithValueInSingleScope;
-    setPreference(preferenceName: string, preferenceValue: string[]): void;
+    setPreference(preferenceName: string, preferenceValue: string[]): Promise<void>;
 }
 
 export const PreferenceArrayInput: React.FC<PreferenceArrayInputProps> = ({ preferenceDisplayNode, setPreference }) => {

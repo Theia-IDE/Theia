@@ -23,14 +23,17 @@ describe('Saveable', function () {
     const { EditorManager } = require('@theia/editor/lib/browser/editor-manager');
     const { EditorWidget } = require('@theia/editor/lib/browser/editor-widget');
     const { PreferenceService } = require('@theia/core/lib/browser/preferences/preference-service');
+    const { PreferenceScope } = require('@theia/core/lib/browser/preferences/preference-scope');
     const { Saveable, SaveableWidget } = require('@theia/core/lib/browser/saveable');
     const { WorkspaceService } = require('@theia/workspace/lib/browser/workspace-service');
     const { FileService } = require('@theia/filesystem/lib/browser/file-service');
     const { FileResource } = require('@theia/filesystem/lib/browser/file-resource');
     const { ETAG_DISABLED } = require('@theia/filesystem/lib/common/files');
     const { MonacoEditor } = require('@theia/monaco/lib/browser/monaco-editor');
+    const { MonacoEditorModel } = require('@theia/monaco/lib/browser/monaco-editor-model');
     const { Deferred } = require('@theia/core/lib/common/promise-util');
     const { Disposable, DisposableCollection } = require('@theia/core/lib/common/disposable');
+    const { AbstractResourcePreferenceProvider } = require('@theia/preferences/lib/browser/abstract-resource-preference-provider');
 
     const container = window.theia.container;
     const editorManager = container.get(EditorManager);
@@ -60,6 +63,72 @@ describe('Saveable', function () {
         const originalShouldOverwrite = fileResource['shouldOverwrite'];
         fileResource['shouldOverwrite'] = shouldOverwrite;
         return Disposable.create(() => fileResource['shouldOverwrite'] = originalShouldOverwrite);
+    }
+
+    /**
+     * @param {MonacoEditorModel} modelToSpyOn
+     * @returns {{restore: Disposable, record: {calls: number}}}
+     */
+    function spyOnSave(modelToSpyOn) {
+        assert.isTrue(modelToSpyOn instanceof MonacoEditorModel);
+        const toRestore = modelToSpyOn.save;
+        const callable = toRestore.bind(modelToSpyOn);
+        const record = { calls: 0 };
+        modelToSpyOn.save = () => {
+            record.calls++;
+            return callable();
+        };
+        const restore = Disposable.create(() => modelToSpyOn.save = toRestore);
+        return { restore, record };
+    }
+
+    /** @typedef {Object} PrefTest
+     * @property {{calls: number}} record
+     * @property {boolean[]} initialValues
+     * @property {EditorWidget & SaveableWidget} editorWidget
+     * @property {MonacoEditor} prefEditor
+     * @property {AbstractResourcePreferenceProvider} provider
+     */
+
+    /**
+     * @param {string[]} preferencesToModify
+     * @returns {Promise<undefined | PrefTest>}
+     */
+    async function setUpPrefsTest(preferencesToModify) {
+        const preferenceFile = preferences.getConfigUri(PreferenceScope.Folder, rootUri.toString());
+        assert.isDefined(preferenceFile);
+        if (!preferenceFile) { return; }
+
+        const provider = preferences
+            .preferenceProviders
+            .get(PreferenceScope.Folder)
+            .providers
+            .get(preferenceFile.toString());
+
+        assert.isDefined(provider);
+        assert.isTrue(provider instanceof AbstractResourcePreferenceProvider);
+
+        await Promise.all(preferencesToModify.map(name => preferences.set(name, undefined, undefined, rootUri.toString())));
+
+        const editorWidget =  /** @type {EditorWidget & SaveableWidget} */
+            (await editorManager.open(preferenceFile, { mode: 'reveal' }));
+        const prefEditor = MonacoEditor.get(editorWidget);
+        assert.isDefined(prefEditor);
+        if (!prefEditor) { return; }
+        assert.isFalse(Saveable.isDirty(editorWidget), 'should NOT be dirty on open');
+        const model = prefEditor?.document;
+        assert.isDefined(model);
+
+        if (!model) { return; }
+        const { restore, record } = spyOnSave(model);
+        toTearDown.push(restore);
+        /** @type {boolean[]} */
+        const initialValues = preferencesToModify.map(name =>
+            /** @type {boolean | undefined} */
+            !!preferences.get(name, undefined, rootUri.toString())
+        );
+
+        return { record, initialValues, editorWidget, prefEditor, provider };
     }
 
     const toTearDown = new DisposableCollection();
@@ -485,4 +554,93 @@ describe('Saveable', function () {
         }
     });
 
+    it('saves preference file when open and not dirty', async function () {
+        const prefName = 'editor.copyWithSyntaxHighlighting';
+        const prefTest = await setUpPrefsTest([prefName]);
+        if (!prefTest) { return; }
+        const { record, initialValues: [initialCopyWithHighlightPref], editorWidget } = prefTest;
+        await preferences.set(prefName, !initialCopyWithHighlightPref, undefined, rootUri.toString());
+        /** @type {boolean | undefined} */
+        const newValue = preferences.get(prefName, undefined, rootUri.toString());
+        assert.equal(newValue, !initialCopyWithHighlightPref);
+        assert.isFalse(Saveable.isDirty(editorWidget), "editor should not be dirty if it wasn't dirty before");
+        assert.equal(1, record.calls, 'save should have been called one time.');
+    });
+
+    it('saves once when many edits are made (editor open)', async function () {
+        const prefNames = ['editor.copyWithSyntaxHighlighting', 'debug.inlineValues'];
+        const prefTest = await setUpPrefsTest(prefNames);
+        if (!prefTest) { return; }
+
+        const { record, initialValues, editorWidget } = prefTest;
+
+        /** @type {Promise<void>[]} */
+        const attempts = [];
+        while (attempts.length < 250) {
+            prefNames.forEach((prefName, index) => {
+                const value = attempts.length % 2 === 0 ? !initialValues[index] : initialValues[index];
+                attempts.push(preferences.set(prefName, value, undefined, rootUri.toString()));
+            });
+        }
+        await Promise.all(attempts);
+        assert.isFalse(Saveable.isDirty(editorWidget), "editor should not be dirty if it wasn't dirty before");
+        assert.equal(1, record.calls, 'save should have been called one time.');
+    });
+
+    it('saves once when many edits are made (editor closed)', async function () {
+        const prefNames = ['editor.copyWithSyntaxHighlighting', 'debug.inlineValues'];
+        const prefTest = await setUpPrefsTest(prefNames);
+        if (!prefTest) { return; }
+
+        const { record, initialValues, editorWidget } = prefTest;
+        await editorWidget.closeWithoutSaving();
+
+        /** @type {Promise<void>[]} */
+        const attempts = [];
+        while (attempts.length < 250) {
+            prefNames.forEach((prefName, index) => {
+                const value = attempts.length % 2 === 0 ? !initialValues[index] : initialValues[index];
+                attempts.push(preferences.set(prefName, value, undefined, rootUri.toString()));
+            });
+        }
+        await Promise.all(attempts);
+        assert.equal(1, record.calls, 'save should have been called one time.');
+    });
+
+    it('displays the toast once no matter how many edits are queued', async function () {
+        const prefNames = ['editor.copyWithSyntaxHighlighting', 'debug.inlineValues'];
+        const prefTest = await setUpPrefsTest(prefNames);
+        if (!prefTest) { return; }
+
+        const { record, initialValues, editorWidget, prefEditor, provider } = prefTest;
+        const initialContent = prefEditor.getControl().getValue();
+        prefEditor.getControl().setValue('anything dirty will do.');
+        prefEditor.getControl().setValue(initialContent);
+        assert.isTrue(Saveable.isDirty(editorWidget));
+
+        const toRestore = provider['handleDirtyEditor'];
+        const callable = provider['handleDirtyEditor'].bind(provider);
+        const dirtyEditorRecord = { calls: 0 };
+        const spy = () => {
+            dirtyEditorRecord.calls++;
+            return callable();
+        };
+        provider['handleDirtyEditor'] = spy;
+        toTearDown.push(Disposable.create(() => provider['handleDirtyEditor'] = toRestore));
+        /** @type {Promise<void>[]} */
+        const attempts = [];
+        while (attempts.length < 250) {
+            prefNames.forEach((prefName, index) => {
+                const value = attempts.length % 2 === 0 ? !initialValues[index] : initialValues[index];
+                attempts.push(preferences.set(prefName, value, undefined, rootUri.toString()));
+            });
+        }
+        assert.equal(0, record.calls, 'should not have been saved yet');
+        await Saveable.save(editorWidget); // Simulate the user saving and retrying.
+        provider['dirtyEditorHandled'].resolve();
+        await Promise.all(attempts);
+        assert.equal(record.calls, 2, 'should have saved twice');
+        assert.equal(dirtyEditorRecord.calls, 1, 'should have displayed the toast once');
+        assert.equal(provider['editQueue'].length, 0, 'there should be no pending edits');
+    });
 });

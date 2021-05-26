@@ -20,7 +20,7 @@ import { Preference } from '../../util/preference-types';
 
 interface PreferenceStringInputProps {
     preferenceDisplayNode: Preference.NodeWithValueInSingleScope;
-    setPreference(preferenceName: string, preferenceValue: string): void;
+    setPreference(preferenceName: string, preferenceValue: string): Promise<void>;
 }
 
 export const PreferenceStringInput: React.FC<PreferenceStringInputProps> = ({ preferenceDisplayNode, setPreference }) => {
@@ -39,10 +39,16 @@ export const PreferenceStringInput: React.FC<PreferenceStringInputProps> = ({ pr
     const onChange = React.useCallback(e => {
         const { value: newValue } = e.target;
         clearTimeout(currentTimeout);
-        const newTimeout = setTimeout(() => setPreference(id, newValue), 750);
+        const newTimeout = setTimeout(async () => {
+            try {
+                await setPreference(id, newValue);
+            } catch {
+                setCurrentValue(externalValue);
+            }
+        }, 750);
         setCurrentTimetout(Number(newTimeout));
         setCurrentValue(newValue);
-    }, [currentTimeout]);
+    }, [currentTimeout, externalValue]);
 
     return (
         <input

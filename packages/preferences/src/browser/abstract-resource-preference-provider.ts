@@ -29,13 +29,23 @@ import { MonacoTextModelService } from '@theia/monaco/lib/browser/monaco-text-mo
 import { MonacoEditorModel } from '@theia/monaco/lib/browser/monaco-editor-model';
 import { MonacoWorkspace } from '@theia/monaco/lib/browser/monaco-workspace';
 import { Deferred } from '@theia/core/lib/common/promise-util';
+import { EditorManager } from '@theia/editor/lib/browser';
+
+interface EnqueuedPreferenceChange {
+    key: string,
+    value: any,
+    editResolver: Deferred<boolean | Promise<boolean>>,
+}
 
 @injectable()
 export abstract class AbstractResourcePreferenceProvider extends PreferenceProvider {
 
     protected preferences: { [key: string]: any } = {};
     protected model: MonacoEditorModel | undefined;
+    protected editQueue: EnqueuedPreferenceChange[] = [];
     protected readonly loading = new Deferred();
+    protected dirtyEditorHandled = new Deferred();
+    protected pendingTransaction = new Deferred();
 
     @inject(PreferenceService) protected readonly preferenceService: PreferenceService;
     @inject(MessageService) protected readonly messageService: MessageService;
@@ -50,11 +60,16 @@ export abstract class AbstractResourcePreferenceProvider extends PreferenceProvi
     @inject(MonacoWorkspace)
     protected readonly workspace: MonacoWorkspace;
 
+    @inject(EditorManager)
+    protected readonly editorManager: EditorManager;
+
     @postConstruct()
     protected async init(): Promise<void> {
         const uri = this.getUri();
         this.toDispose.push(Disposable.create(() => this.loading.reject(new Error(`preference provider for '${uri}' was disposed`))));
         this._ready.resolve();
+        this.dirtyEditorHandled.resolve();
+        this.pendingTransaction.resolve();
 
         const reference = await this.textModelService.createModelReference(uri);
         if (this.toDispose.disposed) {
@@ -110,10 +125,55 @@ export abstract class AbstractResourcePreferenceProvider extends PreferenceProvi
 
     async setPreference(key: string, value: any, resourceUri?: string): Promise<boolean> {
         await this.loading.promise;
+        // Wait for save of previous transaction
+        await this.pendingTransaction.promise;
         if (!this.model) {
             return false;
         }
         if (!this.contains(resourceUri)) {
+            return false;
+        }
+        const isFirstEditInQueue = !this.editQueue.length;
+        const mustHandleDirty = isFirstEditInQueue && this.model.dirty;
+        if (mustHandleDirty) {
+            this.dirtyEditorHandled = new Deferred();
+            this.handleDirtyEditor();
+        }
+        const editResolver = new Deferred<boolean | Promise<boolean>>();
+        this.editQueue.push({ key, value, editResolver });
+        if (isFirstEditInQueue) {
+            this.doSetPreferences();
+        }
+        return editResolver.promise;
+    }
+
+    async doSetPreferences(): Promise<void> {
+        const localPendingChanges = new Deferred<boolean>();
+        await this.dirtyEditorHandled.promise;
+        while (this.editQueue.length) {
+            const { key, value, editResolver } = this.editQueue.shift()!;
+            const result = await this.doSetPreference(key, value) ? localPendingChanges.promise : false;
+            editResolver.resolve(result);
+        }
+        let success = true;
+        // Defer new actions until transaction complete.
+        // Prevents the dirty-editor toast from appearing if save cycle in progress.
+        this.pendingTransaction = new Deferred();
+        try {
+            if (this.model?.dirty) {
+                await this.model.save();
+                // On save, the file change handler will set ._pendingChanges
+                success = await this.pendingChanges;
+            }
+        } catch {
+            success = false;
+        }
+        this.pendingTransaction.resolve();
+        localPendingChanges.resolve(success);
+    }
+
+    protected async doSetPreference(key: string, value: any): Promise<boolean> {
+        if (!this.model) {
             return false;
         }
         const path = this.getPath(key);
@@ -151,14 +211,33 @@ export abstract class AbstractResourcePreferenceProvider extends PreferenceProvi
                     forceMoveMarkers: false
                 });
             }
-            await this.workspace.applyBackgroundEdit(this.model, editOperations);
-            return await this.pendingChanges;
+            await this.workspace.applyBackgroundEdit(this.model, editOperations, false);
+            return true;
         } catch (e) {
             const message = `Failed to update the value of '${key}' in '${this.getUri()}'.`;
             this.messageService.error(`${message} Please check if it is corrupted.`);
             console.error(`${message}`, e);
             return false;
         }
+    }
+
+    protected async handleDirtyEditor(): Promise<void> {
+        const msg = await this.messageService.error(
+            'Unable to write preference change because the settings file is dirty. Please save the file and try again.',
+            'Save and Retry', 'Open File');
+
+        if (this.model) {
+            if (msg === 'Open File') {
+                this.editorManager.open(new URI(this.model.uri));
+            } else if (msg === 'Save and Retry') {
+                await this.model.save();
+            }
+        }
+        if (msg !== 'Save and Retry') {
+            this.editQueue.forEach(({ editResolver }) => editResolver.resolve(false));
+            this.editQueue = [];
+        }
+        this.dirtyEditorHandled.resolve();
     }
 
     protected getPath(preferenceName: string): string[] | undefined {

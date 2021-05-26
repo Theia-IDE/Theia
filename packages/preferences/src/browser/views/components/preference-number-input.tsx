@@ -20,7 +20,7 @@ import { Preference } from '../../util/preference-types';
 
 interface PreferenceNumberInputProps {
     preferenceDisplayNode: Preference.NodeWithValueInSingleScope;
-    setPreference(preferenceName: string, preferenceValue: number): void;
+    setPreference(preferenceName: string, preferenceValue: number): Promise<void>;
 }
 
 export const PreferenceNumberInput: React.FC<PreferenceNumberInputProps> = ({ preferenceDisplayNode, setPreference }) => {
@@ -46,7 +46,7 @@ export const PreferenceNumberInput: React.FC<PreferenceNumberInputProps> = ({ pr
         clearTimeout(currentTimeout);
         const { value: newValue } = e.target;
         setCurrentValue(newValue);
-        const { value: inputValue , message } = getInputValidation(newValue);
+        const { value: inputValue, message } = getInputValidation(newValue);
         setValidationMessage(message);
         if (!isNaN(inputValue)) {
             const newTimeout = setTimeout(() => setPreference(id, inputValue), 750);

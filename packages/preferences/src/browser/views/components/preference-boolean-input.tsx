@@ -19,7 +19,7 @@ import { Preference } from '../../util/preference-types';
 
 interface PreferenceBooleanInputProps {
     preferenceDisplayNode: Preference.NodeWithValueInSingleScope;
-    setPreference: (preferenceName: string, preferenceValue: boolean) => void;
+    setPreference: (preferenceName: string, preferenceValue: boolean) => Promise<void>;
 }
 
 export const PreferenceBooleanInput: React.FC<PreferenceBooleanInputProps> = ({ preferenceDisplayNode, setPreference }) => {
@@ -34,10 +34,15 @@ export const PreferenceBooleanInput: React.FC<PreferenceBooleanInputProps> = ({ 
         setChecked(!!value);
     }, [value]);
 
-    const setValue = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const setValue = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         setChecked(!checked);
-        setPreference(id, e.target.checked);
-    }, [checked]);
+        const newValue = e.target.checked;
+        try {
+            await setPreference(id, newValue);
+        } catch {
+            setChecked(!!value);
+        }
+    }, [checked, value]);
 
     return (
         <label htmlFor={`preference-checkbox-${id}`}>
