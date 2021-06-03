@@ -24,6 +24,12 @@ export interface NewWindowOptions {
  * Service for opening new browser windows.
  */
 export const WindowService = Symbol('WindowService');
+
+/**
+ *  The window hash value that is used to spawn a new default window.
+ */
+export const DEFAULT_WINDOW_HASH: string = '#!empty';
+
 export interface WindowService {
 
     /**
@@ -32,6 +38,12 @@ export interface WindowService {
      * But in Electron, we want to open links in a browser, not in Electron.
      */
     openNewWindow(url: string, options?: NewWindowOptions): undefined;
+
+    /**
+     * Opens a new default window.
+     * - In electron and in the browser it will open the default window without a pre-defined content.
+     */
+    openNewDefaultWindow(): void;
 
     /**
      * Called when the `window` is about to `unload` its resources.
