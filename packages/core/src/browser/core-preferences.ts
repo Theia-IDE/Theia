@@ -68,6 +68,11 @@ export const corePreferenceSchema: PreferenceSchema = {
             default: FrontendApplicationConfigProvider.get().defaultIconTheme,
             description: "Specifies the icon theme used in the workbench or 'null' to not show any file icons."
         },
+        'workbench.productIconTheme': {
+            type: 'string',
+            default: FrontendApplicationConfigProvider.get().defaultProductIconTheme,
+            description: 'Specifies the product icon theme used in the workbench'
+        },
         'workbench.silentNotifications': {
             type: 'boolean',
             default: false,

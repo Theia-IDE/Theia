@@ -52,7 +52,8 @@ import {
     ViewWelcome,
     PluginPackageCustomEditor,
     CustomEditor,
-    CustomEditorPriority
+    CustomEditorPriority,
+    ProductIconThemeContribution
 } from '../../../common/plugin-protocol';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -339,6 +340,12 @@ export class TheiaPluginScanner implements PluginScanner {
         }
 
         try {
+            contributions.productIconThemes = this.readProductIconThemes(rawPlugin);
+        } catch (err) {
+            console.error(`Could not read '${rawPlugin.name}' contribution 'productIconThemes'.`, rawPlugin.contributes.productIconThemes, err);
+        }
+
+        try {
             contributions.colors = this.readColors(rawPlugin);
         } catch (err) {
             console.error(`Could not read '${rawPlugin.name}' contribution 'colors'.`, rawPlugin.contributes.colors, err);
@@ -437,6 +444,27 @@ export class TheiaPluginScanner implements PluginScanner {
             }
             if (typeof contribution.path !== 'string') {
                 console.error('Expected string in `contributes.iconThemes.path`. Provided value:', contribution.path);
+                continue;
+            }
+            result.push({
+                id: contribution.id,
+                uri: this.pluginUriFactory.createUri(pck, contribution.path).toString(),
+                description: contribution.description,
+                label: contribution.label,
+                uiTheme: contribution.uiTheme
+            });
+        }
+        return result;
+    }
+
+    protected readProductIconThemes(pck: PluginPackage): ProductIconThemeContribution[] | undefined {
+        if (!pck.contributes || !pck.contributes.productIconThemes) {
+            return undefined;
+        }
+        const result: ProductIconThemeContribution[] = [];
+        for (const contribution of pck.contributes.productIconThemes) {
+            if (typeof contribution.id !== 'string') {
+                console.error('Expected string in `contributes.productIconThemes.id`. Provided value:', contribution.id);
                 continue;
             }
             result.push({

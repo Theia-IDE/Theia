@@ -41,8 +41,3 @@
     width: calc(100% - var(--theia-ui-padding)*4);
     margin-left: 0;
 }
-
-.navigator-tab-icon {
-    -webkit-mask: url('files.svg');
-    mask: url('files.svg');
-}

@@ -40,7 +40,7 @@ export class VSXExtensionsViewContainer extends ViewContainer {
 
         this.setTitleOptions({
             label: VSXExtensionsViewContainer.LABEL,
-            iconClass: 'theia-vsx-extensions-icon',
+            iconClass: 'codicon codicon-extensions',
             closeable: true
         });
     }

@@ -98,7 +98,7 @@ export class SearchInWorkspaceWidget extends BaseWidget implements StatefulWidge
         this.id = SearchInWorkspaceWidget.ID;
         this.title.label = SearchInWorkspaceWidget.LABEL;
         this.title.caption = SearchInWorkspaceWidget.LABEL;
-        this.title.iconClass = 'search-in-workspace-tab-icon';
+        this.title.iconClass = 'codicon codicon-search';
         this.title.closable = true;
         this.contentNode = document.createElement('div');
         this.contentNode.classList.add('t-siw-search-container');

@@ -99,6 +99,10 @@ import { EncodingRegistry } from './encoding-registry';
 import { EncodingService } from '../common/encoding-service';
 import { AuthenticationService, AuthenticationServiceImpl } from '../browser/authentication-service';
 import { DecorationsService, DecorationsServiceImpl } from './decorations-service';
+import { DefaultProductIconThemeContribution, ProductIconThemeApplicationContribution, ProductIconThemeContribution } from './product-icon-theme-contribution';
+import { NoneProductIconTheme, ProductIconThemeService } from './product-icon-theme-service';
+import { IconRegistry } from './icon-registry';
+import { IconApplicationContribution, IconProviderContribution } from './icon-application-contribution';
 
 export { bindResourceProvider, bindMessageService, bindPreferenceService };
 
@@ -113,6 +117,19 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
     bind(IconThemeContribution).toService(DefaultFileIconThemeContribution);
     bind(IconThemeApplicationContribution).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(IconThemeApplicationContribution);
+
+    bind(NoneProductIconTheme).toSelf().inSingletonScope();
+    bind(ProductIconThemeService).toSelf().inSingletonScope();
+    bindContributionProvider(bind, ProductIconThemeContribution);
+    bind(DefaultProductIconThemeContribution).toSelf().inSingletonScope();
+    bind(ProductIconThemeContribution).toService(DefaultProductIconThemeContribution);
+    bind(ProductIconThemeApplicationContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(ProductIconThemeApplicationContribution);
+
+    bind(IconRegistry).toSelf().inSingletonScope();
+    bindContributionProvider(bind, IconProviderContribution);
+    bind(IconApplicationContribution).toSelf().inSingletonScope();
+    bind(FrontendApplicationContribution).toService(IconApplicationContribution);
 
     bind(ColorRegistry).toSelf().inSingletonScope();
     bindContributionProvider(bind, ColorContribution);
@@ -153,7 +170,8 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
         const contextMenuRenderer = context.container.get<ContextMenuRenderer>(ContextMenuRenderer);
         const decoratorService = context.container.get<TabBarDecoratorService>(TabBarDecoratorService);
         const iconThemeService = context.container.get<IconThemeService>(IconThemeService);
-        return new TabBarRenderer(contextMenuRenderer, decoratorService, iconThemeService);
+        const productIconThemeService = context.container.get<ProductIconThemeService>(ProductIconThemeService);
+        return new TabBarRenderer(contextMenuRenderer, decoratorService, iconThemeService, productIconThemeService);
     });
 
     bindContributionProvider(bind, TabBarDecorator);
@@ -225,7 +243,7 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
 
     bind(ResourceContextKey).toSelf().inSingletonScope();
     bind(CommonFrontendContribution).toSelf().inSingletonScope();
-    [FrontendApplicationContribution, CommandContribution, KeybindingContribution, MenuContribution, ColorContribution].forEach(serviceIdentifier =>
+    [FrontendApplicationContribution, CommandContribution, KeybindingContribution, MenuContribution, ColorContribution, IconProviderContribution].forEach(serviceIdentifier =>
         bind(serviceIdentifier).toService(CommonFrontendContribution)
     );
 

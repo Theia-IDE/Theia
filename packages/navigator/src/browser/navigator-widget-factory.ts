@@ -26,7 +26,7 @@ import { FILE_NAVIGATOR_ID } from './navigator-widget';
 export const EXPLORER_VIEW_CONTAINER_ID = 'explorer-view-container';
 export const EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS: ViewContainerTitleOptions = {
     label: 'Explorer',
-    iconClass: 'navigator-tab-icon',
+    iconClass: 'codicon codicon-files',
     closeable: true
 };
 

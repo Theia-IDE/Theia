@@ -83,6 +83,7 @@ export interface PluginPackageContribution {
     snippets?: PluginPackageSnippetsContribution[];
     themes?: PluginThemeContribution[];
     iconThemes?: PluginIconThemeContribution[];
+    productIconThemes?: PluginProductIconThemeContribution[];
     colors?: PluginColorContribution[];
     taskDefinitions?: PluginTaskDefinitionContribution[];
     problemMatchers?: PluginProblemMatcherContribution[];
@@ -193,6 +194,14 @@ export interface PluginThemeContribution {
 }
 
 export interface PluginIconThemeContribution {
+    id?: string;
+    label?: string;
+    description?: string;
+    path?: string;
+    uiTheme?: PluginUiTheme;
+}
+
+export interface PluginProductIconThemeContribution {
     id?: string;
     label?: string;
     description?: string;
@@ -521,6 +530,7 @@ export interface PluginContribution {
     snippets?: SnippetContribution[];
     themes?: ThemeContribution[];
     iconThemes?: IconThemeContribution[];
+    productIconThemes?: ProductIconThemeContribution[];
     colors?: ColorDefinition[];
     taskDefinitions?: TaskDefinition[];
     problemMatchers?: ProblemMatcherContribution[];
@@ -545,6 +555,14 @@ export interface ThemeContribution {
 }
 
 export interface IconThemeContribution {
+    id: string;
+    label?: string;
+    description?: string;
+    uri: string;
+    uiTheme?: UiTheme;
+}
+
+export interface ProductIconThemeContribution {
     id: string;
     label?: string;
     description?: string;

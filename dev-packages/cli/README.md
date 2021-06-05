@@ -104,7 +104,8 @@ Default color and icon themes can be configured in `theia.frontend.config` secti
     "frontend": {
       "config": {
         "defaultTheme": "light",
-        "defaultIconTheme": "vs-seti"
+        "defaultIconTheme": "vs-seti",
+        "defaultProductIconTheme": "default"
       }
     }
   },

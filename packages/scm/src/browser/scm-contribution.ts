@@ -43,7 +43,7 @@ export const SCM_WIDGET_FACTORY_ID = ScmWidget.ID;
 export const SCM_VIEW_CONTAINER_ID = 'scm-view-container';
 export const SCM_VIEW_CONTAINER_TITLE_OPTIONS: ViewContainerTitleOptions = {
     label: 'Source Control',
-    iconClass: 'scm-tab-icon',
+    iconClass: 'codicon codicon-source-control',
     closeable: true
 };
 

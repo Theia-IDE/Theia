@@ -245,11 +245,6 @@
     cursor: pointer;
 }
 
-.scm-tab-icon {
-    -webkit-mask: url('scm.svg');
-    mask: url('scm.svg');
-}
-
 .theia-scm-inline-actions-container {
     display: flex;
     justify-content: flex-end;

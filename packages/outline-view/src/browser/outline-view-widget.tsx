@@ -79,7 +79,7 @@ export class OutlineViewWidget extends TreeWidget {
         this.title.label = 'Outline';
         this.title.caption = 'Outline';
         this.title.closable = true;
-        this.title.iconClass = 'fa outline-view-tab-icon';
+        this.title.iconClass = 'codicon codicon-symbol-class';
         this.addClass('theia-outline-view');
     }
 

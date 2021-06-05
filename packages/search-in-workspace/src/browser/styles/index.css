@@ -367,11 +367,6 @@
     cursor: default;
 }
 
-.search-in-workspace-tab-icon {
-    -webkit-mask: url('search.svg');
-    mask: url('search.svg');
-}
-
 .highlighted-count-container {
     background-color: var(--theia-list-activeSelectionBackground);
     color: var(--theia-list-activeSelectionForeground);

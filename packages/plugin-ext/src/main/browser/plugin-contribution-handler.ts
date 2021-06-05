@@ -40,6 +40,7 @@ import { MonacoThemingService } from '@theia/monaco/lib/browser/monaco-theming-s
 import { ColorRegistry } from '@theia/core/lib/browser/color-registry';
 import { PluginIconThemeService } from './plugin-icon-theme-service';
 import { ContributionProvider } from '@theia/core/lib/common';
+import { PluginProductIconThemeService } from './plugin-product-icon-theme-service';
 
 @injectable()
 export class PluginContributionHandler {
@@ -102,6 +103,9 @@ export class PluginContributionHandler {
 
     @inject(PluginIconThemeService)
     protected readonly iconThemeService: PluginIconThemeService;
+
+    @inject(PluginProductIconThemeService)
+    protected readonly productIconThemeService: PluginProductIconThemeService;
 
     @inject(ContributionProvider) @named(LabelProviderContribution)
     protected readonly contributionProvider: ContributionProvider<LabelProviderContribution>;
@@ -296,6 +300,12 @@ export class PluginContributionHandler {
         if (contributions.iconThemes && contributions.iconThemes.length) {
             for (const iconTheme of contributions.iconThemes) {
                 pushContribution(`iconThemes.${iconTheme.uri}`, () => this.iconThemeService.register(iconTheme, plugin));
+            }
+        }
+
+        if (contributions.productIconThemes && contributions.productIconThemes.length) {
+            for (const iconTheme of contributions.productIconThemes) {
+                pushContribution(`productIconThemes.${iconTheme.uri}`, () => this.productIconThemeService.register(iconTheme, plugin));
             }
         }
 

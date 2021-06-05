@@ -155,11 +155,6 @@
     opacity: 1;
 }
 
-.debug-tab-icon {
-    -webkit-mask: url('debug-dark.svg');
-    mask: url('debug-dark.svg');
-}
-
 .theia-debug-console-icon {
     -webkit-mask: url('repl.svg');
     mask: url('repl.svg');

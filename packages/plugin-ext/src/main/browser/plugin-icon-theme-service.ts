@@ -255,7 +255,7 @@ export class PluginIconTheme extends PluginIconThemeDefinition implements IconTh
                     if (Array.isArray(font.src)) {
                         for (const srcLocation of font.src) {
                             if (srcLocation && srcLocation.path) {
-                                const cssUrl = this.toCSSUrl(srcLocation.path);
+                                const cssUrl = PluginIconParsingUtils.toCSSUrl(srcLocation.path, this.locationUri, this.packageRootUri, this.pluginId);
                                 if (cssUrl) {
                                     if (src) {
                                         src += ', ';
@@ -293,7 +293,7 @@ export class PluginIconTheme extends PluginIconThemeDefinition implements IconTh
             const iconDefinition = iconDefinitions[definitionId];
             const selectors = definitionSelectors.get(definitionId);
             if (selectors && iconDefinition) {
-                const cssUrl = this.toCSSUrl(iconDefinition.iconPath);
+                const cssUrl = PluginIconParsingUtils.toCSSUrl(iconDefinition.iconPath, this.locationUri, this.packageRootUri, this.pluginId);
                 if (cssUrl) {
                     this.styleSheetContent += `${selectors.join(', ')} {
     content: ' ';
@@ -322,17 +322,6 @@ export class PluginIconTheme extends PluginIconThemeDefinition implements IconTh
                 }
             }
         }
-    }
-
-    protected toCSSUrl(iconPath: string | undefined): string | undefined {
-        if (!iconPath) {
-            return undefined;
-        }
-        const iconUri = this.locationUri.resolve(iconPath);
-        const relativePath = this.packageRootUri.path.relative(iconUri.path.normalize());
-        return relativePath && `url('${new Endpoint({
-            path: `hostedPlugin/${this.pluginId}/${encodeURIComponent(relativePath.normalize().toString())}`
-        }).getRestUrl().toString()}')`;
     }
 
     protected escapeCSS(value: string): string {
@@ -571,4 +560,17 @@ export class PluginIconThemeService implements LabelProviderContribution {
         return undefined;
     }
 
+}
+
+export namespace PluginIconParsingUtils {
+    export const toCSSUrl = (iconPath: string | undefined, locationUri: URI, packageRootUri: URI, pluginId: string): string | undefined => {
+        if (!iconPath) {
+            return undefined;
+        }
+        const iconUri = locationUri.resolve(iconPath);
+        const relativePath = packageRootUri.path.relative(iconUri.path.normalize());
+        return relativePath && `url('${new Endpoint({
+            path: `hostedPlugin/${pluginId}/${encodeURIComponent(relativePath.normalize().toString())}`
+        }).getRestUrl().toString()}')`;
+    };
 }

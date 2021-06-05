@@ -61,7 +61,7 @@ export class DebugWidget extends BaseWidget implements StatefulWidget, Applicati
         this.title.label = DebugWidget.LABEL;
         this.title.caption = DebugWidget.LABEL;
         this.title.closable = true;
-        this.title.iconClass = 'debug-tab-icon';
+        this.title.iconClass = 'codicon codicon-debug-alt';
         this.addClass('theia-debug-container');
         this.toDispose.pushAll([
             this.toolbar,

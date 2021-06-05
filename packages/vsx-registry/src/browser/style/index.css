@@ -19,11 +19,6 @@
   --theia-vsx-extension-editor-icon-size: calc(var(--theia-vsx-extension-icon-size)*3);
 }
 
-.theia-vsx-extensions-icon {
-    -webkit-mask: url('extensions.svg');
-    mask: url('extensions.svg');
-}
-
 .theia-vsx-extensions {
     height: 100%;
 }

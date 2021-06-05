@@ -112,7 +112,6 @@
   font-size: 23px;
   text-align: center;
   color: inherit;
-  background-color: var(--theia-activityBar-inactiveForeground);
 
   /* svg */
   width: var(--theia-private-sidebar-tab-width);
@@ -139,7 +138,6 @@
 .p-TabBar.theia-app-sides .p-TabBar-tabIcon:hover,
 .p-TabBar.theia-app-sides .p-mod-current .p-TabBar-tabIcon {
   color: var(--theia-activityBar-foreground);
-  background-color: var(--theia-activityBar-foreground);
 }
 
 .p-TabBar.theia-app-left .p-TabBar-tabLabel {

@@ -75,6 +75,12 @@ import { CustomEditorWidgetFactory } from '../browser/custom-editors/custom-edit
 import { CustomEditorWidget } from './custom-editors/custom-editor-widget';
 import { CustomEditorService } from './custom-editors/custom-editor-service';
 import { UndoRedoService } from './custom-editors/undo-redo-service';
+import {
+    PluginProductIconTheme,
+    PluginProductIconThemeDefinition,
+    PluginProductIconThemeFactory,
+    PluginProductIconThemeService,
+} from './plugin-product-icon-theme-service';
 
 export default new ContainerModule((bind, unbind, isBound, rebind) => {
 
@@ -205,6 +211,15 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
     });
     bind(PluginIconThemeService).toSelf().inSingletonScope();
     bind(LabelProviderContribution).toService(PluginIconThemeService);
+
+    bind(PluginProductIconThemeFactory).toFactory<PluginProductIconTheme>(({ container }) => (definition: PluginProductIconThemeDefinition) => {
+        const child = container.createChild();
+        child.bind(PluginProductIconThemeDefinition).toConstantValue(definition);
+        child.bind(PluginProductIconTheme).toSelf().inSingletonScope();
+        return child.get(PluginProductIconTheme);
+    });
+    bind(PluginProductIconThemeService).toSelf().inSingletonScope();
+    bind(LabelProviderContribution).toService(PluginProductIconThemeService);
 
     bind(MenusContributionPointHandler).toSelf().inSingletonScope();
     bind(CodeEditorWidgetUtil).toSelf().inSingletonScope();
