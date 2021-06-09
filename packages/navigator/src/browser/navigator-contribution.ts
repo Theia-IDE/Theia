@@ -29,7 +29,9 @@ import {
     SelectableTreeNode,
     SHELL_TABBAR_CONTEXT_MENU,
     Widget,
-    Title
+    Title,
+    FocusTracker,
+    NavigatableWidget
 } from '@theia/core/lib/browser';
 import { FileDownloadCommands } from '@theia/filesystem/lib/browser/download/file-download-command-contribution';
 import {
@@ -211,7 +213,7 @@ export class FileNavigatorContribution extends AbstractViewContribution<FileNavi
     @postConstruct()
     protected async init(): Promise<void> {
         await this.fileNavigatorPreferences.ready;
-        this.shell.currentChanged.connect(() => this.onCurrentWidgetChangedHandler());
+        this.shell.currentChanged.connect((shell, args) => this.onCurrentWidgetChangedHandler(args));
 
         const updateFocusContextKeys = () => {
             const hasFocus = this.shell.activeWidget instanceof FileNavigatorWidget;
@@ -577,22 +579,23 @@ export class FileNavigatorContribution extends AbstractViewContribution<FileNavi
      *
      * @param widget widget file resource of which should be revealed and selected
      */
-    async selectWidgetFileNode(widget: Widget | undefined): Promise<void> {
+    async selectWidgetFileNode(widget: Widget | undefined, isSelectedByEditor?: boolean): Promise<void> {
         if (Navigatable.is(widget)) {
             const resourceUri = widget.getResourceUri();
             if (resourceUri) {
                 const { model } = await this.widget;
                 const node = await model.revealFile(resourceUri);
                 if (SelectableTreeNode.is(node)) {
-                    model.selectNode(node);
+                    model.selectNode(node, !!isSelectedByEditor);
                 }
             }
         }
     }
 
-    protected onCurrentWidgetChangedHandler(): void {
+    protected onCurrentWidgetChangedHandler(args: FocusTracker.IChangedArgs<Widget>): void {
+        const isSelectedByEditor = NavigatableWidget.is(args.oldValue!) && NavigatableWidget.is(args.newValue!);
         if (this.fileNavigatorPreferences['explorer.autoReveal']) {
-            this.selectWidgetFileNode(this.shell.currentWidget);
+            this.selectWidgetFileNode(this.shell.currentWidget, !!isSelectedByEditor);
         }
     }
 

@@ -69,6 +69,11 @@ export interface TreeModel extends Tree, TreeSelectionService, TreeExpansionServ
     readonly onOpenNode: Event<Readonly<TreeNode>>;
 
     /**
+     * Event when a node's sroll alignment shoud be requested.
+     */
+    readonly onScrollToNodeRequested: Event<scrollAlignment>;
+
+    /**
      * Selects the parent node relatively to the selected taking into account node expansion.
      */
     selectParent(): void;
@@ -148,6 +153,7 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<ReadonlyArray
 
     protected readonly onChangedEmitter = new Emitter<void>();
     protected readonly onOpenNodeEmitter = new Emitter<TreeNode>();
+    protected readonly onScrollToNodeRequestEmitter = new Emitter<scrollAlignment>();
     protected readonly toDispose = new DisposableCollection();
 
     @postConstruct()
@@ -201,6 +207,10 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<ReadonlyArray
 
     get onOpenNode(): Event<TreeNode> {
         return this.onOpenNodeEmitter.event;
+    }
+
+    get onScrollToNodeRequested(): Event<scrollAlignment> {
+        return this.onScrollToNodeRequestEmitter.event;
     }
 
     protected fireChanged(): void {
@@ -410,7 +420,8 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<ReadonlyArray
         this.selectionService.addSelection(selectionOrTreeNode);
     }
 
-    selectNode(node: Readonly<SelectableTreeNode>): void {
+    selectNode(node: Readonly<SelectableTreeNode>, selectedByNavigator?: boolean): void {
+        this.onScrollToNodeRequestEmitter.fire(selectedByNavigator ? 'center' : 'auto');
         this.addSelection(node);
     }
 
@@ -443,6 +454,7 @@ export class TreeModelImpl implements TreeModel, SelectionProvider<ReadonlyArray
     }
 
 }
+export type scrollAlignment = 'auto' | 'end' | 'start' | 'center' | undefined;
 export namespace TreeModelImpl {
     export interface State {
         selection: object

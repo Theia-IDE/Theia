@@ -234,6 +234,7 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
             this.model,
             this.model.onChanged(() => this.updateRows()),
             this.model.onSelectionChanged(() => this.updateScrollToRow({ resize: false })),
+            this.model.onScrollToNodeRequested(align => this.scrollToAlignment = align),
             this.model.onDidChangeBusy(() => this.update()),
             this.model.onNodeRefreshed(() => this.updateDecorations()),
             this.model.onExpansionChanged(() => this.updateDecorations()),
@@ -320,6 +321,10 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
      * - Used to forcefully scroll if necessary.
      */
     protected scrollToRow: number | undefined;
+    /**
+     * Controls the alignment scrolled-to-rows.
+     */
+    protected scrollToAlignment: 'auto' | 'end' | 'start' | 'center' | undefined;
     /**
      * Update the `scrollToRow`.
      * @param updateOptions the tree widget force update options.
@@ -462,6 +467,7 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
                 rows={rows}
                 renderNodeRow={this.renderNodeRow}
                 scrollToRow={this.scrollToRow}
+                scrollToAlignment={this.scrollToAlignment}
                 handleScroll={this.handleScroll}
             />;
         }
@@ -1368,6 +1374,10 @@ export namespace TreeWidget {
          */
         scrollToRow?: number
         /**
+         * Controls the alignment scrolled-to-rows.
+         */
+         scrollToAlignment?: 'auto' | 'end' | 'start' | 'center';
+        /**
          * The list of node rows.
          */
         rows: NodeRow[]
@@ -1380,7 +1390,7 @@ export namespace TreeWidget {
             fixedWidth: true
         });
         render(): React.ReactNode {
-            const { rows, width, height, scrollToRow, handleScroll } = this.props;
+            const { rows, width, height, scrollToRow, handleScroll, scrollToAlignment } = this.props;
             return <List
                 ref={list => this.list = (list || undefined)}
                 width={width}
@@ -1389,6 +1399,7 @@ export namespace TreeWidget {
                 rowHeight={this.cache.rowHeight}
                 rowRenderer={this.renderTreeRow}
                 scrollToIndex={scrollToRow}
+                scrollToAlignment={scrollToAlignment}
                 onScroll={handleScroll}
                 tabIndex={-1}
                 style={{
