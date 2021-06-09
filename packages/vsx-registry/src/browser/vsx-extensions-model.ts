@@ -21,7 +21,7 @@ import * as sanitize from 'sanitize-html';
 import { Emitter } from '@theia/core/lib/common/event';
 import { CancellationToken, CancellationTokenSource } from '@theia/core/lib/common/cancellation';
 import { VSXRegistryAPI, VSXResponseError } from '../common/vsx-registry-api';
-import { VSXSearchParam } from '../common/vsx-registry-types';
+import { VSXExtensionRaw, VSXSearchParam } from '../common/vsx-registry-types';
 import { HostedPluginSupport } from '@theia/plugin-ext/lib/hosted/browser/hosted-plugin';
 import { VSXExtension, VSXExtensionFactory } from './vsx-extension';
 import { ProgressService } from '@theia/core/lib/common/progress-service';
@@ -164,16 +164,21 @@ export class VSXExtensionsModel {
             const currInstalled = new Set<string>();
             const refreshing = [];
             for (const plugin of plugins) {
+                const version = plugin.model.version;
                 if (plugin.model.engine.type === 'vscode') {
                     const id = plugin.model.id;
                     this._installed.delete(id);
                     const extension = this.setExtension(id);
                     currInstalled.add(extension.id);
-                    refreshing.push(this.refresh(id));
+                    refreshing.push(this.refresh(id, version));
                 }
             }
             for (const id of this._installed) {
-                refreshing.push(this.refresh(id));
+                const extension = this.getExtension(id);
+                if (!extension) {
+                    return;
+                }
+                refreshing.push(this.refresh(id, extension.version));
             }
             Promise.all(refreshing);
             const installed = new Set([...prevInstalled, ...currInstalled]);
@@ -217,13 +222,18 @@ export class VSXExtensionsModel {
         });
     }
 
-    protected async refresh(id: string): Promise<VSXExtension | undefined> {
+    protected async refresh(id: string, version?: string): Promise<VSXExtension | undefined> {
         try {
             let extension = this.getExtension(id);
             if (!this.shouldRefresh(extension)) {
                 return extension;
             }
-            const data = await this.api.getLatestCompatibleExtensionVersion(id);
+            let data: VSXExtensionRaw | undefined;
+            if (version) {
+                data = await this.api.getExtension(id, { extensionVersion: version });
+            } else {
+                data = await this.api.getLatestCompatibleExtensionVersion(id);
+            }
             if (!data) {
                 return;
             }
@@ -285,5 +295,4 @@ export class VSXExtensionsModel {
         }
         return 0;
     }
-
 }
