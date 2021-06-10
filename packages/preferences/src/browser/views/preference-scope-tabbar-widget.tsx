@@ -66,8 +66,15 @@ export class PreferencesScopeTabBar extends TabBar<Widget> implements StatefulWi
         return this.currentSelection;
     }
 
-    protected setNewScopeSelection(newSelection: Preference.SelectedScopeDetails): void {
+    get availableTitles(): Title.Dataset[] {
+        const availableTitles: Title.Dataset[] = [];
+        for (const title of this.titles) {
+            availableTitles.push(title.dataset);
+        }
+        return availableTitles;
+    }
 
+    setNewScopeSelection(newSelection: Preference.SelectedScopeDetails): void {
         const newIndex = this.titles.findIndex(title => title.dataset.scope === newSelection.scope);
         if (newIndex !== -1) {
             this.currentSelection = newSelection;

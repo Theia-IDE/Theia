@@ -119,7 +119,7 @@ export class PreferencesSearchbarWidget extends ReactWidget implements StatefulW
         return search?.value;
     }
 
-    protected updateSearchTerm(searchTerm: string): void {
+    updateSearchTerm(searchTerm: string): void {
         const search = document.getElementById(PreferencesSearchbarWidget.SEARCHBAR_ID) as HTMLInputElement;
         if (!search) {
             return;

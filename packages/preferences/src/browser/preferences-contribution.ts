@@ -36,6 +36,7 @@ import { WorkspacePreferenceProvider } from './workspace-preference-provider';
 import { Preference, PreferencesCommands, PreferenceMenus } from './util/preference-types';
 import { ClipboardService } from '@theia/core/lib/browser/clipboard-service';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
+import { WorkspaceService } from '@theia/workspace/lib/browser';
 
 @injectable()
 export class PreferencesContribution extends AbstractViewContribution<PreferencesWidget> {
@@ -46,6 +47,7 @@ export class PreferencesContribution extends AbstractViewContribution<Preference
     @inject(PreferenceService) protected readonly preferenceService: PreferenceService;
     @inject(ClipboardService) protected readonly clipboardService: ClipboardService;
     @inject(PreferencesWidget) protected readonly scopeTracker: PreferencesWidget;
+    @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService;
 
     constructor() {
         super({
@@ -59,7 +61,12 @@ export class PreferencesContribution extends AbstractViewContribution<Preference
 
     registerCommands(commands: CommandRegistry): void {
         commands.registerCommand(CommonCommands.OPEN_PREFERENCES, {
-            execute: () => this.openView({ activate: true }),
+            execute: async (query?: string) => {
+                const view = await this.openView({ activate: true });
+                if (query) {
+                    view.updateSearchTerm(query);
+                }
+            }
         });
         commands.registerCommand(PreferencesCommands.OPEN_PREFERENCES_JSON_TOOLBAR, {
             isEnabled: () => true,
@@ -89,6 +96,14 @@ export class PreferencesContribution extends AbstractViewContribution<Preference
             execute: ({ id }: Preference.EditorCommandArgs) => {
                 this.preferenceService.set(id, undefined, Number(this.scopeTracker.currentScope.scope), this.scopeTracker.currentScope.uri);
             }
+        });
+        commands.registerCommand(PreferencesCommands.OPEN_USER_PREFERENCES, {
+            execute: async () => this.openPreferencesWithScope(PreferenceScope.User)
+        });
+        commands.registerCommand(PreferencesCommands.OPEN_WORKSPACE_PREFERENCES, {
+            isEnabled: () => !!this.workspaceService.workspace,
+            isVisible: () => !!this.workspaceService.workspace,
+            execute: async () => this.openPreferencesWithScope(PreferenceScope.Workspace)
         });
     }
 
@@ -160,6 +175,21 @@ export class PreferencesContribution extends AbstractViewContribution<Preference
                     const numReturns = text.slice(0, index).match(new RegExp('\n', 'g'))!.length;
                     jsonEditorWidget.editor.cursor = { line: numReturns, character: 4 + preferenceId.length + 4 };
                 }
+            }
+        }
+    }
+
+    /**
+     * Opens the preferences-view with the given scope.
+     *
+     * @param scope the preference scope.
+     */
+    protected async openPreferencesWithScope(scope: PreferenceScope): Promise<void> {
+        const view = await this.openView({ activate: true });
+        const titles = view.availableTitles;
+        for (const title of titles) {
+            if (title.scope === scope.toString()) {
+                view.setScopeSelection(title as Preference.SelectedScopeDetails);
             }
         }
     }

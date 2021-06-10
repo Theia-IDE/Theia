@@ -105,6 +105,18 @@ export namespace PreferencesCommands {
         id: 'preferences:copyJson.value',
         label: 'Copy Setting as JSON',
     };
+
+    export const OPEN_USER_PREFERENCES: Command = {
+        id: 'workbench.action.openGlobalSettings',
+        category: 'Preferences',
+        label: 'Open User Preferences',
+    };
+
+    export const OPEN_WORKSPACE_PREFERENCES: Command = {
+        id: 'workbench.action.openWorkspaceSettings',
+        category: 'Preferences',
+        label: 'Open Workspace Preferences',
+    };
 }
 
 export namespace PreferenceMenus {
