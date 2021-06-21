@@ -161,11 +161,11 @@ export namespace SaveableWidget {
     export function is(widget: Widget | undefined): widget is SaveableWidget {
         return !!widget && 'closeWithoutSaving' in widget;
     }
-    export function getDirty<T extends Widget>(widgets: IterableIterator<T> | ArrayLike<T>): IterableIterator<SaveableWidget & T> {
+    export function getDirty<T extends Widget>(widgets: Iterable<T>): IterableIterator<SaveableWidget & T> {
         return get(widgets, Saveable.isDirty);
     }
     export function* get<T extends Widget>(
-        widgets: IterableIterator<T> | ArrayLike<T>,
+        widgets: Iterable<T>,
         filter: (widget: T) => boolean = () => true
     ): IterableIterator<SaveableWidget & T> {
         for (const widget of widgets) {

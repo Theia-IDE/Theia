@@ -1074,7 +1074,7 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
     protected getExcludeGlobs(excludeOptions?: string[]): string[] {
         const excludePreferences = this.filesystemPreferences['files.exclude'];
         const excludePreferencesGlobs = Object.keys(excludePreferences).filter(key => !!excludePreferences[key]);
-        return [...new Set([...excludePreferencesGlobs, ...excludeOptions])];
+        return [...new Set([...excludePreferencesGlobs, ...excludeOptions || []])];
     }
 
     /**

@@ -45,14 +45,14 @@ export namespace NavigatableWidget {
         return arg instanceof BaseWidget && Navigatable.is(arg);
     }
     export function* getAffected<T extends Widget>(
-        widgets: IterableIterator<T> | ArrayLike<T>,
+        widgets: Iterable<T>,
         context: MaybeArray<URI>
     ): IterableIterator<[URI, T & NavigatableWidget]> {
         const uris = Array.isArray(context) ? context : [context];
         return get(widgets, resourceUri => uris.some(uri => uri.isEqualOrParent(resourceUri)));
     }
     export function* get<T extends Widget>(
-        widgets: IterableIterator<T> | ArrayLike<T>,
+        widgets: Iterable<T>,
         filter: (resourceUri: URI) => boolean = () => true
     ): IterableIterator<[URI, T & NavigatableWidget]> {
         for (const widget of widgets) {
