@@ -17,9 +17,11 @@
 import * as fs from '@theia/core/shared/fs-extra';
 import { injectable, inject } from '@theia/core/shared/inversify';
 import { ILogger } from '@theia/core';
-import { PluginDeployerHandler, PluginDeployerEntry, PluginEntryPoint, DeployedPlugin, PluginDependencies } from '../../common/plugin-protocol';
+import { PluginDeployerHandler, PluginDeployerEntry, PluginEntryPoint, DeployedPlugin, PluginDependencies, Localization } from '../../common/plugin-protocol';
 import { HostedPluginReader } from './plugin-reader';
 import { Deferred } from '@theia/core/lib/common/promise-util';
+import { LocalizationProvider } from '@theia/core/lib/node/i18n/localization-provider';
+import { Localization as TheiaLocalization } from '@theia/core/lib/common/i18n/localization';
 
 @injectable()
 export class HostedPluginDeployerHandler implements PluginDeployerHandler {
@@ -29,6 +31,9 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
 
     @inject(HostedPluginReader)
     private readonly reader: HostedPluginReader;
+
+    @inject(LocalizationProvider)
+    private readonly localizationProvider: LocalizationProvider;
 
     private readonly deployedLocations = new Map<string, Set<string>>();
 
@@ -129,6 +134,9 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
             const { type } = entry;
             const deployed: DeployedPlugin = { metadata, type };
             deployed.contributes = this.reader.readContribution(manifest);
+            if (deployed.contributes?.localizations) {
+                this.localizationProvider.addLocalizations(...buildTheiaLocalizations(deployed.contributes.localizations));
+            }
             deployedPlugins.set(metadata.model.id, deployed);
             this.logger.info(`Deploying ${entryPoint} plugin "${metadata.model.name}@${metadata.model.version}" from "${metadata.model.entryPoint[entryPoint] || pluginPath}"`);
         } catch (e) {
@@ -153,5 +161,34 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
         }
         return true;
     }
+}
 
+function buildTheiaLocalizations(localizations: Localization[]): TheiaLocalization[] {
+    const theiaLocalizations: TheiaLocalization[] = [];
+    for (const localization of localizations) {
+        const theiaLocalization: TheiaLocalization = {
+            languageId: localization.languageId,
+            languageName: localization.languageName,
+            localizedLanguageName: localization.localizedLanguageName,
+            translations: {}
+        };
+        for (const translation of localization.translations) {
+            for (const [scope, value] of Object.entries(translation.contents)) {
+                for (const [key, item] of Object.entries(value)) {
+                    const translationKey = buildTheiaTranslationKey(translation.id, scope, key);
+                    theiaLocalization.translations[translationKey] = item;
+                }
+            }
+        }
+        theiaLocalizations.push(theiaLocalization);
+    }
+    return theiaLocalizations;
+}
+
+function buildTheiaTranslationKey(pluginId: string, scope: string, key: string): string {
+    const scopeSlashIndex = scope.lastIndexOf('/');
+    if (scopeSlashIndex >= 0) {
+        scope = scope.substring(scopeSlashIndex + 1);
+    }
+    return `${pluginId}/${scope}/${key}`;
 }

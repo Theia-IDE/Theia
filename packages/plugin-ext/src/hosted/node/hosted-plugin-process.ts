@@ -23,6 +23,7 @@ import { MessageType } from '../../common/rpc-protocol';
 import { HostedPluginCliContribution } from './hosted-plugin-cli-contribution';
 import * as psTree from 'ps-tree';
 import { Deferred } from '@theia/core/lib/common/promise-util';
+import { LocalizationProvider } from '@theia/core/lib/node/i18n/localization-provider';
 
 export interface IPCConnectionOptions {
     readonly serverName: string;
@@ -54,6 +55,9 @@ export class HostedPluginProcess implements ServerPluginRunner {
 
     @inject(MessageService)
     protected readonly messageService: MessageService;
+
+    @inject(LocalizationProvider)
+    protected readonly localizationProvider: LocalizationProvider;
 
     private childProcess: cp.ChildProcess | undefined;
     private client: HostedPluginClient;
@@ -169,6 +173,9 @@ export class HostedPluginProcess implements ServerPluginRunner {
                 delete env[key];
             }
         }
+        const availableLanguages = ['en', ...this.localizationProvider.getAvailableLanguages()];
+        const locale = this.localizationProvider.getCurrentLanguage();
+        env['VSCODE_NLS_CONFIG'] = JSON.stringify({ locale, availableLanguages });
         // apply external env variables
         this.pluginHostEnvironmentVariables.getContributions().forEach(envVar => envVar.process(env));
         if (this.cli.extensionTestsPath) {

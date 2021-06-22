@@ -53,6 +53,8 @@ import { EnvVariablesServer } from '../common/env-variables';
 import { AuthenticationService } from './authentication-service';
 import { FormatType } from './saveable';
 import { QuickInputService, QuickPick, QuickPickItem } from './quick-input';
+import { AsyncLocalizationProvider } from '../common/i18n/localization';
+import { nls } from './nls';
 
 export namespace CommonMenus {
 
@@ -97,178 +99,183 @@ export namespace CommonCommands {
 
     export const CUT: Command = {
         id: 'core.cut',
-        label: 'Cut'
+        label: nls.localize('vscode/fileActions.contribution/cut', 'Cut')
     };
     export const COPY: Command = {
         id: 'core.copy',
-        label: 'Copy'
+        label: nls.localize('vscode/fileActions/copyFile', 'Copy')
     };
     export const PASTE: Command = {
         id: 'core.paste',
-        label: 'Paste'
+        label: nls.localize('vscode/fileActions/pasteFile', 'Paste')
     };
 
     export const COPY_PATH: Command = {
         id: 'core.copy.path',
-        label: 'Copy Path'
+        label: nls.localize('vscode/fileActions.contribution/copyPath', 'Copy Path')
     };
 
     export const UNDO: Command = {
         id: 'core.undo',
-        label: 'Undo'
+        label: nls.localize('vscode/textInputActions/undo', 'Undo')
     };
     export const REDO: Command = {
         id: 'core.redo',
-        label: 'Redo'
+        label: nls.localize('vscode/textInputActions/redo', 'Redo')
     };
     export const SELECT_ALL: Command = {
         id: 'core.selectAll',
-        label: 'Select All'
+        label: nls.localize('vscode/textInputActions/selectAll', 'Select All')
     };
 
     export const FIND: Command = {
         id: 'core.find',
-        label: 'Find'
+        label: nls.localize('vscode/simpleFindReplaceWidget/label.find', 'Find')
     };
     export const REPLACE: Command = {
         id: 'core.replace',
-        label: 'Replace'
+        label: nls.localize('vscode/simpleFindReplaceWidget/label.replace', 'Replace')
     };
 
     export const NEXT_TAB: Command = {
         id: 'core.nextTab',
         category: VIEW_CATEGORY,
-        label: 'Switch to Next Tab'
+        label: nls.localize('vscode/menubar/mShowNextTab', 'Switch to Next Tab')
     };
     export const PREVIOUS_TAB: Command = {
         id: 'core.previousTab',
         category: VIEW_CATEGORY,
-        label: 'Switch to Previous Tab'
+        label: nls.localize('vscode/menubar/mShowPreviousTab', 'Switch to Previous Tab')
     };
     export const NEXT_TAB_IN_GROUP: Command = {
         id: 'core.nextTabInGroup',
         category: VIEW_CATEGORY,
-        label: 'Switch to Next Tab in Group'
+        label: nls.localize('core.nextTabInGroup', 'Switch to Next Tab in Group')
     };
     export const PREVIOUS_TAB_IN_GROUP: Command = {
         id: 'core.previousTabInGroup',
         category: VIEW_CATEGORY,
-        label: 'Switch to Previous Tab in Group'
+        label: nls.localize('core.previousTabInGroup', 'Switch to Previous Tab in Group')
     };
     export const NEXT_TAB_GROUP: Command = {
         id: 'core.nextTabGroup',
         category: VIEW_CATEGORY,
-        label: 'Switch to Next Tab Group'
+        label: nls.localize('core.nextTabGroup', 'Switch to Next Tab Group')
     };
     export const PREVIOUS_TAB_GROUP: Command = {
         id: 'core.previousTabBar',
         category: VIEW_CATEGORY,
-        label: 'Switch to Previous Tab Group'
+        label: nls.localize('core.previousTabBar', 'Switch to Previous Tab Group')
     };
     export const CLOSE_TAB: Command = {
         id: 'core.close.tab',
         category: VIEW_CATEGORY,
-        label: 'Close Tab'
+        label: nls.localize('core.close.tab', 'Close Tab')
     };
     export const CLOSE_OTHER_TABS: Command = {
         id: 'core.close.other.tabs',
         category: VIEW_CATEGORY,
-        label: 'Close Other Tabs'
+        label: nls.localize('core.close.other.tabs', 'Close Other Tabs')
     };
     export const CLOSE_RIGHT_TABS: Command = {
         id: 'core.close.right.tabs',
         category: VIEW_CATEGORY,
-        label: 'Close Tabs to the Right'
+        label: nls.localize('core.close.right.tabs', 'Close Tabs to the Right')
     };
     export const CLOSE_ALL_TABS: Command = {
         id: 'core.close.all.tabs',
         category: VIEW_CATEGORY,
-        label: 'Close All Tabs'
+        label: nls.localize('core.close.all.tabs', 'Close All Tabs')
     };
     export const CLOSE_MAIN_TAB: Command = {
         id: 'core.close.main.tab',
         category: VIEW_CATEGORY,
-        label: 'Close Tab in Main Area'
+        label: nls.localize('core.close.main.tab', 'Close Tab in Main Area')
     };
     export const CLOSE_OTHER_MAIN_TABS: Command = {
         id: 'core.close.other.main.tabs',
         category: VIEW_CATEGORY,
-        label: 'Close Other Tabs in Main Area'
+        label: nls.localize('core.close.other.main.tabs', 'Close Other Tabs in Main Area')
     };
     export const CLOSE_ALL_MAIN_TABS: Command = {
         id: 'core.close.all.main.tabs',
         category: VIEW_CATEGORY,
-        label: 'Close All Tabs in Main Area'
+        label: nls.localize('core.close.all.main.tabs', 'Close All Tabs in Main Area')
     };
     export const COLLAPSE_PANEL: Command = {
         id: 'core.collapse.tab',
         category: VIEW_CATEGORY,
-        label: 'Collapse Side Panel'
+        label: nls.localize('core.collapse.tab', 'Collapse Side Panel')
     };
     export const COLLAPSE_ALL_PANELS: Command = {
         id: 'core.collapse.all.tabs',
         category: VIEW_CATEGORY,
-        label: 'Collapse All Side Panels'
+        label: nls.localize('core.collapse.all.tabs', 'Collapse All Side Panels')
     };
     export const TOGGLE_BOTTOM_PANEL: Command = {
         id: 'core.toggle.bottom.panel',
         category: VIEW_CATEGORY,
-        label: 'Toggle Bottom Panel'
+        label: nls.localize('core.toggle.bottom.panel', 'Toggle Bottom Panel')
     };
     export const TOGGLE_MAXIMIZED: Command = {
         id: 'core.toggleMaximized',
         category: VIEW_CATEGORY,
-        label: 'Toggle Maximized'
+        label: nls.localize('core.toggleMaximized', 'Toggle Maximized')
     };
     export const OPEN_VIEW: Command = {
         id: 'core.openView',
         category: VIEW_CATEGORY,
-        label: 'Open View...'
+        label: nls.localize('vscode/viewQuickAccess', 'Open View...')
     };
 
     export const SAVE: Command = {
         id: 'core.save',
         category: FILE_CATEGORY,
-        label: 'Save',
+        label: nls.localize('vscode/fileCommands/save', 'Save')
     };
     export const SAVE_WITHOUT_FORMATTING: Command = {
         id: 'core.saveWithoutFormatting',
         category: FILE_CATEGORY,
-        label: 'Save without Formatting',
+        label: nls.localize('vscode/fileCommands/saveWithoutFormatting', 'Save without Formatting')
     };
     export const SAVE_ALL: Command = {
         id: 'core.saveAll',
         category: FILE_CATEGORY,
-        label: 'Save All',
+        label: nls.localize('vscode/fileCommands/saveAll', 'Save All')
     };
 
     export const AUTO_SAVE: Command = {
         id: 'textEditor.commands.autosave',
         category: FILE_CATEGORY,
-        label: 'Auto Save',
+        label: nls.localize('vscode/fileActions.contribution/miAutoSave', 'Auto Save')
     };
 
     export const ABOUT_COMMAND: Command = {
         id: 'core.about',
-        label: 'About'
+        label: nls.localize('vscode/windowActions/about', 'About')
     };
 
     export const OPEN_PREFERENCES: Command = {
         id: 'preferences:open',
         category: 'Settings',
-        label: 'Open Preferences',
+        label: nls.localize('vscode/preferences.contribution/preferences', 'Open Preferences')
     };
 
     export const SELECT_COLOR_THEME: Command = {
         id: 'workbench.action.selectTheme',
-        label: 'Color Theme',
+        label: nls.localize('vscode/themes.contribution/selectTheme.label', 'Color Theme'),
         category: 'Preferences'
     };
     export const SELECT_ICON_THEME: Command = {
         id: 'workbench.action.selectIconTheme',
-        label: 'File Icon Theme',
+        label: nls.localize('vscode/themes.contribution/selectIconTheme.label', 'File Icon Theme'),
         category: 'Preferences'
     };
+
+    export const CONFIGURE_DISPLAY_LANGUAGE = Command.toLocalizedCommand({
+        id: 'i18n.configureLanguage',
+        label: 'Configure Display Language'
+    });
 
 }
 
@@ -289,7 +296,8 @@ export class CommonFrontendContribution implements FrontendApplicationContributi
         @inject(SelectionService) protected readonly selectionService: SelectionService,
         @inject(MessageService) protected readonly messageService: MessageService,
         @inject(OpenerService) protected readonly openerService: OpenerService,
-        @inject(AboutDialog) protected readonly aboutDialog: AboutDialog
+        @inject(AboutDialog) protected readonly aboutDialog: AboutDialog,
+        @inject(AsyncLocalizationProvider) protected readonly localizationProvider: AsyncLocalizationProvider
     ) { }
 
     @inject(ContextKeyService)
@@ -441,10 +449,10 @@ export class CommonFrontendContribution implements FrontendApplicationContributi
     }
 
     registerMenus(registry: MenuModelRegistry): void {
-        registry.registerSubmenu(CommonMenus.FILE, 'File');
-        registry.registerSubmenu(CommonMenus.EDIT, 'Edit');
-        registry.registerSubmenu(CommonMenus.VIEW, 'View');
-        registry.registerSubmenu(CommonMenus.HELP, 'Help');
+        registry.registerSubmenu(CommonMenus.FILE, nls.localize('vscode/menubarControl/mFile', 'File'));
+        registry.registerSubmenu(CommonMenus.EDIT, nls.localize('vscode/menubarControl/mEdit', 'Edit'));
+        registry.registerSubmenu(CommonMenus.VIEW, nls.localize('vscode/menubarControl/mView', 'View'));
+        registry.registerSubmenu(CommonMenus.HELP, nls.localize('vscode/menubarControl/mHelp', 'Help'));
 
         registry.registerMenuAction(CommonMenus.FILE_SAVE, {
             commandId: CommonCommands.SAVE.id
@@ -771,6 +779,10 @@ export class CommonFrontendContribution implements FrontendApplicationContributi
         commandRegistry.registerCommand(CommonCommands.SELECT_ICON_THEME, {
             execute: () => this.selectIconTheme()
         });
+
+        commandRegistry.registerCommand(CommonCommands.CONFIGURE_DISPLAY_LANGUAGE, {
+            execute: () => this.configureDisplayLanguage()
+        });
     }
 
     private findTabArea(event?: Event): ApplicationShell.Area | undefined {
@@ -982,6 +994,27 @@ export class CommonFrontendContribution implements FrontendApplicationContributi
         } finally {
             this.shouldPreventClose = false;
         }
+    }
+
+    protected async configureDisplayLanguage(): Promise<void> {
+        const availableLanguages = await this.localizationProvider.getAvailableLanguages();
+        const items: QuickPickItem[] = [];
+        for (const additionalLanguage of ['en', ...availableLanguages]) {
+            items.push({
+                label: additionalLanguage,
+                execute: () => {
+                    if (additionalLanguage !== nls.locale) {
+                        window.localStorage.setItem(nls.localeId, additionalLanguage);
+                        window.location.reload();
+                    }
+                }
+            });
+        }
+        this.quickInputService?.showQuickPick(items,
+            {
+                placeholder: CommonCommands.CONFIGURE_DISPLAY_LANGUAGE.label,
+                activeItem: items.find(item => item.label === (nls.locale || 'en'))
+            });
     }
 
     protected selectIconTheme(): void {

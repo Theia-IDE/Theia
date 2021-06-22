@@ -18,6 +18,7 @@ import { injectable, inject, named } from 'inversify';
 import { Event, Emitter, WaitUntilEvent } from './event';
 import { Disposable, DisposableCollection } from './disposable';
 import { ContributionProvider } from './contribution-provider';
+import { nls } from '../browser/nls';
 
 /**
  * A command is a unique identifier of a function
@@ -33,6 +34,7 @@ export interface Command {
      * A label of this command.
      */
     label?: string;
+    originalLabel?: string;
     /**
      * An icon class of this command.
      */
@@ -41,6 +43,7 @@ export interface Command {
      * A category of this command.
      */
     category?: string;
+    originalCategory?: string;
 }
 
 export namespace Command {
@@ -48,6 +51,17 @@ export namespace Command {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     export function is(arg: Command | any): arg is Command {
         return !!arg && arg === Object(arg) && 'id' in arg;
+    }
+
+    /** Utility function to easily translate commands */
+    export function toLocalizedCommand(command: Command, nlsLabelKey: string = command.id, nlsCategoryKey?: string): Command {
+        return {
+            ...command,
+            label: command.label && nls.localize(nlsLabelKey, command.label),
+            originalLabel: command.label,
+            category: nlsCategoryKey && command.category && nls.localize(nlsCategoryKey, command.category) || command.category,
+            originalCategory: command.category,
+        };
     }
 
     /** Comparator function for when sorting commands */

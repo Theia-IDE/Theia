@@ -68,49 +68,57 @@ export class FrontendGenerator extends AbstractGenerator {
     }
 
     protected compileIndexJs(frontendModules: Map<string, string>): string {
-        return `// @ts-check
+        const compiledModuleImports = this.compileFrontendModuleImports(frontendModules)
+            // fix the generated indentation
+            .replace(/^    /g, '        ');
+        return `\
+// @ts-check
 ${this.ifBrowser("require('es6-promise/auto');")}
 require('reflect-metadata');
 require('setimmediate');
 const { Container } = require('inversify');
 const { FrontendApplicationConfigProvider } = require('@theia/core/lib/browser/frontend-application-config-provider');
+
 FrontendApplicationConfigProvider.set(${this.prettyStringify(this.pck.props.frontend.config)});
-const { FrontendApplication } = require('@theia/core/lib/browser');
-const { frontendApplicationModule } = require('@theia/core/lib/browser/frontend-application-module');
-const { messagingFrontendModule } = require('@theia/core/lib/${this.pck.isBrowser()
+
+const { ThemeService } = require('@theia/core/lib/browser/theming');
+ThemeService.get().loadUserTheme();
+
+const nls = require('@theia/core/lib/browser/nls');
+
+// nls translations MUST be loaded before requiring any code that uses them
+module.exports = nls.loadTranslations().then(() => {
+    const { FrontendApplication } = require('@theia/core/lib/browser');
+    const { frontendApplicationModule } = require('@theia/core/lib/browser/frontend-application-module');
+    const { messagingFrontendModule } = require('@theia/core/lib/${this.pck.isBrowser()
                 ? 'browser/messaging/messaging-frontend-module'
                 : 'electron-browser/messaging/electron-messaging-frontend-module'}');
-const { loggerFrontendModule } = require('@theia/core/lib/browser/logger-frontend-module');
-const { ThemeService } = require('@theia/core/lib/browser/theming');
+    const { loggerFrontendModule } = require('@theia/core/lib/browser/logger-frontend-module');
 
-const container = new Container();
-container.load(frontendApplicationModule);
-container.load(messagingFrontendModule);
-container.load(loggerFrontendModule);
+    const container = new Container();
+    container.load(frontendApplicationModule);
+    container.load(messagingFrontendModule);
+    container.load(loggerFrontendModule);
 
-function load(raw) {
-    return Promise.resolve(raw.default).then(module =>
-        container.load(module)
-    )
-}
+    return Promise.resolve()${compiledModuleImports}
+        .then(start).catch(reason => {
+            console.error('Failed to start the frontend application.');
+            if (reason) {
+                console.error(reason);
+            }
+        });
 
-function start() {
-    (window['theia'] = window['theia'] || {}).container = container;
+    function load(jsModule) {
+        return Promise.resolve(jsModule.default)
+            .then(containerModule => container.load(containerModule));
+    }
 
-    const themeService = ThemeService.get();
-    themeService.loadUserTheme();
-
-    const application = container.get(FrontendApplication);
-    return application.start();
-}
-
-module.exports = Promise.resolve()${this.compileFrontendModuleImports(frontendModules)}
-    .then(start).catch(reason => {
-        console.error('Failed to start the frontend application.');
-        if (reason) {
-            console.error(reason);
-        }
-    });`;
+    function start() {
+        (window['theia'] = window['theia'] || {}).container = container;
+        return container.get(FrontendApplication).start();
+    }
+});
+`;
     }
 
     protected compileElectronMain(electronMainModules?: Map<string, string>): string {

@@ -115,6 +115,10 @@
   },
   "theiaExtensions": [
     {
+      "frontend": "lib/browser/i18n/i18n-frontend-module",
+      "backend": "lib/node/i18n/i18n-backend-module"
+    },
+    {
       "frontend": "lib/browser/menu/browser-menu-module",
       "frontendElectron": "lib/electron-browser/menu/electron-menu-module"
     },

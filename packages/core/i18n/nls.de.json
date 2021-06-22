@@ -1,0 +1,22 @@
+{
+  "file.download": "Herunterladen",
+  "file.copyDownloadLink": "Link zum Herunterladen kopieren",
+  "file.duplicate": "Duplizieren",
+  "callHierarchy.open": "Call-Hierarchy öffnen",
+  "core.nextTabInGroup": "Nächster Tab in der Gruppe",
+  "core.previousTabInGroup": "Vorheriger Tab in der Gruppe",
+  "core.nextTabGroup": "Nächste Tab-Gruppe",
+  "core.previousTabBar": "Vorherige Tab-Gruppe",
+  "core.close.tab": "Registerkarte schließen",
+  "core.close.other.tabs": "Andere Registerkarten schließen",
+  "core.close.right.tabs": "Registerkarten nach rechts schließen",
+  "core.close.all.tabs": "Alle Registerkarten schließen",
+  "core.close.main.tab": "Registerkarte im Hauptbereich schließen",
+  "core.close.other.main.tabs": "Andere Registerkarten im Hauptbereich schließen",
+  "core.close.all.main.tabs": "Alle Registerkarten im Hauptbereich schließen",
+  "core.collapse.tab": "Panel zusammenklappen",
+  "core.collapse.all.tabs": "Alle Panels zusammenklappen",
+  "core.toggle.bottom.panel": "Panel im unteren Bereich öffnen",
+  "core.toggleMaximized": "Maximieren",
+  "i18n.configureLanguage": "Sprache wählen"
+}
