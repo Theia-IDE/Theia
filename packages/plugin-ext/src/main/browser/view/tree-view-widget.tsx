@@ -42,6 +42,7 @@ import { MessageService } from '@theia/core/lib/common/message-service';
 import { View } from '../../../common/plugin-protocol';
 import CoreURI from '@theia/core/lib/common/uri';
 import { ContextKeyService } from '@theia/core/lib/browser/context-key-service';
+import { CancellationTokenSource } from '@theia/core/lib/common';
 
 export const TREE_NODE_HYPERLINK = 'theia-TreeNodeHyperlink';
 export const VIEW_ITEM_CONTEXT_MENU: MenuPath = ['view-item-context-menu'];
@@ -114,6 +115,36 @@ export class PluginTree extends TreeImpl {
 
     get isEmpty(): boolean {
         return this._isEmpty;
+    }
+
+    async refresh(raw?: CompositeTreeNode): Promise<CompositeTreeNode | undefined> {
+        const parent = !raw ? this._root : this.validateNode(raw);
+        let result: CompositeTreeNode | undefined;
+        if (CompositeTreeNode.is(parent)) {
+            const busySource = new CancellationTokenSource();
+            this.doMarkAsBusy(parent, 800, busySource.token);
+            try {
+                result = parent;
+                // Resolve all tree items to enable problem decorator
+                const children = await this.resolveAllChildren(parent);
+                result = await this.setChildren(parent, children);
+            } finally {
+                busySource.cancel();
+            }
+        }
+        this.fireChanged();
+        return result;
+    }
+
+    async resolveAllChildren(parent: CompositeTreeNode): Promise<TreeNode[]> {
+        const children = await this.resolveChildren(parent);
+        children.forEach(async childElement => {
+            if (CompositeTreeNode.is(childElement)) {
+                const innerChildElements = await this.resolveAllChildren(childElement);
+                await this.setChildren(childElement, innerChildElements);
+            }
+        });
+        return children;
     }
 
     protected async resolveChildren(parent: CompositeTreeNode): Promise<TreeNode[]> {
