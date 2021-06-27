@@ -21,23 +21,23 @@ import {
     WidgetFactory,
     WidgetManager
 } from '@theia/core/lib/browser';
-import { FILE_NAVIGATOR_ID } from './navigator-widget';
+import { SearchInWorkspaceWidget } from './search-in-workspace-widget';
 
-export const EXPLORER_VIEW_CONTAINER_ID = 'explorer-view-container';
-export const EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS: ViewContainerTitleOptions = {
-    label: 'Explorer',
-    iconClass: 'navigator-tab-icon',
+export const SEARCH_VIEW_CONTAINER_ID = 'search-view-container';
+export const SEARCH_VIEW_CONTAINER_TITLE_OPTIONS: ViewContainerTitleOptions = {
+    label: 'Search',
+    iconClass: 'search-in-workspace-tab-icon',
     closeable: true
 };
 
 @injectable()
-export class NavigatorWidgetFactory implements WidgetFactory {
+export class SearchInWorkspaceFactory implements WidgetFactory {
 
-    static ID = EXPLORER_VIEW_CONTAINER_ID;
+    static ID = SEARCH_VIEW_CONTAINER_ID;
 
-    readonly id = NavigatorWidgetFactory.ID;
+    readonly id = SearchInWorkspaceFactory.ID;
 
-    protected fileNavigatorWidgetOptions: ViewContainer.Factory.WidgetOptions = {
+    protected searchWidgetOptions: ViewContainer.Factory.WidgetOptions = {
         canHide: false,
         initiallyCollapsed: false,
         disableDraggingToOtherContainers: true
@@ -49,12 +49,12 @@ export class NavigatorWidgetFactory implements WidgetFactory {
 
     async createWidget(): Promise<ViewContainer> {
         const viewContainer = this.viewContainerFactory({
-            id: EXPLORER_VIEW_CONTAINER_ID,
-            progressLocationId: 'explorer'
+            id: SEARCH_VIEW_CONTAINER_ID,
+            progressLocationId: 'search'
         });
-        viewContainer.setTitleOptions(EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS);
-        const widget = await this.widgetManager.getOrCreateWidget(FILE_NAVIGATOR_ID);
-        viewContainer.addWidget(widget, this.fileNavigatorWidgetOptions);
+        viewContainer.setTitleOptions(SEARCH_VIEW_CONTAINER_TITLE_OPTIONS);
+        const widget = await this.widgetManager.getOrCreateWidget(SearchInWorkspaceWidget.ID);
+        viewContainer.addWidget(widget, this.searchWidgetOptions);
         return viewContainer;
     }
 }

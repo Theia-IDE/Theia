@@ -320,6 +320,14 @@ body.theia-editor-highlightModifiedTabs
   align-items: center;
 }
 
+.p-TabBar-tab.drop-target-top {
+  border-top: 2px solid white !important;
+}
+
+.p-TabBar-tab.drop-target-bottom {
+  border-bottom: 2px solid white !important;
+}
+
 /*-----------------------------------------------------------------------------
 | Tab-bar toolbar
 |----------------------------------------------------------------------------*/

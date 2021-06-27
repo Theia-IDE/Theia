@@ -98,7 +98,7 @@
 }
 
 .theia-view-container .part.drop-target {
-    background: var(--theia-sideBar-dropBackground);
+    background: var(--theia-list-dropBackground);
     border: var(--theia-border-width) dashed var(--theia-contrastActiveBorder);
     transition-property: top, left, right, bottom;
     transition-duration: 150ms;

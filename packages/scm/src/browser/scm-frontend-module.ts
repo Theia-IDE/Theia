@@ -95,7 +95,8 @@ export default new ContainerModule(bind => {
             const widget = await container.get(WidgetManager).getOrCreateWidget(SCM_WIDGET_FACTORY_ID);
             viewContainer.addWidget(widget, {
                 canHide: false,
-                initiallyCollapsed: false
+                initiallyCollapsed: false,
+                disableDraggingToOtherContainers: true
             });
             return viewContainer;
         }
