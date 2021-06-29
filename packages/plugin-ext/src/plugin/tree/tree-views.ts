@@ -449,16 +449,16 @@ class TreeViewExtImpl<T> implements Disposable {
     }
 
     setSelection(selectedItemIds: string[]): void {
-        const toDelete = new Set<string>(this.selectedItemIds);
-        for (const id of this.selectedItemIds) {
-            toDelete.delete(id);
-            if (!this.selectedItemIds.has(id)) {
+        if (selectedItemIds.length !== this.selectedItemIds.size) {
+            this.doSetSelection(selectedItemIds);
+            return;
+        }
+
+        for (const newSelection of selectedItemIds) {
+            if (!this.selectedItemIds.has(newSelection)) {
                 this.doSetSelection(selectedItemIds);
                 return;
             }
-        }
-        if (toDelete.size) {
-            this.doSetSelection(selectedItemIds);
         }
     }
     protected doSetSelection(selectedItemIts: string[]): void {
