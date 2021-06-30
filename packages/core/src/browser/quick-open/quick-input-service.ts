@@ -24,6 +24,7 @@ import { Emitter, Event } from '../../common/event';
 import { QuickTitleBar } from './quick-title-bar';
 import { QuickTitleButton } from '../../common/quick-open-model';
 import { CancellationToken } from '../../common/cancellation';
+import { QuickOpenHideReason } from '../../common/quick-open-service';
 
 export interface QuickInputOptions {
 
@@ -149,9 +150,23 @@ export class QuickInputService {
                     label,
                     run: mode => {
                         if (!error && mode === QuickOpenMode.OPEN) {
-                            this.onDidAcceptEmitter.fire(undefined);
-                            resolve(currentText);
-                            return true;
+                            if (validateInput && lookFor !== undefined) {
+                                Promise.resolve(validateInput(lookFor))
+                                    .then(errorMessage => {
+                                        if (errorMessage) {
+                                            label = errorMessage;
+                                            this.quickOpenService.showDecoration(MessageType.Error);
+                                        } else {
+                                            this.onDidAcceptEmitter.fire(undefined);
+                                            resolve(currentText);
+                                            this.quickOpenService.hide(QuickOpenHideReason.ELEMENT_SELECTED);
+                                        }
+                                    });
+                            } else {
+                                this.onDidAcceptEmitter.fire(undefined);
+                                resolve(currentText);
+                                return true;
+                            }
                         }
                         return false;
                     }

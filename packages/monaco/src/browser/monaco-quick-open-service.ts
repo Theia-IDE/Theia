@@ -91,19 +91,7 @@ export class MonacoQuickOpenService extends QuickOpenService {
     }
 
     hide(reason?: QuickOpenHideReason): void {
-        let hideReason: monaco.quickOpen.HideReason | undefined;
-        switch (reason) {
-            case QuickOpenHideReason.ELEMENT_SELECTED:
-                hideReason = monaco.quickOpen.HideReason.ELEMENT_SELECTED;
-                break;
-            case QuickOpenHideReason.FOCUS_LOST:
-                hideReason = monaco.quickOpen.HideReason.FOCUS_LOST;
-                break;
-            case QuickOpenHideReason.CANCELED:
-                hideReason = monaco.quickOpen.HideReason.CANCELED;
-                break;
-        }
-        this.widget.hide(hideReason);
+        this.widget.hide(reason as number);
     }
 
     showDecoration(type: MessageType): void {
