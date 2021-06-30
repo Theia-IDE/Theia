@@ -34,6 +34,8 @@ import { NavigationLocationService } from './navigation/navigation-location-serv
 import { NavigationLocationSimilarity } from './navigation/navigation-location-similarity';
 import { EditorVariableContribution } from './editor-variable-contribution';
 import { EditorQuickOpenService } from './editor-quick-open-service';
+import { EditorGotoSymbolQuickOpenService, EditorGotoSymbolQuickOpenContribution } from './editor-goto-symbol-quick-open-service';
+import { EditorGotoLineQuickOpenService, EditorGotoLineQuickOpenContribution } from './editor-goto-line-quick-open-service';
 
 export default new ContainerModule(bind => {
     bindEditorPreferences(bind);
@@ -77,4 +79,14 @@ export default new ContainerModule(bind => {
     bind(ActiveEditorAccess).toSelf().inSingletonScope();
     bind(EditorAccess).to(CurrentEditorAccess).inSingletonScope().whenTargetNamed(EditorAccess.CURRENT);
     bind(EditorAccess).to(ActiveEditorAccess).inSingletonScope().whenTargetNamed(EditorAccess.ACTIVE);
+
+    bind(EditorGotoLineQuickOpenService).toSelf().inSingletonScope();
+    bind(EditorGotoSymbolQuickOpenService).toSelf().inSingletonScope();
+
+    bind(EditorGotoLineQuickOpenContribution).toSelf().inSingletonScope();
+    bind(EditorGotoSymbolQuickOpenContribution).toSelf().inSingletonScope();
+    for (const identifier of [CommandContribution, QuickOpenContribution]) {
+        bind(identifier).toService(EditorGotoLineQuickOpenContribution);
+        bind(identifier).toService(EditorGotoSymbolQuickOpenContribution);
+    }
 });
