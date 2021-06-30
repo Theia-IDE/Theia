@@ -15,12 +15,14 @@
  ********************************************************************************/
 
 import 'reflect-metadata';
+import dynamicRequire = require('@theia/dynamic-require');
 import { ConsoleLogger } from 'vscode-ws-jsonrpc/lib/logger';
 import { createMessageConnection, IPCMessageReader, IPCMessageWriter, Trace } from 'vscode-ws-jsonrpc';
-import { checkParentAlive, ipcEntryPoint, IPCEntryPoint } from './ipc-protocol';
+import { checkParentAlive, IPCEntryPoint } from './ipc-protocol';
 
 checkParentAlive();
 
+const entryPoint = IPCEntryPoint.getScriptFromEnv();
 const reader = new IPCMessageReader(process);
 const writer = new IPCMessageWriter(process);
 const logger = new ConsoleLogger();
@@ -30,5 +32,4 @@ connection.trace(Trace.Off, {
     log: (message: any, data?: string) => console.log(message, data)
 });
 
-const entryPoint = require(ipcEntryPoint!).default as IPCEntryPoint;
-entryPoint(connection);
+dynamicRequire<{ default: IPCEntryPoint }>(entryPoint).default(connection);

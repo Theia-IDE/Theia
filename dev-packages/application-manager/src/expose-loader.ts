@@ -14,6 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
+import * as fs from 'fs-extra';
 import * as path from 'path';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import type { RawSourceMap } from 'source-map';
@@ -65,7 +66,7 @@ export = function (this: any, source: string, sourceMap?: RawSourceMap): string 
         let dir = this.resourcePath;
         while ((dir = path.dirname(dir)) !== nodeModulesPath) {
             try {
-                const { name } = require(path.join(dir, 'package.json'));
+                const { name } = fs.readJSONSync(path.join(dir, 'package.json'));
                 modulePackage = { name, dir };
                 modulePackages.push(modulePackage);
                 this.callback(undefined, exposeModule(modulePackage, this.resourcePath, source), sourceMap);

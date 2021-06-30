@@ -131,17 +131,25 @@
       }
     ],
     "@theia/shared-dependencies": "error",
-    "import/no-extraneous-dependencies": "error"
+    "import/no-extraneous-dependencies": "error",
+    "import/no-dynamic-require": "error"
   },
   "overrides": [
     {
       "files": [
-        "dev-packages",
-        "*.{spec,espec,slow-spec}.{js,ts}"
+        "**/*.{spec,espec,slow-spec}.{js,ts}"
       ],
       "rules": {
         "@theia/shared-dependencies": "off",
         "import/no-extraneous-dependencies": "off"
+      }
+    },
+    {
+      "files": [
+        "**/electron-{node,main}/**"
+      ],
+      "rules": {
+        "import/no-dynamic-require": "off"
       }
     }
   ]

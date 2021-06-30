@@ -98,13 +98,11 @@ export abstract class AbstractVSCodeDebugAdapterContribution implements DebugAda
     }
 
     protected async parse(): Promise<VSCodeExtensionPackage> {
-        let text = (await fs.readFile(this.pckPath)).toString();
+        let text: string = await fs.readFile(this.pckPath, 'utf8');
 
         const nlsPath = path.join(this.extensionPath, 'package.nls.json');
-        if (fs.existsSync(nlsPath)) {
-            const nlsMap: {
-                [key: string]: string
-            } = require(nlsPath);
+        if (await fs.pathExists(nlsPath)) {
+            const nlsMap: Record<string, string> = await fs.readJSON(nlsPath);
             for (const key of Object.keys(nlsMap)) {
                 const value = nlsMap[key].replace(/\"/g, '\\"');
                 text = text.split('%' + key + '%').join(value);

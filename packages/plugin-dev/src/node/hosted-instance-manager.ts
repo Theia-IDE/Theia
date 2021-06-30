@@ -16,7 +16,7 @@
 
 import { inject, injectable, named } from '@theia/core/shared/inversify';
 import * as cp from 'child_process';
-import * as fs from 'fs';
+import * as fs from '@theia/core/shared/fs-extra';
 import * as net from 'net';
 import * as path from 'path';
 import * as request from 'request';
@@ -229,9 +229,10 @@ export abstract class AbstractHostedInstanceManager implements HostedInstanceMan
     isPluginValid(uri: URI): boolean {
         const pckPath = path.join(FileUri.fsPath(uri), 'package.json');
         if (fs.existsSync(pckPath)) {
-            const pck = require(pckPath);
+            const pck = fs.readJSONSync(pckPath);
             try {
-                return !!this.metadata.getScanner(pck);
+                this.metadata.getScanner(pck);
+                return true;
             } catch (e) {
                 console.error(e);
                 return false;

@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import * as fs from 'fs';
+import * as fs from '@theia/core/shared/fs-extra';
 import * as path from 'path';
 import { injectable } from '@theia/core/shared/inversify';
 import { RecursivePartial } from '@theia/core';
@@ -76,7 +76,7 @@ export class PluginVsCodeDirectoryHandler implements PluginDeployerDirectoryHand
 
     protected requirePackage(pluginPath: string): PluginPackage | undefined {
         try {
-            return require(path.join(pluginPath, 'package.json'));
+            return fs.readJSONSync(path.join(pluginPath, 'package.json'));
         } catch {
             return undefined;
         }

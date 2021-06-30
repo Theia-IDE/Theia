@@ -183,6 +183,9 @@
       ],
       "@theia/ovsx-client/lib/*": [
         "dev-packages/ovsx-client/src/*"
+      ],
+      "@theia/dynamic-require/*": [
+        "dev-packages/dynamic-require/*"
       ]
     }
   }

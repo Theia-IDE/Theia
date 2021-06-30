@@ -9,6 +9,7 @@
     "@theia/callhierarchy": "1.14.0",
     "@theia/core": "1.14.0",
     "@theia/debug": "1.14.0",
+    "@theia/dynamic-require": "1.14.0",
     "@theia/editor": "1.14.0",
     "@theia/file-search": "1.14.0",
     "@theia/filesystem": "1.14.0",

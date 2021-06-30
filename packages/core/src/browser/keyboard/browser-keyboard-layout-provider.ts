@@ -401,6 +401,8 @@ function loadLayout(fileName: string): KeyboardLayoutData {
         name: name.replace('_', ' '),
         hardware: hardware as 'pc' | 'mac',
         language,
+        // Webpack knows what to do here and it should bundle all files under `../../../src/common/keyboard/layouts/`
+        // eslint-disable-next-line import/no-dynamic-require
         raw: require('../../../src/common/keyboard/layouts/' + fileName + '.json')
     };
 }

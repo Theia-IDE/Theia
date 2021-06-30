@@ -40,24 +40,23 @@ export class MetadataScanner {
     /**
      * Returns the first suitable scanner.
      *
+     * Throws if no scanner was found.
+     *
      * @param {PluginPackage} plugin
      * @returns {PluginScanner}
      */
     getScanner(plugin: PluginPackage): PluginScanner {
-        let scanner;
+        let scanner: PluginScanner | undefined;
         if (plugin && plugin.engines) {
             const scanners = Object.keys(plugin.engines)
-                .filter((engineName: string) => this.scanners.has(engineName))
-                .map((engineName: string) => this.scanners.get(engineName));
-
+                .filter(engineName => this.scanners.has(engineName))
+                .map(engineName => this.scanners.get(engineName)!);
             // get the first suitable scanner from the list
             scanner = scanners[0];
         }
-
         if (!scanner) {
             throw new Error('There is no suitable scanner found for ' + plugin.name);
         }
-
         return scanner;
     }
 }

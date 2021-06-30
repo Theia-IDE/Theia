@@ -22,8 +22,6 @@ import { ExtensionPackageCollector } from './extension-package-collector';
 import { ApplicationProps } from './application-props';
 const merge = require('deepmerge/dist/cjs');
 
-// tslint:disable:no-implicit-dependencies
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ApplicationLog = (message?: any, ...optionalParams: any[]) => void;
 export class ApplicationPackageOptions {

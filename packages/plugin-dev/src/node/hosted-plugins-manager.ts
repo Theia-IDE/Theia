@@ -17,7 +17,7 @@
 import { inject, injectable } from '@theia/core/shared/inversify';
 import * as cp from 'child_process';
 import * as processTree from 'ps-tree';
-import * as fs from 'fs';
+import * as fs from '@theia/core/shared/fs-extra';
 import * as path from 'path';
 import { FileUri } from '@theia/core/lib/node';
 import { HostedPluginSupport } from '@theia/plugin-ext/lib/hosted/node/hosted-plugin';
@@ -134,7 +134,7 @@ export class HostedPluginsManagerImpl implements HostedPluginsManager {
     protected checkWatchScript(pluginPath: string): boolean {
         const pluginPackageJsonPath = path.join(pluginPath, 'package.json');
         if (fs.existsSync(pluginPackageJsonPath)) {
-            const packageJson = require(pluginPackageJsonPath);
+            const packageJson = fs.readJSONSync(pluginPackageJsonPath);
             const scripts = packageJson['scripts'];
             if (scripts && scripts['watch']) {
                 return true;

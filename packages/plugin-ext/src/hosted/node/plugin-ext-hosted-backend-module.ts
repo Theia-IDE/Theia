@@ -62,7 +62,9 @@ export function bindCommonHostedBackend(bind: interfaces.Bind): void {
     bind(PluginDeployerHandler).toService(HostedPluginDeployerHandler);
 
     bind(GrammarsReader).toSelf().inSingletonScope();
-    bind(HostedPluginProcessConfiguration).toConstantValue({ path: path.resolve(__dirname, 'plugin-host.js') });
+    bind(HostedPluginProcessConfiguration).toConstantValue({
+        path: path.join(__dirname, 'plugin-host'),
+    });
 
     bind(ConnectionContainerModule).toConstantValue(commonHostedConnectionModule);
     bind(PluginUriFactory).to(FilePluginUriFactory).inSingletonScope();

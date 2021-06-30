@@ -74,9 +74,9 @@ export function bindFileSystemWatcherServer(bind: interfaces.Bind): void {
     bind(FileSystemWatcherServerClient).toSelf();
     bind(FileSystemWatcherServer).toService(FileSystemWatcherServerClient);
 
-    bind<NsfwFileSystemWatcherServiceProcessOptions>(NsfwFileSystemWatcherServiceProcessOptions).toConstantValue({
-        entryPoint: path.resolve(__dirname, 'nsfw-watcher'),
-    });
+    bind<NsfwFileSystemWatcherServiceProcessOptions>(NsfwFileSystemWatcherServiceProcessOptions).toDynamicValue(ctx => ({
+        entryPoint: path.join(__dirname, 'nsfw-watcher'),
+    })).inSingletonScope();
     bind<NsfwFileSystemWatcherServerOptions>(NsfwFileSystemWatcherServerOptions).toDynamicValue(ctx => {
         const logger = ctx.container.get<ILogger>(ILogger);
         const nsfwOptions = ctx.container.get<NsfwOptions>(NsfwOptions);

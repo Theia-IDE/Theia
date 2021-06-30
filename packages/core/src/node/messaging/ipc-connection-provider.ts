@@ -14,8 +14,8 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import * as path from 'path';
 import * as cp from 'child_process';
+import * as path from 'path';
 import { injectable, inject } from 'inversify';
 import { Trace, IPCMessageReader, IPCMessageWriter, createMessageConnection, MessageConnection, Message } from 'vscode-ws-jsonrpc';
 import { ILogger, ConnectionErrorHandler, DisposableCollection, Disposable } from '../../common';
@@ -103,7 +103,7 @@ export class IPCConnectionProvider {
             forkOptions.execArgv = ['--nolazy', `--inspect${inspectArg.substr(inspectArgPrefix.length)}`];
         }
 
-        const childProcess = cp.fork(path.resolve(__dirname, 'ipc-bootstrap.js'), options.args, forkOptions);
+        const childProcess = cp.fork(path.join(__dirname, 'ipc-bootstrap'), options.args, forkOptions);
         childProcess.stdout!.on('data', data => this.logger.info(`[${options.serverName}: ${childProcess.pid}] ${data.toString().trim()}`));
         childProcess.stderr!.on('data', data => this.logger.error(`[${options.serverName}: ${childProcess.pid}] ${data.toString().trim()}`));
 

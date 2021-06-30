@@ -1,0 +1,22 @@
+{
+  "name": "@theia/dynamic-require",
+  "version": "1.14.0",
+  "description": "Theia internal utility to wrap and factorize dynamic require calls on Node",
+  "main": "index.js",
+  "typings": "index.d.ts",
+  "engines": {
+    "node": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eclipse-theia/theia.git"
+  },
+  "bugs": {
+    "url": "https://github.com/eclipse-theia/theia/issues"
+  },
+  "homepage": "https://github.com/eclipse-theia/theia"
+}

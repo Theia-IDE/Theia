@@ -20,7 +20,7 @@ import {
     PluginDeployerEntryType
 } from '../../../common/plugin-protocol';
 import { injectable } from '@theia/core/shared/inversify';
-import * as fs from 'fs';
+import * as fs from '@theia/core/shared/fs-extra';
 import * as path from 'path';
 
 @injectable()
@@ -44,7 +44,7 @@ export class PluginTheiaDirectoryHandler implements PluginDeployerDirectoryHandl
 
         let packageJson: PluginPackage = resolvedPlugin.getValue('package.json');
         if (!packageJson) {
-            packageJson = require(packageJsonPath);
+            packageJson = fs.readJSONSync(packageJsonPath);
             resolvedPlugin.storeValue('package.json', packageJson);
         }
 
