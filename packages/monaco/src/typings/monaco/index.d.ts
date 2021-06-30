@@ -144,11 +144,13 @@ declare module monaco.editor {
         setDecorationsFast(decorationTypeKey: string, ranges: IRange[]): void;
         trigger(source: string, handlerId: string, payload: any): void
         _standaloneKeybindingService: {
+            _commandService: monaco.services.StandaloneCommandService;
             _store: {
                 _toDispose: monaco.IDisposable[]
             }
             resolveKeybinding(keybinding: monaco.keybindings.ChordKeybinding): monaco.keybindings.ResolvedKeybinding[];
             resolveKeyboardEvent(keyboardEvent: monaco.IKeyboardEvent): monaco.keybindings.ResolvedKeybinding;
+            addDynamicKeybinding(commandId: string, _keybinding: number, handler: ICommandHandler, when: monaco.contextkey.ContextKeyExpr | undefined): IDisposable;
         }
     }
 

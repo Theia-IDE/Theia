@@ -54,6 +54,12 @@ export interface ResolvedKeybinding extends common.Keybinding {
     resolved?: KeyCode[];
 }
 
+export namespace ResolvedKeybinding {
+    export function is(arg: ResolvedKeybinding): arg is ResolvedKeybinding {
+        return common.Keybinding.is(arg) && 'resolved' in arg;
+    }
+}
+
 export interface ScopedKeybinding extends common.Keybinding {
     /** Current keybinding scope */
     scope: KeybindingScope;

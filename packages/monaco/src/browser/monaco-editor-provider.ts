@@ -36,7 +36,7 @@ import { MonacoBulkEditService } from './monaco-bulk-edit-service';
 import IEditorOverrideServices = monaco.editor.IEditorOverrideServices;
 import { ApplicationServer } from '@theia/core/lib/common/application-protocol';
 import { ContributionProvider } from '@theia/core';
-import { KeybindingRegistry, OpenerService, open, WidgetOpenerOptions, FormatType } from '@theia/core/lib/browser';
+import { KeybindingRegistry, OpenerService, open, WidgetOpenerOptions, FormatType, KeybindingScope, ResolvedKeybinding } from '@theia/core/lib/browser';
 import { MonacoResolvedKeybinding } from './monaco-resolved-keybinding';
 import { HttpOpenHandlerOptions } from '@theia/core/lib/browser/http-open-handler';
 import { MonacoToProtocolConverter } from './monaco-to-protocol-converter';
@@ -174,12 +174,13 @@ export class MonacoEditorProvider {
 
         this.suppressMonacoKeybindingListener(editor);
         this.injectKeybindingResolver(editor);
-
         const standaloneCommandService = new monaco.services.StandaloneCommandService(editor.instantiationService);
         commandService.setDelegate(standaloneCommandService);
+
+        this.addDynamicKeybindings(editor, standaloneCommandService, KeybindingScope.USER);
+
         toDispose.push(this.installQuickOpenService(editor));
         toDispose.push(this.installReferencesController(editor));
-
         toDispose.push(editor.onFocusChanged(focused => {
             if (focused) {
                 this._current = editor;
@@ -190,8 +191,29 @@ export class MonacoEditorProvider {
                 this._current = undefined;
             }
         }));
+        toDispose.push(this.keybindingRegistry.onKeybindingsChanged(() => {
+            this.addDynamicKeybindings(editor, standaloneCommandService, KeybindingScope.USER);
+        }));
 
         return editor;
+    }
+
+    protected addDynamicKeybindings(editor: MonacoEditor, standaloneCommandService: monaco.services.StandaloneCommandService, scope: KeybindingScope): void {
+        const keybindings = this.keybindingRegistry.getKeybindingsByScope(scope);
+        if (keybindings.length > 0) {
+            const keybindingService = editor.getControl()._standaloneKeybindingService;
+            if (keybindingService) {
+                keybindingService._commandService = standaloneCommandService;
+
+                keybindings.forEach(kb => {
+                    const monacoKB = MonacoResolvedKeybinding.getMonacoKeybinding(kb as ResolvedKeybinding);
+                    if (monacoKB !== monaco.KeyCode.Unknown) {
+                        keybindingService.addDynamicKeybinding(kb.command, monacoKB, () => {/* NOOP */ },
+                            kb.when ? monaco.contextkey.ContextKeyExpr.deserialize(kb.when) : undefined);
+                    }
+                });
+            }
+        }
     }
 
     /**

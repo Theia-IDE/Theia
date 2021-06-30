@@ -14,7 +14,7 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { KeybindingRegistry } from '@theia/core/lib/browser/keybinding';
+import { KeybindingRegistry, ResolvedKeybinding } from '@theia/core/lib/browser/keybinding';
 import { KeyCode, KeySequence, Keystroke, Key, KeyModifier } from '@theia/core/lib/browser/keys';
 import { isOSX } from '@theia/core/lib/common/os';
 import { KEY_CODE_MAP } from './monaco-keycode-map';
@@ -122,6 +122,24 @@ export class MonacoResolvedKeybinding extends monaco.keybindings.ResolvedKeybind
         return keybinding.parts.map(part => this.keyCode(part));
     }
 
+    static getMonacoKeybinding(keybinding: ResolvedKeybinding): number {
+        let monacoKB = monaco.KeyCode.Unknown;
+        if (keybinding && ResolvedKeybinding.is(keybinding) && keybinding.resolved && keybinding.resolved.length > 0) {
+            const firstPart = this.getMonacoKeybindingPart(keybinding.resolved[0]);
+            const secondPart = keybinding.resolved.length > 1 ? this.getMonacoKeybindingPart(keybinding.resolved[1]) : 0;
+            monacoKB = monaco.KeyMod.chord(firstPart, secondPart);
+        }
+        return monacoKB;
+    }
+
+    private static getMonacoKeybindingPart(keyCode: KeyCode): number {
+        return keyCode && keyCode.key ? this.browserKeyCode2Monaco(keyCode.key.keyCode)
+            | (keyCode.shift ? monaco.KeyMod.Shift : 0)
+            | (keyCode.alt ? monaco.KeyMod.Alt : 0)
+            | (keyCode.ctrl ? (monaco.platform.OS === monaco.platform.OperatingSystem.Macintosh ? monaco.KeyMod.WinCtrl : monaco.KeyMod.CtrlCmd) : 0)
+            | (keyCode.meta ? (monaco.platform.OS === monaco.platform.OperatingSystem.Macintosh ? monaco.KeyMod.CtrlCmd : monaco.KeyMod.WinCtrl) : 0) : monaco.KeyCode.Unknown;
+    }
+
     private static monaco2BrowserKeyCode(keyCode: monaco.KeyCode): number {
         for (let i = 0; i < KEY_CODE_MAP.length; i++) {
             if (KEY_CODE_MAP[i] === keyCode) {
@@ -131,4 +149,7 @@ export class MonacoResolvedKeybinding extends monaco.keybindings.ResolvedKeybind
         return -1;
     }
 
+    private static browserKeyCode2Monaco(browserKeyCode: number): number {
+        return KEY_CODE_MAP[browserKeyCode];
+    }
 }
