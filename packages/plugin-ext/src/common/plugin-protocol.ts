@@ -786,8 +786,8 @@ export interface PluginDependencies {
 
 export const PluginDeployerHandler = Symbol('PluginDeployerHandler');
 export interface PluginDeployerHandler {
-    deployFrontendPlugins(frontendPlugins: PluginDeployerEntry[]): Promise<void>;
-    deployBackendPlugins(backendPlugins: PluginDeployerEntry[]): Promise<void>;
+    deployFrontendPlugins(frontendPlugins: PluginDeployerEntry[]): Promise<string[]>;
+    deployBackendPlugins(backendPlugins: PluginDeployerEntry[]): Promise<string[]>;
 
     undeployPlugin(pluginId: string): Promise<boolean>;
 
@@ -841,13 +841,18 @@ export interface PluginServer {
      *
      * @param type whether a plugin is installed by a system or a user, defaults to a user
      */
-    deploy(pluginEntry: string, type?: PluginType): Promise<void>;
+    deploy(pluginEntry: string, type?: PluginType): Promise<DeployResult>;
 
     undeploy(pluginId: string): Promise<void>;
 
     setStorageValue(key: string, value: KeysToAnyValues, kind: PluginStorageKind): Promise<boolean>;
     getStorageValue(key: string, kind: PluginStorageKind): Promise<KeysToAnyValues>;
     getAllStorageValues(kind: PluginStorageKind): Promise<KeysToKeysToAnyValue>;
+}
+
+export interface DeployResult {
+    deployedPluginIds: string[];
+    unresolvedPluginIds: string[];
 }
 
 export const ServerPluginRunner = Symbol('ServerPluginRunner');

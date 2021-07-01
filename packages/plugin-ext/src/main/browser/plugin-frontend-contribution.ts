@@ -31,7 +31,7 @@ export class PluginApiFrontendContribution implements CommandContribution {
 
     registerCommands(commands: CommandRegistry): void {
 
-        commands.registerCommand(PluginExtDeployCommandService.COMMAND, {
+        commands.registerCommand(PluginExtDeployCommandService.DEPLOY_PLUGIN_BY_ID_COMMAND, {
             execute: () => this.pluginExtDeployCommandService.deploy()
         });
 
@@ -40,5 +40,4 @@ export class PluginApiFrontendContribution implements CommandContribution {
             isVisible: () => false
         });
     }
-
 }

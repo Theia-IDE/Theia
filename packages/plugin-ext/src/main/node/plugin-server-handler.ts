@@ -18,7 +18,7 @@ import { injectable, inject } from '@theia/core/shared/inversify';
 import { CancellationToken } from '@theia/core/lib/common/cancellation';
 import { PluginDeployerImpl } from './plugin-deployer-impl';
 import { PluginsKeyValueStorage } from './plugins-key-value-storage';
-import { PluginServer, PluginDeployer, PluginStorageKind, PluginType } from '../../common/plugin-protocol';
+import { PluginServer, PluginDeployer, PluginStorageKind, PluginType, DeployResult } from '../../common/plugin-protocol';
 import { KeysToAnyValues, KeysToKeysToAnyValue } from '../../common/types';
 
 @injectable()
@@ -30,11 +30,11 @@ export class PluginServerHandler implements PluginServer {
     @inject(PluginsKeyValueStorage)
     protected readonly pluginsKeyValueStorage: PluginsKeyValueStorage;
 
-    deploy(pluginEntry: string, arg2?: PluginType | CancellationToken): Promise<void> {
+    deploy(pluginEntry: string, arg2?: PluginType | CancellationToken): Promise<DeployResult> {
         const type = typeof arg2 === 'number' ? arg2 as PluginType : undefined;
         return this.doDeploy(pluginEntry, type);
     }
-    protected doDeploy(pluginEntry: string, type: PluginType = PluginType.User): Promise<void> {
+    protected doDeploy(pluginEntry: string, type: PluginType = PluginType.User): Promise<DeployResult> {
         return this.pluginDeployer.deploy(pluginEntry, type);
     }
 

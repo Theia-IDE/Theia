@@ -21,7 +21,7 @@ import {
     PluginDeployerResolver, PluginDeployerFileHandler, PluginDeployerDirectoryHandler,
     PluginDeployerEntry, PluginDeployer, PluginDeployerParticipant, PluginDeployerStartContext,
     PluginDeployerResolverInit, PluginDeployerFileHandlerContext,
-    PluginDeployerDirectoryHandlerContext, PluginDeployerEntryType, PluginDeployerHandler, PluginType
+    PluginDeployerDirectoryHandlerContext, PluginDeployerEntryType, PluginDeployerHandler, PluginType, DeployResult
 } from '../../common/plugin-protocol';
 import { PluginDeployerEntryImpl } from './plugin-deployer-entry-impl';
 import {
@@ -122,7 +122,7 @@ export class PluginDeployerImpl implements PluginDeployer {
             this.resolvePlugins(context.userEntries, PluginType.User),
             this.resolvePlugins(context.systemEntries, PluginType.System)
         ]);
-        await this.deployPlugins([...userPlugins, ...systemPlugins]);
+        await this.deployPlugins([...userPlugins.pluginsToDeploy, ...systemPlugins.pluginsToDeploy]);
         this.logMeasurement('Deploy plugins list', startDeployTime);
     }
 
@@ -132,15 +132,20 @@ export class PluginDeployerImpl implements PluginDeployer {
         }
     }
 
-    async deploy(pluginEntry: string, type: PluginType = PluginType.System): Promise<void> {
+    async deploy(pluginEntry: string, type: PluginType = PluginType.System): Promise<DeployResult> {
         const startDeployTime = performance.now();
-        await this.deployMultipleEntries([pluginEntry], type);
+        const result = await this.deployMultipleEntries([pluginEntry], type);
         this.logMeasurement('Deploy plugin entry', startDeployTime);
+        return result;
     }
 
-    protected async deployMultipleEntries(pluginEntries: ReadonlyArray<string>, type: PluginType = PluginType.System): Promise<void> {
-        const pluginsToDeploy = await this.resolvePlugins(pluginEntries, type);
-        await this.deployPlugins(pluginsToDeploy);
+    protected async deployMultipleEntries(pluginEntries: ReadonlyArray<string>, type: PluginType = PluginType.System): Promise<DeployResult> {
+        let deployedPluginIds: string[] = [];
+        const result = await this.resolvePlugins(pluginEntries, type);
+        if (result.pluginsToDeploy.length > 0) {
+            deployedPluginIds = await this.deployPlugins(result.pluginsToDeploy);
+        }
+        return { deployedPluginIds, unresolvedPluginIds: result.unresolvedPluginIds };
     }
 
     /**
@@ -155,8 +160,9 @@ export class PluginDeployerImpl implements PluginDeployer {
      * ]);
      * ```
      */
-    async resolvePlugins(pluginEntries: ReadonlyArray<string>, type: PluginType): Promise<PluginDeployerEntry[]> {
+    async resolvePlugins(pluginEntries: ReadonlyArray<string>, type: PluginType): Promise<{ pluginsToDeploy: PluginDeployerEntry[], unresolvedPluginIds: string[] }> {
         const visited = new Set<string>();
+        const unresolvedPluginIds: string[] = [];
         const pluginsToDeploy = new Map<string, PluginDeployerEntry>();
 
         let queue = [...pluginEntries];
@@ -176,14 +182,18 @@ export class PluginDeployerImpl implements PluginDeployer {
             await Promise.all(workload.map(async current => {
                 try {
                     const pluginDeployerEntries = await this.resolvePlugin(current, type);
-                    await this.applyFileHandlers(pluginDeployerEntries);
-                    await this.applyDirectoryFileHandlers(pluginDeployerEntries);
-                    for (const deployerEntry of pluginDeployerEntries) {
-                        const dependencies = await this.pluginDeployerHandler.getPluginDependencies(deployerEntry);
-                        if (dependencies && !pluginsToDeploy.has(dependencies.metadata.model.id)) {
-                            pluginsToDeploy.set(dependencies.metadata.model.id, deployerEntry);
-                            if (dependencies.mapping) {
-                                dependenciesChunk.push(dependencies.mapping);
+                    unresolvedPluginIds.push(...pluginDeployerEntries.filter(entry => !entry.isResolved()).map(entry => entry.id()));
+                    const resolvedPluginDeployerEntries = pluginDeployerEntries.filter(entry => entry.isResolved());
+                    if (resolvedPluginDeployerEntries.length > 0) {
+                        await this.applyFileHandlers(resolvedPluginDeployerEntries);
+                        await this.applyDirectoryFileHandlers(resolvedPluginDeployerEntries);
+                        for (const deployerEntry of pluginDeployerEntries) {
+                            const dependencies = await this.pluginDeployerHandler.getPluginDependencies(deployerEntry);
+                            if (dependencies && !pluginsToDeploy.has(dependencies.metadata.model.id)) {
+                                pluginsToDeploy.set(dependencies.metadata.model.id, deployerEntry);
+                                if (dependencies.mapping) {
+                                    dependenciesChunk.push(dependencies.mapping);
+                                }
                             }
                         }
                     }
@@ -199,13 +209,13 @@ export class PluginDeployerImpl implements PluginDeployer {
                 }
             }
         }
-        return [...pluginsToDeploy.values()];
+        return { pluginsToDeploy: [...pluginsToDeploy.values()], unresolvedPluginIds };
     }
 
     /**
      * deploy all plugins that have been accepted
      */
-    async deployPlugins(pluginsToDeploy: PluginDeployerEntry[]): Promise<any> {
+    async deployPlugins(pluginsToDeploy: PluginDeployerEntry[]): Promise<string[]> {
         const acceptedPlugins = pluginsToDeploy.filter(pluginDeployerEntry => pluginDeployerEntry.isAccepted());
         const acceptedFrontendPlugins = pluginsToDeploy.filter(pluginDeployerEntry => pluginDeployerEntry.isAccepted(PluginDeployerEntryType.FRONTEND));
         const acceptedBackendPlugins = pluginsToDeploy.filter(pluginDeployerEntry => pluginDeployerEntry.isAccepted(PluginDeployerEntryType.BACKEND));
@@ -222,12 +232,14 @@ export class PluginDeployerImpl implements PluginDeployer {
         const pluginPaths = acceptedBackendPlugins.map(pluginEntry => pluginEntry.path());
         this.logger.debug('local path to deploy on remote instance', pluginPaths);
 
-        await Promise.all([
+        const [backendPluginIds, frontendPluginIds] = await Promise.all([
             // start the backend plugins
             this.pluginDeployerHandler.deployBackendPlugins(acceptedBackendPlugins),
             this.pluginDeployerHandler.deployFrontendPlugins(acceptedFrontendPlugins)
         ]);
+
         this.onDidDeployEmitter.fire(undefined);
+        return [...backendPluginIds, ...frontendPluginIds];
     }
 
     /**
@@ -236,7 +248,7 @@ export class PluginDeployerImpl implements PluginDeployer {
     public async applyFileHandlers(pluginDeployerEntries: PluginDeployerEntry[]): Promise<any> {
         const waitPromises: Array<Promise<any>> = [];
 
-        pluginDeployerEntries.filter(pluginDeployerEntry => pluginDeployerEntry.isResolved()).map(pluginDeployerEntry => {
+        pluginDeployerEntries.map(pluginDeployerEntry => {
             this.pluginDeployerFileHandlers.map(pluginFileHandler => {
                 const proxyPluginDeployerEntry = new ProxyPluginDeployerEntry(pluginFileHandler, (pluginDeployerEntry) as PluginDeployerEntryImpl);
                 if (pluginFileHandler.accept(proxyPluginDeployerEntry)) {
@@ -256,7 +268,7 @@ export class PluginDeployerImpl implements PluginDeployer {
     public async applyDirectoryFileHandlers(pluginDeployerEntries: PluginDeployerEntry[]): Promise<any> {
         const waitPromises: Array<Promise<any>> = [];
 
-        pluginDeployerEntries.filter(pluginDeployerEntry => pluginDeployerEntry.isResolved()).map(pluginDeployerEntry => {
+        pluginDeployerEntries.map(pluginDeployerEntry => {
             this.pluginDeployerDirectoryHandlers.map(pluginDirectoryHandler => {
                 const proxyPluginDeployerEntry = new ProxyPluginDeployerEntry(pluginDirectoryHandler, (pluginDeployerEntry) as PluginDeployerEntryImpl);
                 if (pluginDirectoryHandler.accept(proxyPluginDeployerEntry)) {

@@ -88,31 +88,36 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
         }
     }
 
-    async deployFrontendPlugins(frontendPlugins: PluginDeployerEntry[]): Promise<void> {
+    async deployFrontendPlugins(frontendPlugins: PluginDeployerEntry[]): Promise<string[]> {
+        const deployedPluginIds: string[] = [];
         for (const plugin of frontendPlugins) {
-            await this.deployPlugin(plugin, 'frontend');
+            deployedPluginIds.push(...await this.deployPlugin(plugin, 'frontend'));
         }
         // resolve on first deploy
         this.frontendPluginsMetadataDeferred.resolve(undefined);
+        return deployedPluginIds;
     }
 
-    async deployBackendPlugins(backendPlugins: PluginDeployerEntry[]): Promise<void> {
+    async deployBackendPlugins(backendPlugins: PluginDeployerEntry[]): Promise<string[]> {
+        const deployedPluginIds: string[] = [];
         for (const plugin of backendPlugins) {
-            await this.deployPlugin(plugin, 'backend');
+            deployedPluginIds.push(...await this.deployPlugin(plugin, 'backend'));
         }
         // resolve on first deploy
         this.backendPluginsMetadataDeferred.resolve(undefined);
+        return deployedPluginIds;
     }
 
     /**
      * @throws never! in order to isolate plugin deployment
      */
-    protected async deployPlugin(entry: PluginDeployerEntry, entryPoint: keyof PluginEntryPoint): Promise<void> {
+    protected async deployPlugin(entry: PluginDeployerEntry, entryPoint: keyof PluginEntryPoint): Promise<string[]> {
+        const deployedPluginIds: string[] = [];
         const pluginPath = entry.path();
         try {
             const manifest = await this.reader.readPackage(pluginPath);
             if (!manifest) {
-                return;
+                return [];
             }
 
             const metadata = this.reader.readMetadata(manifest);
@@ -123,17 +128,19 @@ export class HostedPluginDeployerHandler implements PluginDeployerHandler {
 
             const deployedPlugins = entryPoint === 'backend' ? this.deployedBackendPlugins : this.deployedFrontendPlugins;
             if (deployedPlugins.has(metadata.model.id)) {
-                return;
+                return [];
             }
 
             const { type } = entry;
             const deployed: DeployedPlugin = { metadata, type };
             deployed.contributes = this.reader.readContribution(manifest);
             deployedPlugins.set(metadata.model.id, deployed);
+            deployedPluginIds.push(metadata.model.id);
             this.logger.info(`Deploying ${entryPoint} plugin "${metadata.model.name}@${metadata.model.version}" from "${metadata.model.entryPoint[entryPoint] || pluginPath}"`);
         } catch (e) {
             console.error(`Failed to deploy ${entryPoint} plugin from '${pluginPath}' path`, e);
         }
+        return deployedPluginIds;
     }
 
     async undeployPlugin(pluginId: string): Promise<boolean> {
