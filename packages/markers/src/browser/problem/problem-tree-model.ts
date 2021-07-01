@@ -16,13 +16,15 @@
 
 import { ProblemMarker } from '../../common/problem-marker';
 import { ProblemManager } from './problem-manager';
+import { ProblemCompositeTreeNode } from './problem-composite-tree-node';
 import { MarkerNode, MarkerTree, MarkerOptions, MarkerInfoNode } from '../marker-tree';
 import { MarkerTreeModel } from '../marker-tree-model';
 import { injectable, inject } from '@theia/core/shared/inversify';
-import { OpenerOptions, TreeNode } from '@theia/core/lib/browser';
+import { CompositeTreeNode, OpenerOptions, TreeNode } from '@theia/core/lib/browser';
 import { Marker } from '../../common/marker';
 import { Diagnostic } from '@theia/core/shared/vscode-languageserver-types';
 import { ProblemUtils } from './problem-utils';
+import URI from '@theia/core/lib/common/uri';
 
 @injectable()
 export class ProblemTree extends MarkerTree<Diagnostic> {
@@ -52,7 +54,7 @@ export class ProblemTree extends MarkerTree<Diagnostic> {
         const markerB = b.marker as Marker<Diagnostic>;
 
         // Determine the marker with the highest severity.
-        const severity = ProblemUtils.severityCompare(markerA, markerB);
+        const severity = ProblemUtils.severityCompareMarker(markerA, markerB);
         if (severity !== 0) {
             return severity;
         }
@@ -72,6 +74,25 @@ export class ProblemTree extends MarkerTree<Diagnostic> {
             return owner;
         }
         return 0;
+    }
+
+    protected async refreshMarkerInfo(uri: URI): Promise<void> {
+        const id = uri.toString();
+        const existing = this.getNode(id);
+        const markers = this.markerManager.findMarkers({ uri });
+        if (markers.length <= 0) {
+            if (MarkerInfoNode.is(existing)) {
+                CompositeTreeNode.removeChild(existing.parent, existing);
+                this.removeNode(existing);
+                this.fireChanged();
+            }
+            return;
+        }
+        const node = MarkerInfoNode.is(existing) ? existing : this.createMarkerInfo(id, uri);
+        const children = this.getMarkerNodes(node, markers);
+        ProblemCompositeTreeNode.addChild(node.parent, node, markers);
+        this.setChildren(node, children);
+        node.numberOfMarkers = markers.length;
     }
 
 }

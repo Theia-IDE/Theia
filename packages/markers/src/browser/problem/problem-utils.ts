@@ -15,7 +15,7 @@
  ********************************************************************************/
 
 import { Marker } from '../../common/marker';
-import { Diagnostic } from '@theia/core/shared/vscode-languageserver-types';
+import { Diagnostic, DiagnosticSeverity } from '@theia/core/shared/vscode-languageserver-types';
 
 export namespace ProblemUtils {
 
@@ -26,8 +26,18 @@ export namespace ProblemUtils {
      * @param a the first marker for comparison.
      * @param b the second marker for comparison.
      */
-    export const severityCompare = (a: Marker<Diagnostic>, b: Marker<Diagnostic>): number =>
+    export const severityCompareMarker = (a: Marker<Diagnostic>, b: Marker<Diagnostic>): number =>
         (a.data.severity || Number.MAX_SAFE_INTEGER) - (b.data.severity || Number.MAX_SAFE_INTEGER);
+
+    /**
+     * Comparator for severity.
+     * - The highest severity (`error`) come first followed by others.
+     * - `undefined` severities are treated as the last ones.
+     * @param a the first severity for comparison.
+     * @param b the second severity for comparison.
+     */
+    export const severityCompare = (a: DiagnosticSeverity | undefined, b: DiagnosticSeverity | undefined): number =>
+        (a || Number.MAX_SAFE_INTEGER) - (b || Number.MAX_SAFE_INTEGER);
 
     /**
      * Comparator for line numbers.
@@ -51,6 +61,6 @@ export namespace ProblemUtils {
      * @param a the first marker for comparison.
      * @param b the second marker for comparison.
      */
-     export const ownerCompare = (a: Marker<Diagnostic>, b: Marker<Diagnostic>): number => a.owner.localeCompare(b.owner);
+    export const ownerCompare = (a: Marker<Diagnostic>, b: Marker<Diagnostic>): number => a.owner.localeCompare(b.owner);
 
 }
