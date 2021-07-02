@@ -60,12 +60,15 @@ export interface TaskContribution {
 export interface TaskResolver {
     /**
      * Resolves a `TaskConfiguration` before sending it for execution to the `TaskServer` (Backend).
+     *
+     * Note that a valid default implementation for the `resolveTask` method is to return `undefined`.
+     *
      * @param taskConfig the configuration that should be resolved.
      *
-     * @returns a promise of the resolved `TaskConfiguration`.
+     * @returns a promise of the resolved `TaskConfiguration` or `undefined`.
      */
 
-    resolveTask(taskConfig: TaskConfiguration): Promise<TaskConfiguration>;
+    resolveTask(taskConfig: TaskConfiguration): Promise<TaskConfiguration | undefined>;
 }
 
 /**

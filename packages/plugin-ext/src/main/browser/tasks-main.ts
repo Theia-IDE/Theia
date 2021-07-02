@@ -153,6 +153,9 @@ export class TasksMainImpl implements TasksMain, Disposable {
 
     async $executeTask(taskDto: TaskDto): Promise<TaskExecutionDto | undefined> {
         const taskConfig = this.toTaskConfiguration(taskDto);
+        if (!taskConfig) {
+            return undefined;
+        }
         const taskInfo = await this.taskService.runTask(taskConfig);
         if (taskInfo) {
             return {
@@ -185,9 +188,9 @@ export class TasksMainImpl implements TasksMain, Disposable {
         return {
             provideTasks: () =>
                 this.proxy.$provideTasks(handle).then(v =>
-                    v!.map(taskDto =>
-                        this.toTaskConfiguration(taskDto)
-                    )
+                    v!
+                        .map(taskDto => this.toTaskConfiguration(taskDto))
+                        .filter(taskConfig => taskConfig !== undefined) as TaskConfiguration[]
                 )
         };
     }
@@ -196,12 +199,15 @@ export class TasksMainImpl implements TasksMain, Disposable {
         return {
             resolveTask: taskConfig =>
                 this.proxy.$resolveTask(handle, this.fromTaskConfiguration(taskConfig)).then(v =>
-                    this.toTaskConfiguration(v!)
+                    this.toTaskConfiguration(v)
                 )
         };
     }
 
-    protected toTaskConfiguration(taskDto: TaskDto): TaskConfiguration {
+    protected toTaskConfiguration(taskDto?: TaskDto): TaskConfiguration | undefined {
+        if (!taskDto) {
+            return undefined;
+        }
         const { group, presentation, scope, source, ...common } = taskDto;
         const partialConfig: Partial<TaskConfiguration> = {};
         if (presentation) {

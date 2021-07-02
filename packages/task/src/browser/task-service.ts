@@ -795,10 +795,10 @@ export class TaskService implements TaskConfigurationClient {
         this.addRecentTasks(task);
         try {
             const resolver = await this.taskResolverRegistry.getTaskResolver(task.type);
-            const resolvedTask = resolver ? await resolver.resolveTask(task) : task;
+            const resolvedTask = resolver && await resolver.resolveTask(task) || task;
             const executionResolver = this.taskResolverRegistry.getExecutionResolver(resolvedTask.taskType || resolvedTask.type);
             overridePropertiesFunction(resolvedTask);
-            const taskToRun = executionResolver ? await executionResolver.resolveTask(resolvedTask) : resolvedTask;
+            const taskToRun = executionResolver && await executionResolver.resolveTask(resolvedTask) || resolvedTask;
 
             await this.removeProblemMarkers(option);
             return this.runResolvedTask(taskToRun, option);
