@@ -147,6 +147,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
         createWidget: (identifier: TreeViewWidgetIdentifier) => {
             const child = createTreeContainer(container, {
                 contextMenuPath: VIEW_ITEM_CONTEXT_MENU,
+                search: true,
                 globalSelection: true
             });
             child.bind(TreeViewWidgetIdentifier).toConstantValue(identifier);
