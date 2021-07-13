@@ -25,6 +25,8 @@ import {
 } from './message-service-protocol';
 import { CancellationTokenSource } from './cancellation';
 
+export const MessageServiceFactory = Symbol('MessageServiceFactory');
+
 /**
  * Service to log and categorize messages, show progress information and offer actions.
  *
