@@ -15,11 +15,13 @@
  ********************************************************************************/
 
 import { inject, injectable } from 'inversify';
-import { Disposable, Command, CommandRegistry } from '../../common';
+import { KeybindingRegistry } from '../keybinding';
+import { Disposable, Command, CommandRegistry, CancellationToken } from '../../common';
 import { ContextKeyService } from '../context-key-service';
 import { CorePreferences } from '../core-preferences';
-import { QuickAccessContribution } from './quick-access-contribution';
-import { QuickInputService } from './quick-input-service';
+import { QuickAccessContribution, QuickAccessProvider, QuickAccessRegistry } from './quick-access';
+import { filterItems, QuickPickItem, QuickPicks } from './quick-input-service';
+import { KeySequence } from '../keys';
 
 export const quickCommand: Command = {
     id: 'workbench.action.showCommands'
@@ -31,7 +33,8 @@ export const CLEAR_COMMAND_HISTORY: Command = {
 };
 
 @injectable()
-export class QuickCommandService extends QuickInputService implements QuickAccessContribution {
+export class QuickCommandService implements QuickAccessContribution, QuickAccessProvider {
+    static PREFIX = '>';
 
     @inject(ContextKeyService)
     protected readonly contextKeyService: ContextKeyService;
@@ -42,12 +45,93 @@ export class QuickCommandService extends QuickInputService implements QuickAcces
     @inject(CorePreferences)
     protected readonly corePreferences: CorePreferences;
 
+    @inject(QuickAccessRegistry)
+    protected readonly quickAccessRegistry: QuickAccessRegistry;
+
+    constructor(@inject(KeybindingRegistry) protected readonly keybindingRegistry: KeybindingRegistry) {
+    }
+
     // The list of exempted commands not to be displayed in the recently used list.
     readonly exemptedCommands: Command[] = [
         CLEAR_COMMAND_HISTORY,
     ];
 
-    registerQuickAccessProvider(): void { }
+    private recentItems: QuickPickItem[] = [];
+    private otherItems: QuickPickItem[] = [];
+
+    registerQuickAccessProvider(): void {
+        this.quickAccessRegistry.registerQuickAccessProvider({
+            getInstance: () => this,
+            prefix: QuickCommandService.PREFIX,
+            placeholder: '',
+            helpEntries: [{ description: 'Quick Command', needsEditor: false }]
+        });
+    }
+
+    reset(): void {
+        const { recent, other } = this.getCommands();
+        this.recentItems = [];
+        this.otherItems = [];
+        this.recentItems.push(...recent.map(command => this.toItem(command)));
+        this.otherItems.push(...other.map(command => this.toItem(command)));
+    }
+
+    getPicks(filter: string, token: CancellationToken): QuickPicks {
+        const items: QuickPicks = [];
+        if (this.recentItems.length === 0 && this.otherItems.length === 0) {
+            this.reset();
+        }
+        const recentItems = filterItems(this.recentItems.slice(), filter);
+        const otherItems = filterItems(this.otherItems.slice(), filter);
+
+        if (recentItems.length > 0) {
+            items.push({ type: 'separator', label: 'recently used' }, ...recentItems);
+        }
+
+        if (otherItems.length > 0) {
+            items.push({ type: 'separator', label: 'other commands' }, ...otherItems);
+        }
+        return items;
+    }
+
+    private toItem(command: Command): QuickPickItem {
+        const label = (command.category) ? `${command.category}: ` + command.label! : command.label!;
+        const iconClasses = this.getItemIconClasses(command);
+        const activeElement = window.document.activeElement as HTMLElement;
+
+        return {
+            label,
+            iconClasses,
+            alwaysShow: !!this.commandRegistry.getActiveHandler(command.id),
+            keySequence: this.getKeybinding(command),
+            execute: () => {
+                activeElement.focus({ preventScroll: true });
+                this.commandRegistry.executeCommand(command.id);
+                this.commandRegistry.addRecentCommand(command);
+            }
+        };
+    }
+
+    private getKeybinding(command: Command): KeySequence | undefined {
+        const keybindings = this.keybindingRegistry.getKeybindingsForCommand(command.id);
+        if (!keybindings || keybindings.length === 0) {
+            return undefined;
+        }
+
+        try {
+            return this.keybindingRegistry.resolveKeybinding(keybindings[0]);
+        } catch (error) {
+            return undefined;
+        }
+    }
+
+    private getItemIconClasses(command: Command): string[] | undefined {
+        const toggledHandler = this.commandRegistry.getToggledHandler(command.id);
+        if (toggledHandler) {
+            return ['fa fa-check'];
+        }
+        return undefined;
+    }
 
     protected readonly contexts = new Map<string, string[]>();
     pushCommandContext(commandId: string, when: string): Disposable {

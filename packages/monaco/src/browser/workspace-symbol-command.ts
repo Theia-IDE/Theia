@@ -16,22 +16,21 @@
 
 import { injectable, inject } from '@theia/core/shared/inversify';
 import { environment } from '@theia/core/shared/@theia/application-package/lib/environment';
-import {
-    KeybindingContribution, KeybindingRegistry, QuickAccessContribution, OpenerService, LabelProvider, findMatches
-} from '@theia/core/lib/browser';
+import { KeybindingContribution, KeybindingRegistry, OpenerService, LabelProvider } from '@theia/core/lib/browser';
+
+import { QuickAccessContribution, QuickAccessProvider, QuickInputService, QuickAccessRegistry, QuickPicks, QuickPickItem, findMatches } from '@theia/core/lib/browser/quick-input';
 import {
     CommandRegistry, CommandHandler, Command, SelectionService, CancellationToken
-} from '@theia/core';
+} from '@theia/core/lib/common';
 import { CommandContribution } from '@theia/core/lib/common';
 import { Range, Position, SymbolInformation } from '@theia/core/shared/vscode-languageserver-types';
 import { WorkspaceSymbolParams } from '@theia/core/shared/vscode-languageserver-protocol';
 import { MonacoLanguages, WorkspaceSymbolProvider } from './monaco-languages';
-import { MonacoQuickInputService } from './monaco-quick-input-service';
 import URI from '@theia/core/lib/common/uri';
 
 @injectable()
-export class WorkspaceSymbolCommand implements monaco.quickInput.IQuickAccessDataService, CommandContribution, KeybindingContribution, CommandHandler, QuickAccessContribution {
-    readonly prefix = '#';
+export class WorkspaceSymbolCommand implements QuickAccessProvider, CommandContribution, KeybindingContribution, CommandHandler, QuickAccessContribution {
+    public static readonly PREFIX = '#';
 
     private command: Command = {
         id: 'languages.workspace.symbol',
@@ -40,7 +39,8 @@ export class WorkspaceSymbolCommand implements monaco.quickInput.IQuickAccessDat
 
     @inject(MonacoLanguages) protected readonly languages: MonacoLanguages;
     @inject(OpenerService) protected readonly openerService: OpenerService;
-    @inject(MonacoQuickInputService) protected monacoQuickInputService: MonacoQuickInputService;
+    @inject(QuickInputService) protected quickInputService: QuickInputService;
+    @inject(QuickAccessRegistry) protected quickAccessRegistry: QuickAccessRegistry;
     @inject(SelectionService) protected selectionService: SelectionService;
     @inject(LabelProvider) protected readonly labelProvider: LabelProvider;
 
@@ -49,7 +49,7 @@ export class WorkspaceSymbolCommand implements monaco.quickInput.IQuickAccessDat
     }
 
     execute(): void {
-        this.monacoQuickInputService.open(this.prefix);
+        this.quickInputService.open(WorkspaceSymbolCommand.PREFIX);
     }
 
     registerCommands(commands: CommandRegistry): void {
@@ -68,17 +68,16 @@ export class WorkspaceSymbolCommand implements monaco.quickInput.IQuickAccessDat
     }
 
     registerQuickAccessProvider(): void {
-        monaco.platform.Registry.as<monaco.quickInput.IQuickAccessRegistry>('workbench.contributions.quickaccess').registerQuickAccessProvider({
-            ctor: SymbolsQuickAccessProvider,
-            prefix: SymbolsQuickAccessProvider.PREFIX,
+        this.quickAccessRegistry.registerQuickAccessProvider({
+            getInstance: () => this,
+            prefix: WorkspaceSymbolCommand.PREFIX,
             placeholder: '',
             helpEntries: [{ description: 'Go to Symbol in Workspace', needsEditor: false }]
         });
-        SymbolsQuickAccessProvider.dataService = this as monaco.quickInput.IQuickAccessDataService;
     }
 
-    async getPicks(filter: string, token: CancellationToken): Promise<monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>> {
-        const items: Array<monaco.quickInput.IAnythingQuickPickItem> = [];
+    async getPicks(filter: string, token: CancellationToken): Promise<QuickPicks> {
+        const items: QuickPicks = [];
         if (this.languages.workspaceSymbolProviders) {
             const param: WorkspaceSymbolParams = {
                 query: filter
@@ -109,7 +108,7 @@ export class WorkspaceSymbolCommand implements monaco.quickInput.IQuickAccessDat
         return items;
     }
 
-    protected createItem(sym: SymbolInformation, provider: WorkspaceSymbolProvider, filter: string, token: CancellationToken): monaco.quickInput.IAnythingQuickPickItem {
+    protected createItem(sym: SymbolInformation, provider: WorkspaceSymbolProvider, filter: string, token: CancellationToken): QuickPickItem {
         const uri = new URI(sym.location.uri);
         const iconClasses = this.toCssClassName(sym.kind);
         let parent = sym.containerName;
@@ -126,7 +125,7 @@ export class WorkspaceSymbolCommand implements monaco.quickInput.IQuickAccessDat
                 label: findMatches(sym.name, filter),
                 description: findMatches(description, filter)
             },
-            accept: () => {
+            execute: () => {
                 if (provider.resolveWorkspaceSymbol) {
                     provider.resolveWorkspaceSymbol(sym, token).then(resolvedSymbol => {
                         if (resolvedSymbol) {
@@ -186,28 +185,4 @@ enum SymbolKind {
     Event = 24,
     Operator = 25,
     TypeParameter = 26
-}
-
-export class SymbolsQuickAccessProvider extends monaco.quickInput.PickerQuickAccessProvider<monaco.quickInput.IQuickPickItem> {
-    static PREFIX = '#';
-    static dataService: monaco.quickInput.IQuickAccessDataService;
-
-    private static readonly NO_RESULTS_PICK: monaco.quickInput.IAnythingQuickPickItem = {
-        label: 'No matching results'
-    };
-
-    constructor() {
-        super(SymbolsQuickAccessProvider.PREFIX, {
-            canAcceptInBackground: true,
-            noResultsPick: SymbolsQuickAccessProvider.NO_RESULTS_PICK
-        });
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    getPicks(filter: string, disposables: any, token: monaco.CancellationToken): monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>
-        | Promise<monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>>
-        | monaco.quickInput.FastAndSlowPicks<monaco.quickInput.IAnythingQuickPickItem>
-        | null {
-        return SymbolsQuickAccessProvider.dataService?.getPicks(filter, token);
-    }
 }

@@ -22,7 +22,7 @@ import { MenuContribution, CommandContribution } from '@theia/core/lib/common';
 import {
     FrontendApplicationContribution, KeybindingContribution,
     PreferenceService, PreferenceSchemaProvider, createPreferenceProxy,
-    PreferenceScope, PreferenceChange, OVERRIDE_PROPERTY_PATTERN, QuickInputService, QuickCommandService, QuickHelpService, QuickViewService, QuickEditorService
+    PreferenceScope, PreferenceChange, OVERRIDE_PROPERTY_PATTERN, QuickInputService
 } from '@theia/core/lib/browser';
 import { TextEditorProvider, DiffNavigatorProvider } from '@theia/editor/lib/browser';
 import { StrictEditorTextFocusContext } from '@theia/editor/lib/browser/editor-keybinding-contexts';
@@ -61,14 +61,11 @@ import { LanguageService } from '@theia/core/lib/browser/language-service';
 import { MonacoToProtocolConverter } from './monaco-to-protocol-converter';
 import { ProtocolToMonacoConverter } from './protocol-to-monaco-converter';
 import { MonacoFormattingConflictsContribution } from './monaco-formatting-conflicts';
-import { MonacoQuickInputService } from './monaco-quick-input-service';
-import { MonacoQuickCommandService } from './monaco-quick-command-service';
-import { MonacoQuickHelpService } from './monaco-quick-help-service';
-import { MonacoQuickViewService } from './monaco-quick-view-service';
-import { MonacoQuickEditorService } from './monaco-quick-editor-service';
-import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access-contribution';
+import { MonacoQuickInputImplementation, MonacoQuickInputService } from './monaco-quick-input-service';
 import { GotoLineQuickAccessContribution } from './monaco-gotoline-quick-access';
 import { GotoSymbolQuickAccessContribution } from './monaco-gotosymbole-quick-access';
+import { QuickAccessContribution, QuickAccessRegistry } from '@theia/core/lib/browser/quick-input/quick-access';
+import { MonacoQuickAccessRegistry } from './monaco-quick-access-registry';
 
 decorate(injectable(), monaco.contextKeyService.ContextKeyService);
 
@@ -139,20 +136,12 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
     bind(KeybindingContribution).toService(MonacoKeybindingContribution);
     rebind(StrictEditorTextFocusContext).to(MonacoStrictEditorTextFocusContext).inSingletonScope();
 
+    bind(MonacoQuickInputImplementation).toSelf().inSingletonScope();
     bind(MonacoQuickInputService).toSelf().inSingletonScope();
     bind(QuickInputService).toService(MonacoQuickInputService);
 
-    bind(MonacoQuickCommandService).toSelf().inSingletonScope();
-    bind(QuickCommandService).toService(MonacoQuickCommandService);
-
-    bind(MonacoQuickHelpService).toSelf().inSingletonScope();
-    bind(QuickHelpService).toService(MonacoQuickHelpService);
-
-    bind(MonacoQuickViewService).toSelf().inSingletonScope();
-    bind(QuickViewService).toService(MonacoQuickViewService);
-
-    bind(MonacoQuickEditorService).toSelf().inSingletonScope();
-    bind(QuickEditorService).toService(MonacoQuickEditorService);
+    bind(MonacoQuickAccessRegistry).toSelf().inSingletonScope();
+    bind(QuickAccessRegistry).toService(MonacoQuickAccessRegistry);
 
     bind(GotoLineQuickAccessContribution).toSelf().inSingletonScope();
     bind(QuickAccessContribution).toService(GotoLineQuickAccessContribution);

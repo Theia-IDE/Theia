@@ -304,9 +304,6 @@ export class CommonFrontendContribution implements FrontendApplicationContributi
     @inject(StorageService)
     protected readonly storageService: StorageService;
 
-    @inject(QuickViewService) @optional()
-    protected readonly quickView: QuickViewService;
-
     @inject(QuickInputService) @optional()
     protected readonly quickInputService: QuickInputService;
 
@@ -762,7 +759,7 @@ export class CommonFrontendContribution implements FrontendApplicationContributi
         });
 
         commandRegistry.registerCommand(CommonCommands.OPEN_VIEW, {
-            execute: () => this.quickInputService?.open(this.quickView?.prefix)
+            execute: () => this.quickInputService?.open(QuickViewService.PREFIX)
         });
 
         commandRegistry.registerCommand(CommonCommands.SELECT_COLOR_THEME, {

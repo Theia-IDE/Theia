@@ -32,30 +32,26 @@ describe('file-search', function () {
 
             it('should compare two quick-open-items by `label`', () => {
 
-                /** @type monaco.quickInput.IAnythingQuickPickItem */
-                const a = { label: 'a', resource: new Uri.default('a') };
-                /** @type monaco.quickInput.IAnythingQuickPickItem */
-                const b = { label: 'a', resource: new Uri.default('b') };
+                /** @type import ('@theia/file-search/lib/browser/quick-file-open').FileQuickPickItem*/
+                const a = { label: 'a', uri: new Uri.default('b') };
+                /** @type import ('@theia/file-search/lib/browser/quick-file-open').FileQuickPickItem*/
+                const b = { label: 'b', uri: new Uri.default('a') };
 
                 assert.equal(quickFileOpenService['compareItems'](a, b), 1, 'a should be before b');
                 assert.equal(quickFileOpenService['compareItems'](b, a), -1, 'a should be before b');
                 assert.equal(quickFileOpenService['compareItems'](a, a), 0, 'items should be equal');
-
-                assert.equal(quickFileOpenService['compareItems'](a, b, 'label'), 1, 'a should be before b');
-                assert.equal(quickFileOpenService['compareItems'](b, a, 'label'), -1, 'a should be before b');
-                assert.equal(quickFileOpenService['compareItems'](a, a, 'label'), 0, 'items should be equal');
             });
 
             it('should compare two quick-open-items by `uri`', () => {
 
-                /** @type monaco.quickInput.IAnythingQuickPickItem */
-                const a = { label: 'a', resource: new Uri.default('a') };
-                /** @type monaco.quickInput.IAnythingQuickPickItem */
-                const b = { label: 'a', resource: new Uri.default('b') };
+                /** @type import ('@theia/file-search/lib/browser/quick-file-open').FileQuickPickItem*/
+                const a = { label: 'a', uri: new Uri.default('a') };
+                /** @type import ('@theia/file-search/lib/browser/quick-file-open').FileQuickPickItem*/
+                const b = { label: 'a', uri: new Uri.default('b') };
 
-                assert.equal(quickFileOpenService['compareItems'](a, b, 'resource'), 1, 'a should be before b');
-                assert.equal(quickFileOpenService['compareItems'](b, a, 'resource'), -1, 'a should be before b');
-                assert.equal(quickFileOpenService['compareItems'](a, a, 'resource'), 0, 'items should be equal');
+                assert.equal(quickFileOpenService['compareItems'](a, b), 1, 'a should be before b');
+                assert.equal(quickFileOpenService['compareItems'](b, a), -1, 'a should be before b');
+                assert.equal(quickFileOpenService['compareItems'](a, a), 0, 'items should be equal');
             });
 
         });

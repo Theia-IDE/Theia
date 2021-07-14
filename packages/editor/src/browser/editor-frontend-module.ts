@@ -33,7 +33,8 @@ import { NavigationLocationUpdater } from './navigation/navigation-location-upda
 import { NavigationLocationService } from './navigation/navigation-location-service';
 import { NavigationLocationSimilarity } from './navigation/navigation-location-similarity';
 import { EditorVariableContribution } from './editor-variable-contribution';
-import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access-contribution';
+import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access';
+import { QuickEditorService } from './quick-editor-service';
 
 export default new ContainerModule(bind => {
     bindEditorPreferences(bind);
@@ -68,9 +69,11 @@ export default new ContainerModule(bind => {
 
     bind(VariableContribution).to(EditorVariableContribution).inSingletonScope();
 
-    [CommandContribution, KeybindingContribution, QuickAccessContribution].forEach(serviceIdentifier => {
+    [CommandContribution, KeybindingContribution].forEach(serviceIdentifier => {
         bind(serviceIdentifier).toService(EditorContribution);
     });
+    bind(QuickEditorService).toSelf().inSingletonScope();
+    bind(QuickAccessContribution).to(QuickEditorService);
 
     bind(CurrentEditorAccess).toSelf().inSingletonScope();
     bind(ActiveEditorAccess).toSelf().inSingletonScope();

@@ -42,7 +42,7 @@ import { createTerminalSearchFactory } from './search/terminal-search-container'
 import { TerminalCopyOnSelectionHandler } from './terminal-copy-on-selection-handler';
 import { ColorContribution } from '@theia/core/lib/browser/color-application-contribution';
 import { TerminalThemeService } from './terminal-theme-service';
-import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access-contribution';
+import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access';
 
 export default new ContainerModule(bind => {
     bindTerminalPreferences(bind);

@@ -17,19 +17,25 @@
 import { inject, injectable, optional } from '@theia/core/shared/inversify';
 import {
     QuickAccessContribution,
+    QuickAccessProvider,
+    QuickAccessRegistry,
     QuickInputService
 } from '@theia/core/lib/browser';
-import { CommandContribution, CommandRegistry, CommandService } from '@theia/core/lib/common';
+import { CancellationToken, CommandContribution, CommandRegistry, CommandService } from '@theia/core/lib/common';
 import { TerminalWidget } from './base/terminal-widget';
 import { TerminalService } from './base/terminal-service';
 import { TerminalCommands } from './terminal-frontend-contribution';
-import { filterItems } from '@theia/core/lib/browser/quick-input/quick-input-service';
+import { filterItems, QuickPickItem, QuickPicks } from '@theia/core/lib/browser/quick-input/quick-input-service';
 
 @injectable()
-export class TerminalQuickOpenService implements monaco.quickInput.IQuickAccessDataService {
+export class TerminalQuickOpenService implements QuickAccessProvider {
+    static readonly PREFIX = 'term ';
 
     @inject(QuickInputService) @optional()
     protected readonly quickInputService: QuickInputService;
+
+    @inject(QuickAccessRegistry)
+    protected readonly quickAccessRegistry: QuickAccessRegistry;
 
     @inject(CommandService)
     protected readonly commandService: CommandService;
@@ -38,11 +44,11 @@ export class TerminalQuickOpenService implements monaco.quickInput.IQuickAccessD
     protected readonly terminalService: TerminalService;
 
     open(): void {
-        this.quickInputService?.open(TerminalQuickAccessProvider.PREFIX);
+        this.quickInputService?.open(TerminalQuickOpenService.PREFIX);
     }
 
-    async getPicks(filter: string, token: monaco.CancellationToken): Promise<monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>> {
-        const items: Array<monaco.quickInput.IAnythingQuickPickItem> = [];
+    async getPicks(filter: string, token: CancellationToken): Promise<QuickPicks> {
+        const items: QuickPickItem[] = [];
 
         // Get the sorted list of currently opened terminal widgets
         const widgets: TerminalWidget[] = this.terminalService.all
@@ -55,20 +61,19 @@ export class TerminalQuickOpenService implements monaco.quickInput.IQuickAccessD
         items.push({
             label: 'Open New Terminal',
             iconClasses: ['fa fa-plus'],
-            accept: () => this.doCreateNewTerminal()
+            execute: () => this.doCreateNewTerminal()
         });
 
         return filterItems(items, filter);
     }
 
     registerQuickAccessProvider(): void {
-        monaco.platform.Registry.as<monaco.quickInput.IQuickAccessRegistry>('workbench.contributions.quickaccess').registerQuickAccessProvider({
-            ctor: TerminalQuickAccessProvider,
-            prefix: TerminalQuickAccessProvider.PREFIX,
+        this.quickAccessRegistry.registerQuickAccessProvider({
+            getInstance: () => this,
+            prefix: TerminalQuickOpenService.PREFIX,
             placeholder: '',
             helpEntries: [{ description: 'Show All Opened Terminals', needsEditor: false }]
         });
-        TerminalQuickAccessProvider.dataService = this as monaco.quickInput.IQuickAccessDataService;
     }
 
     /**
@@ -95,12 +100,12 @@ export class TerminalQuickOpenService implements monaco.quickInput.IQuickAccessD
      * @param {TerminalWidget} widget - the terminal widget.
      * @returns quick pick item.
      */
-    protected toItem(widget: TerminalWidget): monaco.quickInput.IAnythingQuickPickItem {
+    protected toItem(widget: TerminalWidget): QuickPickItem {
         return {
             label: widget.title.label,
             description: widget.id,
             ariaLabel: widget.title.label,
-            accept: () => this.terminalService.open(widget)
+            execute: () => this.terminalService.open(widget)
         };
     }
 }
@@ -122,29 +127,5 @@ export class TerminalQuickOpenContribution implements CommandContribution, Quick
         commands.registerCommand(TerminalCommands.SHOW_ALL_OPENED_TERMINALS, {
             execute: () => this.terminalQuickOpenService.open()
         });
-    }
-}
-
-export class TerminalQuickAccessProvider extends monaco.quickInput.PickerQuickAccessProvider<monaco.quickInput.IQuickPickItem> {
-    static PREFIX = 'term ';
-    static dataService: monaco.quickInput.IQuickAccessDataService;
-
-    private static readonly NO_RESULTS_PICK: monaco.quickInput.IAnythingQuickPickItem = {
-        label: 'No matching results'
-    };
-
-    constructor() {
-        super(TerminalQuickAccessProvider.PREFIX, {
-            canAcceptInBackground: true,
-            noResultsPick: TerminalQuickAccessProvider.NO_RESULTS_PICK
-        });
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    getPicks(filter: string, disposables: any, token: monaco.CancellationToken): monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>
-        | Promise<monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>>
-        | monaco.quickInput.FastAndSlowPicks<monaco.quickInput.IAnythingQuickPickItem>
-        | null {
-        return TerminalQuickAccessProvider.dataService?.getPicks(filter, token);
     }
 }

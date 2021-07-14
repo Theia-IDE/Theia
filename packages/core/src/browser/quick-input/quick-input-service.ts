@@ -14,9 +14,19 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { injectable } from 'inversify';
 import { CancellationToken, Event } from '../../common';
 import URI from '../../common/uri';
+import { KeySequence } from '../keyboard';
+
+export interface Match {
+    start: number;
+    end: number;
+}
+export interface QuickPickItemHighlights {
+    label?: Match[];
+    description?: Match[];
+    detail?: Match[];
+}
 
 export interface QuickPickItem {
     type?: 'item' | 'separator';
@@ -26,15 +36,33 @@ export interface QuickPickItem {
     ariaLabel?: string;
     description?: string;
     detail?: string;
-    resource?: URI;
+    keySequence?: KeySequence;
     iconClasses?: string[];
-    execute?: (item: QuickPickItem, lookFor: string) => void;
+    alwaysShow?: boolean;
+    highlights?: QuickPickItemHighlights;
+    buttons?: QuickInputButton[];
+    execute?: () => void;
+}
+
+export namespace QuickPickItem {
+    export function is(item: QuickPickSeparator | QuickPickItem): item is QuickPickItem {
+        // if it's not a separator, it's an item
+        return item.type !== 'separator';
+    }
 }
 
 export interface QuickPickSeparator {
     type: 'separator';
     label?: string;
 }
+
+export namespace QuickPickSeparator {
+    export function is(item: QuickPickSeparator | QuickPickItem): item is QuickPickSeparator {
+        return item.type === 'separator';
+    }
+}
+
+export type QuickPicks = (QuickPickSeparator | QuickPickItem)[];
 
 export interface QuickPickValue<V> extends QuickPickItem {
     value: V
@@ -66,7 +94,7 @@ export interface QuickInput {
     dispose(): void;
 }
 
-export interface IInputBox extends QuickInput {
+export interface InputBox extends QuickInput {
     value: string | undefined;
     valueSelection: Readonly<[number, number]> | undefined;
     placeholder: string | undefined;
@@ -82,21 +110,21 @@ export interface IInputBox extends QuickInput {
 export interface QuickPick<T extends QuickPickItem> extends QuickInput {
     value: string;
     placeholder: string | undefined;
-    readonly onDidChangeValue: Event<string>;
-    readonly onDidAccept: Event<void>;
-    buttons: ReadonlyArray<QuickInputButton>;
-    readonly onDidTriggerButton: Event<QuickInputButton>;
     items: ReadonlyArray<T | QuickPickSeparator>;
+    activeItems: ReadonlyArray<T>;
+    selectedItems: ReadonlyArray<T>;
     canSelectMany: boolean;
     matchOnDescription: boolean;
     matchOnDetail: boolean;
-    activeItems: ReadonlyArray<T>;
+    readonly onDidAccept: Event<void>;
+    readonly onDidChangeValue: Event<string>;
+    readonly onDidTriggerButton: Event<QuickInputButton>;
+    readonly onDidTriggerItemButton: Event<QuickPickItemButtonEvent<T>>;
     readonly onDidChangeActive: Event<T[]>;
-    selectedItems: ReadonlyArray<T>;
     readonly onDidChangeSelection: Event<T[]>;
 }
 
-export interface IPickOptions<T extends QuickPickItem> {
+export interface PickOptions<T extends QuickPickItem> {
     placeHolder?: string;
     matchOnDescription?: boolean;
     matchOnDetail?: boolean;
@@ -109,7 +137,7 @@ export interface IPickOptions<T extends QuickPickItem> {
     onDidFocus?: (entry: T) => void;
 }
 
-export interface IInputOptions {
+export interface InputOptions {
     value?: string;
     valueSelection?: [number, number];
     prompt?: string;
@@ -165,22 +193,21 @@ export interface QuickPickOptions<T extends QuickPickItem> {
     onDidTriggerItemButton?: (ItemButtonEvent: QuickPickItemButtonEvent<T>) => void
 }
 
-export interface IQuickInputService {
+export const QuickInputService = Symbol('QuickInputService');
+export interface QuickInputService {
     readonly backButton: QuickInputButton;
     readonly onShow: Event<void>;
     readonly onHide: Event<void>;
     open(filter: string): void;
-    reset(): void;
-    createInputBox(): IInputBox;
-    createQuickPick<T extends QuickPickItem>(): QuickPick<T>;
-    input(options?: IInputOptions, token?: CancellationToken): Promise<string | undefined>;
-    pick<T extends QuickPickItem, O extends IPickOptions<T>>(picks: Promise<T[]> | T[], options?: O, token?: CancellationToken):
+    createInputBox(): InputBox;
+    input(options?: InputOptions, token?: CancellationToken): Promise<string | undefined>;
+    pick<T extends QuickPickItem, O extends PickOptions<T>>(picks: Promise<T[]> | T[], options?: O, token?: CancellationToken):
         Promise<(O extends { canPickMany: true } ? T[] : T) | undefined>;
     showQuickPick<T extends QuickPickItem>(items: Array<T>, options?: QuickPickOptions<T>): Promise<T>;
     hide(): void;
 }
 
-export function filterItems(items: Array<QuickPickItem>, filter: string): Array<QuickPickItem> {
+export function filterItems(items: QuickPickItem[], filter: string): QuickPickItem[] {
     return filter.trim().length === 0 ? items : items
         .filter(item => item.label.toLowerCase().indexOf(filter.toLowerCase()) > -1)
         .map(item => Object.assign(item, { highlights: { label: findMatches(item.label.toLowerCase(), filter.toLowerCase()) } }));
@@ -189,30 +216,4 @@ export function filterItems(items: Array<QuickPickItem>, filter: string): Array<
 export function findMatches(label: string, lookFor: string): Array<{ start: number, end: number }> | undefined {
     const _label = label.toLocaleLowerCase(); const _lookFor = lookFor.toLocaleLowerCase();
     return _label.indexOf(_lookFor) > -1 ? [{ start: _label.indexOf(_lookFor), end: _label.indexOf(_lookFor) + _lookFor.length }] : undefined;
-}
-
-@injectable()
-export class QuickInputService implements IQuickInputService {
-    createInputBox(): IInputBox { return {} as IInputBox; }
-
-    createQuickPick<T extends QuickPickItem>(): QuickPick<T> { return {} as QuickPick<T>; }
-
-    input(options?: IInputOptions, token?: CancellationToken): Promise<string | undefined> { return Promise.resolve(undefined); }
-
-    pick<T extends QuickPickItem, O extends IPickOptions<T>>(picks: Promise<T[]> | T[], options: O = <O>{}, token?: CancellationToken):
-        Promise<(O extends { canPickMany: true } ? T[] : T) | undefined> {
-        return Promise.resolve(undefined);
-    }
-
-    showQuickPick<T extends QuickPickItem>(items: Array<T>, options?: QuickPickOptions<T>): Promise<T> { return Promise.resolve({} as T); }
-
-    get backButton(): QuickInputButton { return {} as QuickInputButton; }
-    get onShow(): Event<void> { return {} as Event<void>; }
-    get onHide(): Event<void> { return {} as Event<void>; }
-
-    open(filter: string): void { }
-
-    reset(): void { }
-
-    hide(): void { }
 }

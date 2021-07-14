@@ -254,7 +254,7 @@ export class MonacoEditorCommandHandlers implements CommandContribution {
             ({
                 label: size === tabSize ? `${size}   Configured Tab Size` : size.toString(),
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                execute: (quickPick: any, lookFor: string) => model.updateOptions({
+                execute: () => model.updateOptions({
                     tabSize: size || tabSize,
                     insertSpaces: useSpaces
                 })

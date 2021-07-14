@@ -20,7 +20,7 @@ import { WebSocketConnectionProvider, KeybindingContribution } from '@theia/core
 import { QuickFileOpenFrontendContribution } from './quick-file-open-contribution';
 import { QuickFileOpenService } from './quick-file-open';
 import { fileSearchServicePath, FileSearchService } from '../common/file-search-service';
-import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access-contribution';
+import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access';
 
 export default new ContainerModule((bind: interfaces.Bind) => {
     bind(FileSearchService).toDynamicValue(ctx => {

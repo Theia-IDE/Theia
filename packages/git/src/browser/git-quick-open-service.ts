@@ -124,7 +124,7 @@ export class GitQuickOpenService {
         }
         return this.withProgress(async () => {
             const remotes = await this.getRemotes();
-            const execute = async (item: GitQuickPickItem<Remote>, lookFor: string) => {
+            const execute = async (item: GitQuickPickItem<Remote>) => {
                 try {
                     await this.git.fetch(repository, { remote: item.ref!.name });
                 } catch (error) {
@@ -165,7 +165,7 @@ export class GitQuickOpenService {
         }
         return this.withProgress(async () => {
             const [remotes, currentBranch] = await Promise.all([this.getRemotes(), this.getCurrentBranch()]);
-            const execute = async (item: GitQuickPickItem<Remote>, lookFor: string) => {
+            const execute = async (item: GitQuickPickItem<Remote>) => {
                 try {
                     await this.git.push(repository, { remote: item.label, setUpstream: true });
                 } catch (error) {
@@ -186,7 +186,7 @@ export class GitQuickOpenService {
         return this.withProgress(async () => {
             const remotes = await this.getRemotes();
             const defaultRemote = remotes[0].name; // I wish I could use assignment destructuring here. (GH-413)
-            const executeRemote = async (remoteItem: GitQuickPickItem<Remote>, lookFor: string) => {
+            const executeRemote = async (remoteItem: GitQuickPickItem<Remote>) => {
                 // The first remote is the default.
                 if (remoteItem.ref!.name === defaultRemote) {
                     try {
@@ -197,7 +197,7 @@ export class GitQuickOpenService {
                 } else {
                     // Otherwise we need to propose the branches from
                     const branches = await this.getBranches();
-                    const executeBranch = async (branchItem: GitQuickPickItem<Branch>, lookForBranch: string) => {
+                    const executeBranch = async (branchItem: GitQuickPickItem<Branch>) => {
                         try {
                             await this.git.pull(repository, { remote: remoteItem.ref!.name, branch: branchItem.ref!.nameWithoutRemote });
                         } catch (error) {
@@ -224,7 +224,7 @@ export class GitQuickOpenService {
         }
         return this.withProgress(async () => {
             const [branches, currentBranch] = await Promise.all([this.getBranches(), this.getCurrentBranch()]);
-            const execute = async (item: GitQuickPickItem<Branch>, lookFor: string) => {
+            const execute = async (item: GitQuickPickItem<Branch>) => {
                 try {
                     await this.git.merge(repository, { branch: item.label });
                 } catch (error) {
@@ -249,7 +249,7 @@ export class GitQuickOpenService {
                 const index = branches.findIndex(branch => branch && branch.name === currentBranch.name);
                 branches.splice(index, 1);
             }
-            const switchBranch = async (item: GitQuickPickItem<Branch>, lookFor: string) => {
+            const switchBranch = async (item: GitQuickPickItem<Branch>) => {
                 try {
                     await this.git.checkout(repository, { branch: item.ref!.nameWithoutRemote });
                 } catch (error) {
@@ -303,7 +303,7 @@ export class GitQuickOpenService {
         }
         return this.withProgress(async () => {
             const [branches, tags, currentBranch] = await Promise.all([this.getBranches(repository), this.getTags(repository), this.getCurrentBranch(repository)]);
-            const execute = async (item: GitQuickPickItem<Branch | Tag>, lookFor: string) => {
+            const execute = async (item: GitQuickPickItem<Branch | Tag>) => {
                 execFunc(item.ref!.name, currentBranch ? currentBranch.name : '');
             };
             const branchItems = branches.map(branch => new GitQuickPickItem<Branch>(branch.name, execute, branch));
@@ -471,7 +471,7 @@ export class GitQuickOpenService {
 
     private toRepositoryPathQuickOpenItem(root: FileStat): GitQuickPickItem<URI> {
         const rootUri = root.resource;
-        const execute = async (item: GitQuickPickItem<URI>, lookFor: string) => {
+        const execute = async (item: GitQuickPickItem<URI>) => {
             const wsRoot = item.ref!.toString();
             this.doInitRepository(wsRoot);
         };
@@ -550,11 +550,18 @@ export class GitQuickOpenService {
 }
 
 class GitQuickPickItem<T> implements QuickPickItem {
+    readonly execute?: () => void;
     constructor(
         public label: string,
-        public readonly execute?: (item: QuickPickItem, lookFor: string) => void,
+        execute?: (item: QuickPickItem) => void,
         public readonly ref?: T,
         public description?: string,
         public alwaysShow = true,
-        public sortByLabel = false) { }
+        public sortByLabel = false) {
+        this.execute = execute ? createExecFunction(execute, this) : undefined;
+    }
+}
+
+function createExecFunction(f: (item: QuickPickItem) => void, item: QuickPickItem): () => void {
+    return () => { f(item); };
 }

@@ -17,7 +17,7 @@
 import { injectable, inject, optional } from '@theia/core/shared/inversify';
 import { PluginServer } from '../../common';
 import { Command } from '@theia/core/lib/common/command';
-import { QuickInputService } from '@theia/core/lib/browser';
+import { QuickInputService, QuickPick, QuickPickItem } from '@theia/core/lib/browser';
 
 @injectable()
 export class PluginExtDeployCommandService /* implements QuickOpenModel */ {
@@ -37,8 +37,7 @@ export class PluginExtDeployCommandService /* implements QuickOpenModel */ {
         this.quickInputService?.showQuickPick([],
             {
                 placeholder: "Plugin's id to deploy.",
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                onDidChangeValue: (quickPick: any, filter: string) => {
+                onDidChangeValue: (quickPick: QuickPick<QuickPickItem>, filter: string) => {
                     quickPick.items = [{
                         label: filter,
                         detail: 'Deploy this plugin',

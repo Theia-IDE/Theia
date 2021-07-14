@@ -17,12 +17,11 @@ import { injectable, inject, optional } from 'inversify';
 import { CommandRegistry, CommandContribution, MenuContribution, MenuModelRegistry } from '../../common';
 import { KeybindingRegistry, KeybindingContribution } from '../keybinding';
 import { CommonMenus } from '../common-frontend-contribution';
-import { QuickInputService } from './quick-input-service';
 import { CLEAR_COMMAND_HISTORY, quickCommand, QuickCommandService } from './quick-command-service';
-import { QuickAccessContribution } from './quick-access-contribution';
+import { QuickInputService } from './quick-input-service';
 
 @injectable()
-export class QuickCommandFrontendContribution implements CommandContribution, KeybindingContribution, MenuContribution, QuickAccessContribution {
+export class QuickCommandFrontendContribution implements CommandContribution, KeybindingContribution, MenuContribution {
 
     @inject(QuickInputService) @optional()
     protected readonly quickInputService: QuickInputService;
@@ -58,9 +57,5 @@ export class QuickCommandFrontendContribution implements CommandContribution, Ke
             command: quickCommand.id,
             keybinding: 'ctrlcmd+shift+p'
         });
-    }
-
-    registerQuickAccessProvider(): void {
-        this.quickCommandService?.registerQuickAccessProvider();
     }
 }

@@ -26,11 +26,9 @@ import { CommandRegistry, CommandContribution } from '@theia/core/lib/common';
 import { KeybindingRegistry, KeybindingContribution } from '@theia/core/lib/browser';
 import { LanguageService } from '@theia/core/lib/browser/language-service';
 import { SUPPORTED_ENCODINGS } from '@theia/core/lib/browser/supported-encodings';
-import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access-contribution';
-import { QuickEditorService } from '@theia/core/lib/browser/quick-input/quick-editor-service';
 
 @injectable()
-export class EditorContribution implements FrontendApplicationContribution, CommandContribution, KeybindingContribution, QuickAccessContribution {
+export class EditorContribution implements FrontendApplicationContribution, CommandContribution, KeybindingContribution {
 
     @inject(StatusBar) protected readonly statusBar: StatusBar;
     @inject(EditorManager) protected readonly editorManager: EditorManager;
@@ -38,9 +36,6 @@ export class EditorContribution implements FrontendApplicationContribution, Comm
 
     @inject(ContextKeyService)
     protected readonly contextKeyService: ContextKeyService;
-
-    @inject(QuickEditorService) @optional()
-    protected readonly quickEditorService: QuickEditorService;
 
     @inject(QuickInputService) @optional()
     protected readonly quickInputService: QuickInputService;
@@ -171,9 +166,5 @@ export class EditorContribution implements FrontendApplicationContribution, Comm
             command: EditorCommands.SPLIT_EDITOR_VERTICAL.id,
             keybinding: 'ctrlcmd+k ctrlcmd+\\',
         });
-    }
-
-    registerQuickAccessProvider(): void {
-        this.quickEditorService?.registerQuickAccessProvider();
     }
 }

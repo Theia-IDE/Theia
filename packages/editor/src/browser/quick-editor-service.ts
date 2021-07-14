@@ -14,29 +14,43 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { inject, injectable } from '@theia/core/shared/inversify';
-import { QuickEditorService, filterItems } from '@theia/core/lib/browser';
-import { EditorManager, EditorWidget } from '@theia/editor/lib/browser';
+import { injectable, inject } from '@theia/core/shared/inversify';
+import { CancellationToken } from '@theia/core/lib/common';
 import URI from '@theia/core/lib/common/uri';
+import { LabelProvider } from '@theia/core/lib/browser/label-provider';
+import { OpenerService } from '@theia/core/lib/browser/opener-service';
+import { QuickAccessProvider, QuickAccessRegistry } from '@theia/core/lib/browser/quick-input/quick-access';
+import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access';
+import { filterItems, QuickPickItem, QuickPickSeparator } from '@theia/core/lib/browser/quick-input/quick-input-service';
+import { EditorManager, EditorWidget } from '.';
 
 @injectable()
-export class MonacoQuickEditorService extends QuickEditorService implements monaco.quickInput.IQuickAccessDataService {
+export class QuickEditorService implements QuickAccessContribution, QuickAccessProvider {
+    static PREFIX = 'edt ';
+
+    @inject(OpenerService)
+    protected readonly openerService: OpenerService;
+
+    @inject(LabelProvider)
+    protected readonly labelProvider: LabelProvider;
+
+    @inject(QuickAccessRegistry)
+    protected readonly quickAccessRegistry: QuickAccessRegistry;
 
     @inject(EditorManager)
     protected readonly editorManager: EditorManager;
 
     registerQuickAccessProvider(): void {
-        monaco.platform.Registry.as<monaco.quickInput.IQuickAccessRegistry>('workbench.contributions.quickaccess').registerQuickAccessProvider({
-            ctor: EditorQuickAccessProvider,
-            prefix: EditorQuickAccessProvider.PREFIX,
+        this.quickAccessRegistry.registerQuickAccessProvider({
+            getInstance: () => this,
+            prefix: QuickEditorService.PREFIX,
             placeholder: '',
             helpEntries: [{ description: 'Show All Opened Editors', needsEditor: false }]
         });
-        EditorQuickAccessProvider.dataService = this as monaco.quickInput.IQuickAccessDataService;
     }
 
-    getPicks(filter: string, token: monaco.CancellationToken): monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem> {
-        const editorItems: Array<monaco.quickInput.IAnythingQuickPickItem> = [];
+    getPicks(filter: string, token: CancellationToken): (QuickPickItem | QuickPickSeparator)[] {
+        const editorItems: QuickPickItem[] = [];
 
         // Get the alphabetically sorted list of URIs of all currently opened editor widgets.
         const widgets: URI[] = this.editorManager.all
@@ -57,7 +71,7 @@ export class MonacoQuickEditorService extends QuickEditorService implements mona
         return filterItems(editorItems.slice(), filter);
     }
 
-    protected toItem(uri: URI): monaco.quickInput.IAnythingQuickPickItem {
+    protected toItem(uri: URI): QuickPickItem {
         const description = this.labelProvider.getLongName(uri.parent);
         const icon = this.labelProvider.getIcon(uri);
         const iconClasses = icon === '' ? undefined : [icon + ' file-icon'];
@@ -67,38 +81,13 @@ export class MonacoQuickEditorService extends QuickEditorService implements mona
             description: description,
             iconClasses,
             ariaLabel: uri.path.toString(),
-            resource: uri,
             alwaysShow: true,
-            accept: () => this.openFile(uri)
+            execute: () => this.openFile(uri)
         };
     }
 
     protected openFile(uri: URI): void {
         this.openerService.getOpener(uri)
             .then(opener => opener.open(uri));
-    }
-}
-
-export class EditorQuickAccessProvider extends monaco.quickInput.PickerQuickAccessProvider<monaco.quickInput.IQuickPickItem> {
-    static PREFIX = 'edt ';
-    static dataService: monaco.quickInput.IQuickAccessDataService;
-
-    private static readonly NO_RESULTS_PICK: monaco.quickInput.IAnythingQuickPickItem = {
-        label: 'No matching results'
-    };
-
-    constructor() {
-        super(EditorQuickAccessProvider.PREFIX, {
-            canAcceptInBackground: true,
-            noResultsPick: EditorQuickAccessProvider.NO_RESULTS_PICK
-        });
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    getPicks(filter: string, disposables: any, token: monaco.CancellationToken): monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>
-        | Promise<monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>>
-        | monaco.quickInput.FastAndSlowPicks<monaco.quickInput.IAnythingQuickPickItem>
-        | null {
-        return EditorQuickAccessProvider.dataService?.getPicks(filter, token);
     }
 }

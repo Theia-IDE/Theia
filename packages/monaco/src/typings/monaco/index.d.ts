@@ -1451,7 +1451,6 @@ declare module monaco.quickInput {
         buttons?: IQuickInputButton[];
         picked?: boolean;
         alwaysShow?: boolean;
-        execute?: (item: IQuickPickItem, lookFor: string) => void
     }
 
     // https://github.com/theia-ide/vscode/blob/standalone/0.23.x/src/vs/base/parts/quickinput/common/quickInput.ts#L306
@@ -1672,58 +1671,6 @@ declare module monaco.quickInput {
         onDidTriggerItemButton?: (context: IQuickPickItemButtonContext<T>) => void;
     }
 
-    export interface IQuickPickOptions<T extends monaco.quickInput.IQuickPickItem> {
-        busy?: boolean;
-        enabled?: boolean;
-        title?: string;
-        description?: string;
-        value?: string;
-        filterValue?: (value: string) => string;
-        ariaLabel?: string;
-        buttons?: Array<monaco.quickInput.IQuickInputButton>;
-        placeholder?: string;
-        canAcceptInBackground?: boolean;
-        customButton?: boolean;
-        customLabel?: string;
-        customHover?: string;
-        canSelectMany?: boolean;
-        matchOnDescription?: boolean;
-        matchOnDetail?: boolean;
-        matchOnLabel?: boolean;
-        sortByLabel?: boolean;
-        autoFocusOnList?: boolean;
-        ignoreFocusOut?: boolean;
-        quickNavigate?: monaco.quickInput.IQuickNavigateConfiguration;
-        itemActivation?: monaco.quickInput.ItemActivation;
-        valueSelection?: Readonly<[number, number]>;
-        validationMessage?: string;
-        hideInput?: boolean;
-        hideCheckAll?: boolean;
-        runIfSingle?: boolean
-        contextKey?: string;
-        activeItem?: T,
-        step?: number;
-        totalSteps?: number;
-
-        onDidAccept?: () => void,
-        onDidChangeActive?: (quickPick: IQuickPick<T>, activeItems: Array<T>) => void,
-        onDidChangeSelection?: (quickPick: IQuickPick<T>, selectedItems: Array<T>) => void,
-        onDidChangeValue?: (quickPick: IQuickPick<T>, filter: string) => void,
-        onDidCustom?: () => void,
-        onDidHide?: () => void,
-        onDidTriggerButton?: Event<monaco.quickInput.IQuickInputButton>;
-        onDidTriggerItemButton?: Event<monaco.quickInput.IQuickPickItemButtonEvent<T>>;
-    }
-
-    export interface IQuickAccessDataService {
-        getPicks(filter: string, token: CancellationToken): monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>
-            | Promise<monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem>>
-            | monaco.quickInput.FastAndSlowPicks<monaco.quickInput.IAnythingQuickPickItem>
-            | null;
-        registerQuickAccessProvider(): void;
-    }
-
-    // https://github.com/theia-ide/vscode/blob/standalone/0.23.x/src/vs/platform/quickinput/browser/pickerQuickAccess.ts#L75
     export type Pick<T> = T | IQuickPickSeparator;
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
     export type PicksWithActive<T> = { items: Array<Pick<T>>, active?: T };
@@ -1733,9 +1680,8 @@ declare module monaco.quickInput {
 
     // https://github.com/theia-ide/vscode/blob/standalone/0.23.x/src/vs/platform/quickinput/browser/pickerQuickAccess.ts#L92
     export class PickerQuickAccessProvider<T extends IPickerQuickAccessItem> extends Disposable implements IQuickAccessProvider {
-        constructor(private prefix: string, protected options?: IPickerQuickAccessProviderOptions<T>) {
-            super();
-        }
+        constructor(prefix: string, options?: IPickerQuickAccessProviderOptions<T>);
+
         provide(picker: IQuickPick<T>, token: CancellationToken): IDisposable;
         protected getPicks(filter: string, disposables: any, token: CancellationToken): Picks<T> | Promise<Picks<T>> | FastAndSlowPicks<T> | null;
     }
@@ -1851,7 +1797,24 @@ declare module monaco.quickInput {
         provide(picker: monaco.quickInput.IQuickPick<monaco.quickInput.IQuickPickItem>, token: CancellationToken): IDisposable;
     }
 
-    // https://github.com/theia-ide/vscode/blob/standalone/0.23.x/src/vs/platform/quickinput/common/quickAccess.ts#L101
+    export interface IQuickAccessProviderHelp {
+
+        /**
+         * The prefix to show for the help entry. If not provided,
+         * the prefix used for registration will be taken.
+         */
+        prefix?: string;
+
+        /**
+         * A description text to help understand the intent of the provider.
+         */
+        description: string;
+
+        /**
+         * Separation between provider for editors and global ones.
+         */
+        needsEditor: boolean;
+    }
     export interface IQuickAccessProviderDescriptor {
         /**
          * The actual provider that will be instantiated as needed.

@@ -41,7 +41,7 @@ import { TaskSourceResolver } from './task-source-resolver';
 import { TaskTemplateSelector } from './task-templates';
 import { TaskTerminalWidgetManager } from './task-terminal-widget-manager';
 import { JsonSchemaContribution } from '@theia/core/lib/browser/json-schema-store';
-import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access-contribution';
+import { QuickAccessContribution } from '@theia/core/lib/browser/quick-input/quick-access';
 
 export default new ContainerModule(bind => {
     bind(TaskFrontendContribution).toSelf().inSingletonScope();

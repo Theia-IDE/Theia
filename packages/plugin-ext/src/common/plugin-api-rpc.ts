@@ -93,7 +93,7 @@ import type {
 import { SerializableEnvironmentVariableCollection } from '@theia/terminal/lib/common/base-terminal-protocol';
 import { ThemeType } from '@theia/core/lib/browser/theming';
 import { Disposable } from '@theia/core/lib/common/disposable';
-import { IPickOptions, QuickInputButtonHandle, QuickPickItem } from '@theia/core/lib/browser';
+import { PickOptions, QuickInputButtonHandle, QuickPickItem } from '@theia/core/lib/browser';
 
 export interface PreferenceData {
     [scope: number]: any;
@@ -600,7 +600,7 @@ export interface IInputBoxOptions {
 }
 
 export interface QuickOpenMain {
-    $show(instance: number, options: IPickOptions<TransferQuickPickItems>, token: CancellationToken): Promise<number | number[] | undefined>;
+    $show(instance: number, options: PickOptions<TransferQuickPickItems>, token: CancellationToken): Promise<number | number[] | undefined>;
     $setItems(instance: number, items: TransferQuickPickItems[]): Promise<any>;
     $setError(instance: number, error: Error): Promise<void>;
     $input(options: theia.InputBoxOptions, validateInput: boolean, token: CancellationToken): Promise<string | undefined>;

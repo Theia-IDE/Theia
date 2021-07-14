@@ -95,13 +95,14 @@ import { keytarServicePath, KeytarService } from '../common/keytar-protocol';
 import { CredentialsService, CredentialsServiceImpl } from './credentials-service';
 import { ContributionFilterRegistry, ContributionFilterRegistryImpl } from '../common/contribution-filter';
 import { QuickCommandFrontendContribution } from './quick-input/quick-command-frontend-contribution';
-import { QuickHelpFrontendContribution } from './quick-input/quick-help-frontend-contribution';
+import { QuickHelpService } from './quick-input/quick-help-service';
 import { QuickPickService, quickPickServicePath } from '../common/quick-pick-service';
 import {
     QuickPickServiceImpl,
     QuickInputFrontendContribution
 } from './quick-input';
-import { QuickAccessContribution } from './quick-input/quick-access-contribution';
+import { QuickAccessContribution } from './quick-input/quick-access';
+import { QuickCommandService } from './quick-input/quick-command-service';
 
 export { bindResourceProvider, bindMessageService, bindPreferenceService };
 
@@ -232,12 +233,14 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
     );
 
     bind(QuickCommandFrontendContribution).toSelf().inSingletonScope();
-    [CommandContribution, KeybindingContribution, MenuContribution, QuickAccessContribution].forEach(serviceIdentifier =>
+    [CommandContribution, KeybindingContribution, MenuContribution].forEach(serviceIdentifier =>
         bind(serviceIdentifier).toService(QuickCommandFrontendContribution)
     );
+    bind(QuickCommandService).toSelf().inSingletonScope();
+    bind(QuickAccessContribution).toService(QuickCommandService);
 
-    bind(QuickHelpFrontendContribution).toSelf().inSingletonScope();
-    bind(QuickAccessContribution).toService(QuickHelpFrontendContribution);
+    bind(QuickHelpService).toSelf().inSingletonScope();
+    bind(QuickAccessContribution).toService(QuickHelpService);
 
     bind(QuickPickService).to(QuickPickServiceImpl).inSingletonScope().onActivation(({ container }, quickPickService: QuickPickService) => {
         WebSocketConnectionProvider.createProxy(container, quickPickServicePath, quickPickService);
@@ -318,6 +321,7 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
         return container.get(ViewContainer);
     });
 
+    bind(QuickViewService).toSelf().inSingletonScope();
     bind(QuickAccessContribution).toService(QuickViewService);
 
     bind(DialogOverlayService).toSelf().inSingletonScope();

@@ -17,7 +17,7 @@
 import { injectable, inject, named } from 'inversify';
 import { ContributionProvider } from '../../common';
 import { FrontendApplicationContribution } from '../frontend-application';
-import { QuickAccessContribution } from './quick-access-contribution';
+import { QuickAccessContribution } from './quick-access';
 
 @injectable()
 export class QuickInputFrontendContribution implements FrontendApplicationContribution {

@@ -28,7 +28,9 @@ import {
     TransferQuickInput,
     TransferQuickInputButton
 } from '../../common/plugin-api-rpc';
-import { IInputOptions, IPickOptions, QuickInputButton, QuickInputService, QuickPickItem, QuickPickValue } from '@theia/core/lib/browser';
+import {
+    InputOptions, PickOptions, QuickInputButton, QuickInputService, QuickPickItem, QuickPickValue
+} from '@theia/core/lib/browser';
 import { QuickPickService } from '@theia/core/lib/common/quick-pick-service';
 import { DisposableCollection, Disposable } from '@theia/core/lib/common/disposable';
 import { CancellationToken } from '@theia/core/lib/common/cancellation';
@@ -66,7 +68,7 @@ export class QuickOpenMainImpl implements QuickOpenMain, Disposable {
         this.toDispose.dispose();
     }
 
-    async $show(instance: number, options: IPickOptions<TransferQuickPickItems>, token: CancellationToken): Promise<number | number[] | undefined> {
+    async $show(instance: number, options: PickOptions<TransferQuickPickItems>, token: CancellationToken): Promise<number | number[] | undefined> {
         const contents = new Promise<TransferQuickPickItems[]>((resolve, reject) => {
             this.items[instance] = { resolve, reject };
         });
@@ -114,7 +116,7 @@ export class QuickOpenMainImpl implements QuickOpenMain, Disposable {
     }
 
     $input(options: InputBoxOptions, validateInput: boolean, token: CancellationToken): Promise<string | undefined> {
-        const inputOptions: IInputOptions = Object.create(null);
+        const inputOptions: InputOptions = Object.create(null);
 
         if (options) {
             inputOptions.password = options.password;
