@@ -1,0 +1,22 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../application-manager"
+    },
+    {
+      "path": "../application-package"
+    },
+    {
+      "path": "../ovsx-client"
+    }
+  ]
+}

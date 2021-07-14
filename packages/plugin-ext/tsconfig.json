@@ -1,0 +1,78 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib",
+    "lib": [
+      "es6",
+      "dom",
+      "webworker"
+    ]
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../bulk-edit"
+    },
+    {
+      "path": "../callhierarchy"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../debug"
+    },
+    {
+      "path": "../editor"
+    },
+    {
+      "path": "../file-search"
+    },
+    {
+      "path": "../filesystem"
+    },
+    {
+      "path": "../markers"
+    },
+    {
+      "path": "../messages"
+    },
+    {
+      "path": "../monaco"
+    },
+    {
+      "path": "../navigator"
+    },
+    {
+      "path": "../output"
+    },
+    {
+      "path": "../plugin"
+    },
+    {
+      "path": "../preferences"
+    },
+    {
+      "path": "../scm"
+    },
+    {
+      "path": "../search-in-workspace"
+    },
+    {
+      "path": "../task"
+    },
+    {
+      "path": "../terminal"
+    },
+    {
+      "path": "../timeline"
+    },
+    {
+      "path": "../workspace"
+    }
+  ]
+}

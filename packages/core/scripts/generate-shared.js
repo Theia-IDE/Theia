@@ -40,9 +40,9 @@ async function main() {
     await mkdirp(shared);
     await Promise.all([
         generateExportTheiaElectron(),
-        Promise.all(exportStar.map(entry => generateExportStar(entry.module, entry.alias))),
-        Promise.all(exportEqual.map(entry => generateExportEqual(entry.module, entry.namespace))),
         generateReadme(sharedModules),
+        ...exportStar.map(entry => generateExportStar(entry.module, entry.alias)),
+        ...exportEqual.map(entry => generateExportEqual(entry.module, entry.namespace)),
     ]);
 }
 

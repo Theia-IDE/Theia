@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.16.0
+
+<a name="breaking_changes_1.16.0">[Breaking Changes:](#breaking_changes_1.15.0)</a>
+
+- [application-manager] break `rebuild` API: second argument is now an optional object instead of an optional array.
+
 ## v1.15.0 - 6/30/2021
 
 [1.15.0 Milestone](https://github.com/eclipse-theia/theia/milestone/21)

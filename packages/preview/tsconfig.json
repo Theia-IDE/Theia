@@ -1,0 +1,26 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib",
+    "baseUrl": "."
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../editor"
+    },
+    {
+      "path": "../mini-browser"
+    },
+    {
+      "path": "../monaco"
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "lib/test"
+  },
+  "include": [
+    "test"
+  ],
+  "references": [
+    {
+      "path": "../../dev-packages/cli"
+    },
+    {
+      "path": "../../packages/bulk-edit"
+    },
+    {
+      "path": "../../packages/callhierarchy"
+    },
+    {
+      "path": "../../packages/console"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/debug"
+    },
+    {
+      "path": "../../packages/editor"
+    },
+    {
+      "path": "../../packages/editor-preview"
+    },
+    {
+      "path": "../../packages/external-terminal"
+    },
+    {
+      "path": "../../packages/file-search"
+    },
+    {
+      "path": "../../packages/filesystem"
+    },
+    {
+      "path": "../../packages/getting-started"
+    },
+    {
+      "path": "../../packages/git"
+    },
+    {
+      "path": "../../packages/keymaps"
+    },
+    {
+      "path": "../../packages/markers"
+    },
+    {
+      "path": "../../packages/messages"
+    },
+    {
+      "path": "../../packages/metrics"
+    },
+    {
+      "path": "../../packages/mini-browser"
+    },
+    {
+      "path": "../../packages/monaco"
+    },
+    {
+      "path": "../../packages/navigator"
+    },
+    {
+      "path": "../../packages/outline-view"
+    },
+    {
+      "path": "../../packages/output"
+    },
+    {
+      "path": "../../packages/plugin-dev"
+    },
+    {
+      "path": "../../packages/plugin-ext"
+    },
+    {
+      "path": "../../packages/plugin-ext-vscode"
+    },
+    {
+      "path": "../../packages/preferences"
+    },
+    {
+      "path": "../../packages/preview"
+    },
+    {
+      "path": "../../packages/process"
+    },
+    {
+      "path": "../../packages/property-view"
+    },
+    {
+      "path": "../../packages/scm"
+    },
+    {
+      "path": "../../packages/scm-extra"
+    },
+    {
+      "path": "../../packages/search-in-workspace"
+    },
+    {
+      "path": "../../packages/task"
+    },
+    {
+      "path": "../../packages/terminal"
+    },
+    {
+      "path": "../../packages/timeline"
+    },
+    {
+      "path": "../../packages/typehierarchy"
+    },
+    {
+      "path": "../../packages/userstorage"
+    },
+    {
+      "path": "../../packages/variable-resolver"
+    },
+    {
+      "path": "../../packages/vsx-registry"
+    },
+    {
+      "path": "../../packages/workspace"
+    },
+    {
+      "path": "../api-samples"
+    }
+  ]
+}

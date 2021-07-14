@@ -1,0 +1,22 @@
+{
+  "extends": "../../configs/base.tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../editor"
+    },
+    {
+      "path": "../monaco"
+    }
+  ]
+}

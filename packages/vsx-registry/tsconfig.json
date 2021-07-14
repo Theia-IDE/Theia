@@ -1,0 +1,34 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../dev-packages/ovsx-client"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../filesystem"
+    },
+    {
+      "path": "../plugin-ext"
+    },
+    {
+      "path": "../plugin-ext-vscode"
+    },
+    {
+      "path": "../preferences"
+    },
+    {
+      "path": "../workspace"
+    }
+  ]
+}

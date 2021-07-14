@@ -1,0 +1,28 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/filesystem"
+    },
+    {
+      "path": "../../packages/output"
+    },
+    {
+      "path": "../../packages/vsx-registry"
+    },
+    {
+      "path": "../../packages/workspace"
+    }
+  ]
+}

@@ -14,63 +14,145 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
+import cp = require('child_process');
 import fs = require('fs-extra');
 import path = require('path');
 
-export function rebuild(target: 'electron' | 'browser', modules: string[] | undefined): void {
-    const nodeModulesPath = path.join(process.cwd(), 'node_modules');
-    const browserModulesPath = path.join(process.cwd(), '.browser_modules');
-    const modulesToProcess = modules || ['@theia/node-pty', 'nsfw', 'native-keymap', 'find-git-repositories', 'drivelist'];
+export type RebuildTarget = 'electron' | 'browser';
 
-    if (target === 'electron' && !fs.existsSync(browserModulesPath)) {
-        const dependencies: {
-            [dependency: string]: string
-        } = {};
-        for (const module of modulesToProcess) {
-            console.log('Processing ' + module);
-            const src = path.join(nodeModulesPath, module);
-            if (fs.existsSync(src)) {
-                const dest = path.join(browserModulesPath, module);
-                const packJson = fs.readJsonSync(path.join(src, 'package.json'));
-                dependencies[module] = packJson.version;
-                fs.copySync(src, dest);
-            }
-        }
-        const packFile = path.join(process.cwd(), 'package.json');
-        const packageText = fs.readFileSync(packFile);
-        const pack = fs.readJsonSync(packFile);
-        try {
-            pack.dependencies = Object.assign({}, pack.dependencies, dependencies);
-            fs.writeFileSync(packFile, JSON.stringify(pack, undefined, '  '));
-            const electronRebuildPackageJson = require('electron-rebuild/package.json');
-            require(`electron-rebuild/${electronRebuildPackageJson['bin']['electron-rebuild']}`);
-        } finally {
-            setTimeout(() => {
-                fs.writeFile(packFile, packageText);
-            }, 100);
-        }
-    } else if (target === 'browser' && fs.existsSync(browserModulesPath)) {
-        for (const moduleName of collectModulePaths(browserModulesPath)) {
-            console.log('Reverting ' + moduleName);
-            const src = path.join(browserModulesPath, moduleName);
-            const dest = path.join(nodeModulesPath, moduleName);
-            fs.removeSync(dest);
-            fs.copySync(src, dest);
-        }
-        fs.removeSync(browserModulesPath);
+export const DEFAULT_MODULES = [
+    '@theia/node-pty',
+    'nsfw',
+    'native-keymap',
+    'find-git-repositories',
+    'drivelist',
+];
+
+export interface RebuildOptions {
+    /**
+     * What modules to rebuild.
+     */
+    modules?: string[]
+    /**
+     * Folder where the module cache will be created/read from.
+     */
+    cacheRoot?: string
+}
+
+/**
+ * @param target What to rebuild for.
+ * @param options
+ */
+export function rebuild(target: RebuildTarget, options: RebuildOptions = {}): void {
+    const {
+        modules = DEFAULT_MODULES,
+        cacheRoot = process.cwd(),
+    } = options;
+    const cache = path.resolve(cacheRoot, '.browser_modules');
+    const cacheExists = folderExists(cache);
+    if (target === 'electron' && !cacheExists) {
+        rebuildElectronModules(cache, modules);
+    } else if (target === 'browser' && cacheExists) {
+        revertBrowserModules(cache, modules);
     } else {
-        console.log('native node modules are already rebuilt for ' + target);
+        console.log(`native node modules are already rebuilt for ${target}`);
     }
 }
 
-function collectModulePaths(root: string): string[] {
-    const moduleRelativePaths: string[] = [];
-    for (const dirName of fs.readdirSync(root)) {
-        if (fs.existsSync(path.join(root, dirName, 'package.json'))) {
-            moduleRelativePaths.push(dirName);
-        } else if (fs.lstatSync(path.join(root, dirName)).isDirectory()) {
-            moduleRelativePaths.push(...collectModulePaths(path.join(root, dirName)).map(p => path.join(dirName, p)));
+function folderExists(folder: string): boolean {
+    if (fs.existsSync(folder)) {
+        if (fs.statSync(folder).isDirectory()) {
+            return true;
+        } else {
+            throw new Error(`"${folder}" exists but it is not a directory`);
         }
     }
-    return moduleRelativePaths;
+    return false;
+}
+
+/**
+ * Schema for `<browserModuleCache>/modules.json`
+ */
+interface ModulesJson {
+    [moduleName: string]: ModuleBackup
+}
+interface ModuleBackup {
+    originalLocation: string
+}
+
+async function rebuildElectronModules(browserModuleCache: string, modules: string[]): Promise<void> {
+    const modulesJsonPath = path.join(browserModuleCache, 'modules.json');
+    const modulesJson: ModulesJson = await fs.access(modulesJsonPath).then(
+        exists => fs.readJSON(modulesJsonPath),
+        missing => ({})
+    );
+    let success = true;
+    // backup already-built browser modules
+    await Promise.all(modules.map(async module => {
+        const src = path.dirname(require.resolve(`${module}/package.json`, {
+            paths: [process.cwd()],
+        }));
+        const dest = path.join(browserModuleCache, module);
+        try {
+            await fs.remove(dest);
+            await fs.copy(src, dest);
+            modulesJson[module] = {
+                originalLocation: src,
+            };
+            console.debug(`Processed "${module}"`);
+        } catch (error) {
+            console.error(`Error while doing a backup for "${module}": ${error}`);
+            success = false;
+        }
+    }));
+    // update manifest tracking the backups original locations
+    await fs.writeJSON(modulesJsonPath, modulesJson, { spaces: 2 });
+    // if we failed to process a module then exit now
+    if (!success) {
+        process.exit(1);
+    }
+    // rebuild for electron
+    await new Promise<void>((resolve, reject) => {
+        const electronRebuild = cp.spawn(`npx --no-install electron-rebuild --only="${modules.join(',')}"`, {
+            stdio: 'inherit',
+            shell: true,
+        });
+        electronRebuild.on('error', reject);
+        electronRebuild.on('close', (code, signal) => {
+            if (code || signal) {
+                reject(`electron-rebuild exited with "${code || signal}"`);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+async function revertBrowserModules(browserModuleCache: string, modules: string[]): Promise<void> {
+    const modulesJsonPath = path.join(browserModuleCache, 'modules.json');
+    const modulesJson: ModulesJson = await fs.readJSON(modulesJsonPath);
+    await Promise.all(Object.entries(modulesJson).map(async ([moduleName, entry]) => {
+        if (!modules.includes(moduleName)) {
+            return; // skip modules that weren't requested
+        }
+        const src = path.join(browserModuleCache, moduleName);
+        const dest = entry.originalLocation;
+        try {
+            await fs.remove(dest);
+            await fs.copy(src, dest);
+            await fs.remove(src);
+            delete modulesJson[moduleName];
+            console.debug(`Reverted "${moduleName}"`);
+        } catch (error) {
+            console.error(`Error while reverting "${moduleName}": ${error}`);
+            process.exitCode = 1;
+        }
+    }));
+    if (Object.keys(modulesJson).length === 0) {
+        // we restored everything so we can delete the cache
+        await fs.remove(browserModuleCache);
+    } else {
+        // some things were not restored so we update the manifest
+        await fs.writeJSON(modulesJsonPath, modulesJson, { spaces: 2 });
+    }
 }

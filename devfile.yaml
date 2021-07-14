@@ -36,7 +36,7 @@ commands:
         component: che-dev
         command: >
           killall node;
-          yarn
+          yarn && yarn build:examples
         workdir: ${workspaceRoot}/theia
   - name: >
       theia: Launch Browser Backend
@@ -55,7 +55,7 @@ commands:
       - type: exec
         component: che-dev
         command: >
-          yarn watch
+          yarn watch:ts
         workdir: ${workspaceRoot}/theia
   - name: >
       theia: Watch Browser Example
@@ -63,5 +63,13 @@ commands:
       - type: exec
         component: che-dev
         command: >
+          yarn browser watch
+        workdir: ${workspaceRoot}/theia
+  - name: >
+      theia: Watch All
+    actions:
+      - type: exec
+        component: che-dev
+        command: >
           yarn watch
-        workdir: ${workspaceRoot}/theia/examples/browser
+        workdir: ${workspaceRoot}/theia

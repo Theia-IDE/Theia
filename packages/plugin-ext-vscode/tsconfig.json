@@ -1,0 +1,48 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib",
+    "lib": [
+      "es6",
+      "dom",
+      "webworker"
+    ]
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../editor"
+    },
+    {
+      "path": "../filesystem"
+    },
+    {
+      "path": "../monaco"
+    },
+    {
+      "path": "../navigator"
+    },
+    {
+      "path": "../plugin"
+    },
+    {
+      "path": "../plugin-ext"
+    },
+    {
+      "path": "../terminal"
+    },
+    {
+      "path": "../userstorage"
+    },
+    {
+      "path": "../workspace"
+    }
+  ]
+}

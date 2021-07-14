@@ -46,8 +46,10 @@ jobs:
         shell: bash
         run: |
           yarn --skip-integrity-check --network-timeout 100000
+          yarn lint
           npx electron-replace-ffmpeg
           npx electron-codecs-test
+          yarn build:examples
           ./scripts/check_git_status.sh
         env:
           NODE_OPTIONS: --max_old_space_size=4096
@@ -63,13 +65,13 @@ jobs:
         if: matrix.tests != 'skip' && runner.os == 'Linux'
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: yarn test:browser
+          run: yarn browser test
 
       - name: Test (electron)
         if: matrix.tests != 'skip' && runner.os == 'Linux'
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: yarn test:electron
+          run: yarn electron test
 
   publish:
     needs: build
@@ -100,6 +102,7 @@ jobs:
       - name: Pre-Publish
         run: |
           yarn --skip-integrity-check --network-timeout 100000
+          yarn build:ts
           yarn docs
         env:
           NODE_OPTIONS: --max_old_space_size=4096

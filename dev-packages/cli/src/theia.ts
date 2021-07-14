@@ -39,18 +39,23 @@ function commandArgs(arg: string): string[] {
     return restIndex !== -1 ? process.argv.slice(restIndex + 1) : [];
 }
 
-function rebuildCommand(command: string, target: ApplicationProps.Target): yargs.CommandModule<unknown, { modules: string[] }> {
+function rebuildCommand(command: string, target: ApplicationProps.Target): yargs.CommandModule<unknown, { modules: string[], cacheRoot?: string }> {
     return {
         command,
-        describe: 'rebuild native node modules for the ' + target,
+        describe: `rebuild/revert native node modules for "${target}"`,
         builder: {
             'modules': {
                 array: true,
+                describe: 'list of modules to rebuild/revert'
             },
+            'cacheRoot': {
+                type: 'string',
+                describe: 'root folder where to store the .browser_modules cache'
+            }
         },
         handler: args => {
             try {
-                rebuild(target, args.modules);
+                rebuild(target, args);
             } catch (err) {
                 console.error(err);
                 process.exit(1);

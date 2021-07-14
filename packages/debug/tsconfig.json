@@ -1,0 +1,55 @@
+{
+  "extends": "../../configs/base.tsconfig",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "lib"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../console"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../editor"
+    },
+    {
+      "path": "../filesystem"
+    },
+    {
+      "path": "../markers"
+    },
+    {
+      "path": "../monaco"
+    },
+    {
+      "path": "../output"
+    },
+    {
+      "path": "../preferences"
+    },
+    {
+      "path": "../process"
+    },
+    {
+      "path": "../task"
+    },
+    {
+      "path": "../terminal"
+    },
+    {
+      "path": "../userstorage"
+    },
+    {
+      "path": "../variable-resolver"
+    },
+    {
+      "path": "../workspace"
+    }
+  ]
+}

@@ -12,7 +12,7 @@ ports:
   - port: 9339 # Node.js debug port
     onOpen: ignore
 tasks:
-  - init: yarn --network-timeout 100000
+  - init: yarn --network-timeout 100000 && yarn build:examples
     command: >
       jwm &
       yarn --cwd examples/browser start ../.. --hostname=0.0.0.0

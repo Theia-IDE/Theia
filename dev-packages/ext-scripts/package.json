@@ -11,12 +11,12 @@
   "theia-monorepo-scripts": {
     "ext:clean": "theiaext compile:clean && theiaext lint:clean && theiaext test:clean",
     "ext:build": "concurrently -n compile,lint -c blue,green \"theiaext compile\" \"theiaext lint\"",
-    "ext:compile": "tsc -b compile.tsconfig.json",
+    "ext:compile": "tsc -b",
     "ext:compile:clean": "rimraf lib *.tsbuildinfo",
-    "ext:lint": "if-env SKIP_LINT=true && echo 'skip lint check' || eslint --cache=true --no-error-on-unmatched-pattern=true \"{src,test}/**/*.{ts,tsx}\"",
+    "ext:lint": "eslint --cache=true --no-error-on-unmatched-pattern=true \"{src,test}/**/*.{ts,tsx}\"",
     "ext:lint:clean": "rimraf .eslintcache",
-    "ext:watch": "tsc -p compile.tsconfig.json -w",
-    "ext:watch:slow": "tsc -b compile.tsconfig.json -w",
+    "ext:watch": "tsc -p -w",
+    "ext:watch:slow": "tsc -b -w",
     "ext:test": "nyc mocha --opts ../../configs/mocha.opts \"./lib/**/*.*spec.js\"",
     "ext:test:watch": "mocha -w --opts ../../configs/mocha.opts \"./lib/**/*.*spec.js\"",
     "ext:test:clean": "rimraf .nyc_output coverage"

@@ -59,12 +59,16 @@
   "scripts": {
     "lint": "theiaext lint",
     "clean": "theia clean",
-    "build": "theiaext compile && yarn bundle",
+    "rebuild": "theia rebuild:electron --cacheRoot ../..",
+    "build": "yarn build:ts && yarn build:bundle",
+    "build:ts": "tsc -b",
+    "build:bundle": "theia build --mode development",
     "bundle": "theia build --mode development",
-    "watch": "concurrently -n compile,bundle \"theiaext watch --preserveWatchOutput\" \"theia build --watch --mode development\"",
-    "start": "theia start --plugins=local-dir:../../plugins",
+    "watch": "concurrently --kill-others -n tsc,bundle -c red,blue \"tsc -b -w --preserveWatchOutput\" \"yarn watch:bundle\"",
+    "watch:bundle": "theia build --watch --mode development",
+    "start": "yarn rebuild && theia start --plugins=local-dir:../../plugins",
     "start:debug": "yarn start --log-level=debug --remote-debugging-port=9222",
-    "test": "electron-mocha --timeout 60000 \"./lib/test/**/*.espec.js\""
+    "test": "yarn rebuild && electron-mocha --timeout 60000 \"./lib/test/**/*.espec.js\""
   },
   "devDependencies": {
     "@theia/cli": "1.15.0"

@@ -13,9 +13,8 @@ Contributors guide: https://github.com/theia-ide/theia/blob/master/CONTRIBUTING.
 
 #### Review checklist
 
-- [ ] as an author, I have thoroughly tested my changes and carefully followed [the review guidelines](https://github.com/theia-ide/theia/blob/master/doc/pull-requests.md#requesting-a-review)
+- [ ] As an author, I have thoroughly tested my changes and carefully followed [the review guidelines](https://github.com/theia-ide/theia/blob/master/doc/pull-requests.md#requesting-a-review)
 
 #### Reminder for reviewers
 
-- as a reviewer, I agree to behave in accordance with [the review guidelines](https://github.com/theia-ide/theia/blob/master/doc/pull-requests.md#reviewing)
-
+- As a reviewer, I agree to behave in accordance with [the review guidelines](https://github.com/theia-ide/theia/blob/master/doc/pull-requests.md#reviewing)
