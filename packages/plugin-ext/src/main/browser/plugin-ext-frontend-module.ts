@@ -21,7 +21,7 @@ import '../../../src/main/browser/style/comments.css';
 import { ContainerModule } from '@theia/core/shared/inversify';
 import {
     FrontendApplicationContribution, WidgetFactory, bindViewContribution,
-    ViewContainerIdentifier, ViewContainer, createTreeContainer, TreeImpl, TreeWidget, TreeModelImpl, LabelProviderContribution
+    ViewContainerIdentifier, ViewContainer, createTreeContainer, TreeImpl, TreeWidget, TreeModelImpl, LabelProviderContribution, TreeDecoratorService
 } from '@theia/core/lib/browser';
 import { MaybePromise, CommandContribution, ResourceResolver, bindContributionProvider } from '@theia/core/lib/common';
 import { WebSocketConnectionProvider } from '@theia/core/lib/browser/messaging';
@@ -76,6 +76,8 @@ import { CustomEditorWidget } from './custom-editors/custom-editor-widget';
 import { CustomEditorService } from './custom-editors/custom-editor-service';
 import { UndoRedoService } from './custom-editors/undo-redo-service';
 import { WebviewFrontendSecurityWarnings } from './webview/webview-frontend-security-warnings';
+import { TreeViewDecorator, TreeViewDecoratorService } from './view/tree-view-decorator-service';
+import { TreeViewProblemDecorator } from './view/tree-view-problem-decorator';
 
 export default new ContainerModule((bind, unbind, isBound, rebind) => {
 
@@ -156,9 +158,18 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
             child.rebind(TreeModelImpl).toService(PluginTreeModel);
             child.bind(TreeViewWidget).toSelf();
             child.rebind(TreeWidget).toService(TreeViewWidget);
+
+            child.bind(TreeViewDecoratorService).toSelf().inSingletonScope();
+            child.rebind(TreeDecoratorService).toService(TreeViewDecoratorService);
+
+            bindContributionProvider(child, TreeViewDecorator);
+
             return child.get(TreeWidget);
         }
     })).inSingletonScope();
+
+    bind(TreeViewProblemDecorator).toSelf().inSingletonScope();
+    bind(TreeViewDecorator).toService(TreeViewProblemDecorator);
 
     bindWebviewPreferences(bind);
     bind(WebviewEnvironment).toSelf().inSingletonScope();
