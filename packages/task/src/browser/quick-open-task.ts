@@ -66,8 +66,8 @@ export class QuickOpenTask implements monaco.quickInput.IQuickAccessDataService 
     @inject(LabelProvider)
     protected readonly labelProvider: LabelProvider;
 
-    init(): Promise<void> {
-        return this.doInit(this.taskService.startUserAction());
+    async init(): Promise<void> {
+        return this.doInit(await this.taskService.startUserAction());
     }
 
     protected async doInit(token: number): Promise<void> {
@@ -148,7 +148,7 @@ export class QuickOpenTask implements monaco.quickInput.IQuickAccessDataService 
     async configure(): Promise<void> {
         this.items = [];
         const isMulti: boolean = this.workspaceService.isMultiRootWorkspaceOpened;
-        const token: number = this.taskService.startUserAction();
+        const token: number = await this.taskService.startUserAction();
 
         const configuredTasks = await this.taskService.getConfiguredTasks(token);
         const providedTasks = await this.taskService.getProvidedTasks(token);
@@ -228,8 +228,7 @@ export class QuickOpenTask implements monaco.quickInput.IQuickAccessDataService 
 
     async runBuildOrTestTask(buildOrTestType: 'build' | 'test'): Promise<void> {
         const shouldRunBuildTask = buildOrTestType === 'build';
-        const token: number = this.taskService.startUserAction();
-
+        const token: number = await this.taskService.startUserAction();
         await this.doInit(token);
 
         const taskItems = this.getTaskItems();

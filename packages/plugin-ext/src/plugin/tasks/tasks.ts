@@ -25,22 +25,19 @@ import * as theia from '@theia/plugin';
 import * as converter from '../type-converters';
 import { CustomExecution, Disposable } from '../types-impl';
 import { RPCProtocol, ConnectionClosedError } from '../../common/rpc-protocol';
-import { TaskProviderAdapter } from './task-provider';
 import { Emitter, Event } from '@theia/core/lib/common/event';
 import { TerminalServiceExtImpl } from '../terminal-ext';
 import { UUID } from '@theia/core/shared/@phosphor/coreutils';
-
-type ExecutionCallback = (resolvedDefintion: theia.TaskDefinition) => Thenable<theia.Pseudoterminal>;
 export class TasksExtImpl implements TasksExt {
     private proxy: TasksMain;
 
     private callId = 0;
-    private adaptersMap = new Map<number, TaskProviderAdapter>();
+    private providersByHandle = new Map<number, theia.TaskProvider>();
     private executions = new Map<number, theia.TaskExecution>();
     protected callbackIdBase: string = UUID.uuid4();
-    protected callbackId: number;
-    protected customExecutionIds: Map<ExecutionCallback, string> = new Map();
-    protected customExecutionFunctions: Map<string, ExecutionCallback> = new Map();
+    protected callbackId: number = 0;
+    protected providedCustomExecutions: Map<string, theia.CustomExecution> = new Map();
+    protected oneOffCustomExecutions: Map<string, theia.CustomExecution> = new Map();
     protected lastStartedTask: number | undefined;
 
     private readonly onDidExecuteTask: Emitter<theia.TaskStartEvent> = new Emitter<theia.TaskStartEvent>();
@@ -67,11 +64,37 @@ export class TasksExtImpl implements TasksExt {
         return this.onDidExecuteTask.event;
     }
 
+    async $onDidStartUserInteraction(): Promise<void> {
+        console.info(`$onDidStartUserInteraction: clearing ${this.providedCustomExecutions.size} custom executions`);
+        this.providedCustomExecutions.clear();
+        return Promise.resolve();
+    }
+
+    private getCustomExecution(id: string | undefined): theia.CustomExecution | undefined {
+        if (!id) {
+            return undefined;
+        }
+        return this.providedCustomExecutions.get(id) ?? this.oneOffCustomExecutions.get(id);
+    }
+
+    private addProvidedCustomExecution(execution: theia.CustomExecution): string {
+        const id = this.nextCallbackId();
+        this.providedCustomExecutions.set(id, execution);
+        return id;
+    }
+
+    private addOneOffCustomExecution(execution: theia.CustomExecution): string {
+        const id = this.nextCallbackId();
+        this.oneOffCustomExecutions.set(id, execution);
+        return id;
+    }
+
     async $onDidStartTask(execution: TaskExecutionDto, terminalId: number): Promise<void> {
-        const customExecution = this.customExecutionFunctions.get(execution.task.executionId || '');
+        const customExecution = this.getCustomExecution(execution.task.executionId);
         if (customExecution) {
+            console.info(`running custom execution with id ${execution.task.executionId}`);
             const taskDefinition = converter.toTask(execution.task).definition;
-            const pty = await customExecution(taskDefinition);
+            const pty = await customExecution.callback(taskDefinition);
             this.terminalExt.attachPtyToTerminal(terminalId, pty);
             if (pty.onDidClose) {
                 const disposable = pty.onDidClose((e: number | void = undefined) => {
@@ -92,13 +115,19 @@ export class TasksExtImpl implements TasksExt {
         return this.onDidTerminateTask.event;
     }
 
-    $onDidEndTask(id: number): void {
-        const taskExecution = this.executions.get(id);
+    $onDidEndTask(executionDto: TaskExecutionDto): void {
+        const taskExecution = this.executions.get(executionDto.id);
         if (!taskExecution) {
-            throw new Error(`Task execution with id ${id} is not found`);
+            throw new Error(`Task execution with id ${executionDto.id} is not found`);
         }
 
-        this.executions.delete(id);
+        if (executionDto.task.executionId) {
+            if (this.oneOffCustomExecutions.delete(executionDto.task.executionId)) {
+                console.info(`removed one-off custom execution with id ${executionDto.task.executionId}`);
+            }
+        }
+
+        this.executions.delete(executionDto.id);
 
         this.onDidTerminateTask.fire({
             execution: taskExecution
@@ -133,7 +162,7 @@ export class TasksExtImpl implements TasksExt {
     }
 
     registerTaskProvider(type: string, provider: theia.TaskProvider): theia.Disposable {
-        const callId = this.addNewAdapter(new TaskProviderAdapter(provider));
+        const callId = this.addProvider(provider);
         this.proxy.$registerTaskProvider(callId, type);
         return this.createDisposable(callId);
     }
@@ -152,7 +181,7 @@ export class TasksExtImpl implements TasksExt {
             // in the provided custom execution map that is cleaned up after the
             // task is executed.
             if (CustomExecution.is(task.execution!)) {
-                taskDto.executionId = this.addCustomExecution(task.execution!.callback);
+                taskDto.executionId = this.addOneOffCustomExecution(task.execution);
             }
             const executionDto = await this.proxy.$executeTask(taskDto);
             if (executionDto) {
@@ -165,52 +194,67 @@ export class TasksExtImpl implements TasksExt {
     }
 
     $provideTasks(handle: number, token: theia.CancellationToken): Promise<TaskDto[] | undefined> {
-        const adapter = this.adaptersMap.get(handle);
-        if (adapter) {
-            return adapter.provideTasks(token).then(tasks => {
+        const provider = this.providersByHandle.get(handle);
+        let addedExecutions = 0;
+        if (provider) {
+            return Promise.resolve(provider.provideTasks(token)).then(tasks => {
                 if (tasks) {
-                    for (const task of tasks) {
-                        if (task.taskType === 'customExecution') {
-                            task.executionId = this.addCustomExecution(task.callback);
-                            task.callback = undefined;
+                    return tasks.map(task => {
+                        const dto = converter.fromTask(task);
+                        if (dto && CustomExecution.is(task.execution!)) {
+                            dto.executionId = this.addProvidedCustomExecution(task.execution);
+                            addedExecutions++;
                         }
-                    }
+                        return dto;
+                    }).filter((task): task is TaskDto => !!task);
+                } else {
+                    return undefined;
                 }
+            }).then(tasks => {
+                console.info(`provideTasks: added ${addedExecutions} executions for provider ${handle}`);
                 return tasks;
             });
         } else {
-            return Promise.reject(new Error('No adapter found to provide tasks'));
+            return Promise.reject(new Error(`No task provider found for handle ${handle} `));
         }
     }
 
-    $resolveTask(handle: number, task: TaskDto, token: theia.CancellationToken): Promise<TaskDto | undefined> {
-        const adapter = this.adaptersMap.get(handle);
-        if (adapter) {
-            return adapter.resolveTask(task, token).then(resolvedTask => {
-                if (resolvedTask && resolvedTask.taskType === 'customExecution') {
-                    resolvedTask.executionId = this.addCustomExecution(resolvedTask.callback);
-                    resolvedTask.callback = undefined;
+    $resolveTask(handle: number, dto: TaskDto, token: theia.CancellationToken): Promise<TaskDto | undefined> {
+        const provider = this.providersByHandle.get(handle);
+        if (provider) {
+            const task = converter.toTask(dto);
+            if (task) {
+                const resolvedTask = provider.resolveTask(task, token);
+                if (resolvedTask) {
+                    return Promise.resolve(resolvedTask).then(maybeResolvedTask => {
+                        if (maybeResolvedTask) {
+                            const resolvedDto = converter.fromTask(maybeResolvedTask);
+                            if (resolvedDto && CustomExecution.is(maybeResolvedTask.execution)) {
+                                resolvedDto.executionId = this.addProvidedCustomExecution(maybeResolvedTask.execution);
+                                console.info('resolveTask: added custom execution');
+                            }
+                            return resolvedDto;
+                        }
+                        return undefined;
+                    });
                 }
-                return resolvedTask;
-            });
+            }
+            return Promise.resolve(undefined);
+
         } else {
-            return Promise.reject(new Error('No adapter found to resolve task'));
+            return Promise.reject(new Error('No provider found to resolve task'));
         }
     }
 
-    private addNewAdapter(adapter: TaskProviderAdapter): number {
-        const callId = this.nextCallId();
-        this.adaptersMap.set(callId, adapter);
+    private addProvider(provider: theia.TaskProvider): number {
+        const callId = this.callId++;
+        this.providersByHandle.set(callId, provider);
         return callId;
-    }
-
-    private nextCallId(): number {
-        return this.callId++;
     }
 
     private createDisposable(callId: number): theia.Disposable {
         return new Disposable(() => {
-            this.adaptersMap.delete(callId);
+            this.providersByHandle.delete(callId);
             this.proxy.$unregister(callId);
         });
     }
@@ -227,6 +271,19 @@ export class TasksExtImpl implements TasksExt {
         }
     }
 
+    private toTaskExecution(execution: TaskExecutionDto): theia.TaskExecution {
+        const result = {
+            task: converter.toTask(execution.task),
+            terminate: () => {
+                this.proxy.$terminateTask(execution.id);
+            }
+        };
+        if (execution.task.executionId) {
+            result.task.execution = this.getCustomExecution(execution.task.executionId);
+        }
+        return result;
+    }
+
     private getTaskExecution(execution: TaskExecutionDto): theia.TaskExecution {
         const executionId = execution.id;
         let result: theia.TaskExecution | undefined = this.executions.get(executionId);
@@ -234,24 +291,9 @@ export class TasksExtImpl implements TasksExt {
             return result;
         }
 
-        result = {
-            task: converter.toTask(execution.task),
-            terminate: () => {
-                this.proxy.$terminateTask(executionId);
-            }
-        };
+        result = this.toTaskExecution(execution);
         this.executions.set(executionId, result);
         return result;
-    }
-
-    private addCustomExecution(callback: ExecutionCallback): string {
-        let id = this.customExecutionIds.get(callback);
-        if (!id) {
-            id = this.nextCallbackId();
-            this.customExecutionIds.set(callback, id);
-            this.customExecutionFunctions.set(id, callback);
-        }
-        return id;
     }
 
     private nextCallbackId(): string {

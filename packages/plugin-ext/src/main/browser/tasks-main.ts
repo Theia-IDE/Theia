@@ -30,6 +30,7 @@ import { TaskInfo, TaskExitedEvent, TaskConfiguration, TaskCustomization, TaskOu
 import { TaskWatcher } from '@theia/task/lib/common/task-watcher';
 import { TaskService } from '@theia/task/lib/browser/task-service';
 import { TaskDefinitionRegistry } from '@theia/task/lib/browser';
+import { ProvidedTaskConfigurations, TaskStartUserInteractionEvent } from '@theia/task/lib/browser/provided-task-configurations';
 
 const revealKindMap = new Map<number | RevealKind, RevealKind | number>(
     [
@@ -72,6 +73,11 @@ export class TasksMainImpl implements TasksMain, Disposable {
         this.taskService = container.get(TaskService);
         this.taskDefinitionRegistry = container.get(TaskDefinitionRegistry);
 
+        this.toDispose.push(container.get(ProvidedTaskConfigurations).onStartUserInteraction((event: TaskStartUserInteractionEvent) => {
+            // we must wait with further processing until the plugin side has had time to clean up its garbage
+            event.waitUntil(this.proxy.$onDidStartUserInteraction());
+        }));
+
         this.toDispose.push(this.taskWatcher.onTaskCreated((event: TaskInfo) => {
             this.proxy.$onDidStartTask({
                 id: event.taskId,
@@ -80,7 +86,10 @@ export class TasksMainImpl implements TasksMain, Disposable {
         }));
 
         this.toDispose.push(this.taskWatcher.onTaskExit((event: TaskExitedEvent) => {
-            this.proxy.$onDidEndTask(event.taskId);
+            this.proxy.$onDidEndTask({
+                id: event.taskId,
+                task: this.fromTaskConfiguration(event.config)
+            });
         }));
 
         this.toDispose.push(this.taskWatcher.onDidStartTaskProcess((event: TaskInfo) => {
@@ -128,7 +137,7 @@ export class TasksMainImpl implements TasksMain, Disposable {
             return [];
         }
 
-        const token: number = this.taskService.startUserAction();
+        const token: number = await this.taskService.startUserAction();
         const [configured, provided] = await Promise.all([
             this.taskService.getConfiguredTasks(token),
             this.taskService.getProvidedTasks(token)

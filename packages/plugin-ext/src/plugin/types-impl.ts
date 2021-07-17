@@ -1778,7 +1778,7 @@ export class CustomExecution {
         return this._callback;
     }
 
-    public static is(value: theia.ShellExecution | theia.ProcessExecution | theia.CustomExecution): value is CustomExecution {
+    public static is(value: theia.ShellExecution | theia.ProcessExecution | theia.CustomExecution | undefined): value is CustomExecution {
         const candidate = value as CustomExecution;
         return candidate && (!!candidate._callback);
     }

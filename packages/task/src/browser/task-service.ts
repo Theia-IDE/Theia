@@ -338,7 +338,7 @@ export class TaskService implements TaskConfigurationClient {
      * contributed tasks is cleared.
      * @returns a token to be used for task-related actions
      */
-    startUserAction(): number {
+    startUserAction(): Promise<number> {
         return this.providedTaskConfigurations.startUserAction();
     }
 

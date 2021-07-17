@@ -18,6 +18,16 @@ import { inject, injectable } from '@theia/core/shared/inversify';
 import { TaskProviderRegistry } from './task-contribution';
 import { TaskDefinitionRegistry } from './task-definition-registry';
 import { TaskConfiguration, TaskCustomization, TaskOutputPresentation, TaskConfigurationScope, TaskScope } from '../common';
+import { Event, Emitter, WaitUntilEvent } from '@theia/core/lib/common';
+
+/**
+ * An event that is emitted when a new user interaction is started in the tasks subsystem.
+ * A "user interaction" is a considered a scope within which the provided tasks will not change.
+ * Examples are an invocation of the "Run Task..." command.
+ */
+export interface TaskStartUserInteractionEvent extends WaitUntilEvent {
+    token: number;
+}
 
 @injectable()
 export class ProvidedTaskConfigurations {
@@ -34,11 +44,18 @@ export class ProvidedTaskConfigurations {
     @inject(TaskDefinitionRegistry)
     protected readonly taskDefinitionRegistry: TaskDefinitionRegistry;
 
+    readonly onStartUserInteractionEmitter: Emitter<TaskStartUserInteractionEvent> = new Emitter<TaskStartUserInteractionEvent>();
+
     private currentToken: number = 0;
     private nextToken = 1;
 
-    startUserAction(): number {
-        return this.nextToken++;
+    get onStartUserInteraction(): Event<TaskStartUserInteractionEvent> {
+        return this.onStartUserInteractionEmitter.event;
+    }
+
+    startUserAction(): Promise<number> {
+        const token = this.nextToken++;
+        return WaitUntilEvent.fire(this.onStartUserInteractionEmitter, { token: token }).then(() => token);
     }
 
     /** returns a list of provided tasks */

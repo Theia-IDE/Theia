@@ -218,7 +218,7 @@ export class TaskFrontendContribution implements CommandContribution, MenuContri
             {
                 isEnabled: () => true,
                 execute: async (label: string) => {
-                    const didExecute = await this.taskService.runTaskByLabel(this.taskService.startUserAction(), label);
+                    const didExecute = await this.taskService.runTaskByLabel(await this.taskService.startUserAction(), label);
                     if (!didExecute) {
                         this.quickOpenTask.open();
                     }
@@ -231,10 +231,10 @@ export class TaskFrontendContribution implements CommandContribution, MenuContri
             {
                 isEnabled: () => true,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                execute: (...args: any[]) => {
+                execute: async (...args: any[]) => {
                     const [source, label, scope] = args;
                     if (source && label) {
-                        return this.taskService.run(this.taskService.startUserAction(), source, label, scope);
+                        return this.taskService.run(await this.taskService.startUserAction(), source, label, scope);
                     }
                     return this.quickOpenTask.open();
                 }
@@ -269,7 +269,7 @@ export class TaskFrontendContribution implements CommandContribution, MenuContri
             TaskCommands.TASK_RUN_LAST,
             {
                 execute: async () => {
-                    if (!await this.taskService.runLastTask(this.taskService.startUserAction())) {
+                    if (!await this.taskService.runLastTask(await this.taskService.startUserAction())) {
                         await this.quickOpenTask.open();
                     }
                 }

@@ -237,7 +237,7 @@ export interface TaskExitedEvent {
     readonly code?: number;
     readonly signal?: string;
 
-    readonly config?: TaskConfiguration;
+    readonly config: TaskConfiguration;
 
     readonly terminalId?: number;
     readonly processId?: number;
