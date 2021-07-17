@@ -263,14 +263,16 @@ export class DebugSessionManager {
         this.onDidCreateDebugSessionEmitter.fire(session);
 
         let state = DebugState.Inactive;
-        session.onDidChange(() => {
+        session.onDidChange((forceUpdateSession: boolean) => {
             if (state !== session.state) {
                 state = session.state;
                 if (state === DebugState.Stopped) {
                     this.onDidStopDebugSessionEmitter.fire(session);
                 }
             }
-            this.updateCurrentSession(session);
+            if (forceUpdateSession || (!forceUpdateSession && this.sessions.length <= 1)) {
+                this.updateCurrentSession(session);
+            }
         });
         session.onDidChangeBreakpoints(uri => this.fireDidChangeBreakpoints({ session, uri }));
         session.on('terminated', async event => {

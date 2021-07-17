@@ -50,10 +50,10 @@ export enum DebugState {
 // FIXME: make injectable to allow easily inject services
 export class DebugSession implements CompositeTreeElement {
 
-    protected readonly onDidChangeEmitter = new Emitter<void>();
-    readonly onDidChange: Event<void> = this.onDidChangeEmitter.event;
-    protected fireDidChange(): void {
-        this.onDidChangeEmitter.fire(undefined);
+    protected readonly onDidChangeEmitter = new Emitter<boolean>();
+    readonly onDidChange: Event<boolean> = this.onDidChangeEmitter.event;
+    protected fireDidChange(forceUpdateSession: boolean = true): void {
+        this.onDidChangeEmitter.fire(forceUpdateSession);
     }
 
     protected readonly onDidChangeBreakpointsEmitter = new Emitter<URI>();
@@ -204,11 +204,14 @@ export class DebugSession implements CompositeTreeElement {
         return this._currentThread;
     }
     set currentThread(thread: DebugThread | undefined) {
+        this.setCurrentThread(thread, true);
+    }
+    private setCurrentThread(thread: DebugThread | undefined, forceUpdateSession: boolean): void {
         this.toDisposeOnCurrentThread.dispose();
         this._currentThread = thread;
-        this.fireDidChange();
+        this.fireDidChange(forceUpdateSession);
         if (thread) {
-            this.toDisposeOnCurrentThread.push(thread.onDidChanged(() => this.fireDidChange()));
+            this.toDisposeOnCurrentThread.push(thread.onDidChanged(() => this.fireDidChange(forceUpdateSession)));
 
             // If this thread is missing stack frame information, then load that.
             this.updateFrames();
@@ -287,7 +290,7 @@ export class DebugSession implements CompositeTreeElement {
             await this.sendRequest('configurationDone', {});
         }
         this.initialized = true;
-        await this.updateThreads(undefined);
+        await this.updateThreads(undefined, false);
     }
 
     protected terminated = false;
@@ -396,31 +399,31 @@ export class DebugSession implements CompositeTreeElement {
         for (const thread of this.threads) {
             thread.clear();
         }
-        this.updateCurrentThread();
+        this.updateCurrentThread(undefined, false);
     }
-    protected clearThread(threadId: number): void {
+    protected clearThread(threadId: number, forceUpdateSession: boolean = true): void {
         const thread = this._threads.get(threadId);
         if (thread) {
             thread.clear();
         }
-        this.updateCurrentThread();
+        this.updateCurrentThread(undefined, forceUpdateSession);
     }
 
-    protected readonly scheduleUpdateThreads = debounce(() => this.updateThreads(undefined), 100);
+    protected readonly scheduleUpdateThreads = debounce(() => this.updateThreads(undefined, false), 100);
     protected pendingThreads = Promise.resolve();
-    updateThreads(stoppedDetails: StoppedDetails | undefined): Promise<void> {
+    updateThreads(stoppedDetails: StoppedDetails | undefined, forceUpdateSession: boolean = true): Promise<void> {
         return this.pendingThreads = this.pendingThreads.then(async () => {
             try {
                 const response = await this.sendRequest('threads', {});
                 // java debugger returns an empty body sometimes
                 const threads = response && response.body && response.body.threads || [];
-                this.doUpdateThreads(threads, stoppedDetails);
+                this.doUpdateThreads(threads, stoppedDetails, forceUpdateSession);
             } catch (e) {
                 console.error('updateThreads failed:', e);
             }
         });
     }
-    protected doUpdateThreads(threads: DebugProtocol.Thread[], stoppedDetails?: StoppedDetails): void {
+    protected doUpdateThreads(threads: DebugProtocol.Thread[], stoppedDetails?: StoppedDetails, forceUpdateSession: boolean = true): void {
         const existing = this._threads;
         this._threads = new Map();
         for (const raw of threads) {
@@ -442,17 +445,18 @@ export class DebugSession implements CompositeTreeElement {
             }
             thread.update(data);
         }
-        this.updateCurrentThread(stoppedDetails);
+        this.updateCurrentThread(stoppedDetails, forceUpdateSession);
     }
 
-    protected updateCurrentThread(stoppedDetails?: StoppedDetails): void {
+    protected updateCurrentThread(stoppedDetails?: StoppedDetails, forceUpdateSession: boolean = true): void {
         const { currentThread } = this;
         let threadId = currentThread && currentThread.raw.id;
         if (stoppedDetails && !stoppedDetails.preserveFocusHint && !!stoppedDetails.threadId) {
             threadId = stoppedDetails.threadId;
         }
-        this.currentThread = typeof threadId === 'number' && this._threads.get(threadId)
+        const newCurrentThread = typeof threadId === 'number' && this._threads.get(threadId)
             || this._threads.values().next().value;
+        this.setCurrentThread(newCurrentThread, forceUpdateSession);
     }
 
     protected async updateFrames(): Promise<void> {
@@ -745,7 +749,7 @@ export class DebugSession implements CompositeTreeElement {
         if (allThreadsContinued !== false) {
             this.clearThreads();
         } else {
-            this.clearThread(threadId);
+            this.clearThread(threadId, false);
         }
     };
 
@@ -761,7 +765,7 @@ export class DebugSession implements CompositeTreeElement {
         if (reason === 'started') {
             this.scheduleUpdateThreads();
         } else if (reason === 'exited') {
-            this.clearThread(threadId);
+            this.clearThread(threadId, false);
         }
     };
 }
