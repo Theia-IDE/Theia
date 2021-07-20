@@ -14,9 +14,10 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { inject, injectable } from '@theia/core/shared/inversify';
+import { inject, injectable, postConstruct } from '@theia/core/shared/inversify';
 import URI from '@theia/core/lib/common/uri';
 import { SelectionService } from '@theia/core/lib/common/selection-service';
+import { ApplicationServer } from '@theia/core/lib/common/application-protocol';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common/command';
 import { MenuContribution, MenuModelRegistry } from '@theia/core/lib/common/menu';
 import { CommonMenus } from '@theia/core/lib/browser/common-frontend-contribution';
@@ -34,7 +35,7 @@ import { WorkspaceCompareHandler } from './workspace-compare-handler';
 import { FileDownloadCommands } from '@theia/filesystem/lib/browser/download/file-download-command-contribution';
 import { FileSystemCommands } from '@theia/filesystem/lib/browser/filesystem-frontend-contribution';
 import { WorkspaceInputDialog } from './workspace-input-dialog';
-import { Emitter, Event } from '@theia/core/lib/common';
+import { Emitter, Event, OS } from '@theia/core/lib/common';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
 import { FileStat } from '@theia/filesystem/lib/common/files';
 
@@ -196,9 +197,17 @@ export class WorkspaceCommandContribution implements CommandContribution {
     @inject(WorkspaceDeleteHandler) protected readonly deleteHandler: WorkspaceDeleteHandler;
     @inject(WorkspaceDuplicateHandler) protected readonly duplicateHandler: WorkspaceDuplicateHandler;
     @inject(WorkspaceCompareHandler) protected readonly compareHandler: WorkspaceCompareHandler;
+    @inject(ApplicationServer) protected readonly applicationServer: ApplicationServer;
 
     private readonly onDidCreateNewFileEmitter = new Emitter<DidCreateNewResourceEvent>();
     private readonly onDidCreateNewFolderEmitter = new Emitter<DidCreateNewResourceEvent>();
+
+    protected backendOS: Promise<OS.Type>;
+
+    @postConstruct()
+    async init(): Promise<void> {
+        this.backendOS = this.applicationServer.getBackendOS();
+    };
 
     get onDidCreateNewFile(): Event<DidCreateNewResourceEvent> {
         return this.onDidCreateNewFileEmitter.event;
@@ -282,11 +291,14 @@ export class WorkspaceCommandContribution implements CommandContribution {
                                 start: 0,
                                 end: uri.path.name.length
                             },
-                            validate: (name, mode) => {
+                            validate: async (name, mode) => {
                                 if (initialValue === name && mode === 'preview') {
                                     return false;
                                 }
-                                return this.validateFileName(name, parent, false);
+                                const allowOverwrite = await this.backendOS === OS.Type.Windows
+                                    && parent.resource.resolve(name).isEqual(parent.resource.resolve(initialValue), false);
+
+                                return this.validateFileRename(name, parent, initialValue, allowOverwrite);
                             }
                         });
                         const fileName = await dialog.open();
@@ -370,19 +382,26 @@ export class WorkspaceCommandContribution implements CommandContribution {
         return new WorkspaceRootUriAwareCommandHandler(this.workspaceService, this.selectionService, handler);
     }
 
+    protected async validateFileRename(name: string, parent: FileStat, initialValue: string, allowOverwrite: boolean = false): Promise<string> {
+        if (allowOverwrite) {
+            return '';
+        }
+        return this.validateFileName(name, parent, false);
+    }
+
     /**
      * Returns an error message if the file name is invalid. Otherwise, an empty string.
      *
      * @param name the simple file name of the file to validate.
      * @param parent the parent directory's file stat.
-     * @param recursive allow file or folder creation using recursive path
+     * @param allowNested allow file or folder creation using recursive path
      */
-    protected async validateFileName(name: string, parent: FileStat, recursive: boolean = false): Promise<string> {
+    protected async validateFileName(name: string, parent: FileStat, allowNested: boolean = false): Promise<string> {
         if (!name) {
             return '';
         }
         // do not allow recursive rename
-        if (!recursive && !validFilename(name)) {
+        if (!allowNested && !validFilename(name)) {
             return 'Invalid file or folder name';
         }
         if (name.startsWith('/')) {

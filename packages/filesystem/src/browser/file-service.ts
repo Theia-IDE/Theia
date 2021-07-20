@@ -1120,7 +1120,7 @@ export class FileService {
         // if target exists get valid target
         if (exists && !overwrite) {
             const parent = await this.resolve(target.parent);
-            const name = target.path.name + '_copy';
+            const name = isSameResourceWithDifferentPathCase ? target.path.name : target.path.name + '_copy';
             target = FileSystemUtils.generateUniqueResourceURI(target.parent, parent, name, target.path.ext);
         }
 
