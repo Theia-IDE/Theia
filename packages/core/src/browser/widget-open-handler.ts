@@ -37,6 +37,13 @@ export interface WidgetOpenerOptions extends OpenerOptions {
      * By default to the main area.
      */
     widgetOptions?: ApplicationShell.WidgetOptions;
+    /**
+     * Specify what the widget is opened for
+     * preview: preview of image/pdf/etc.
+     * edit: source file
+     * By default to `edit`
+     */
+    openFor?: 'preview' | 'edit';
 }
 
 /**

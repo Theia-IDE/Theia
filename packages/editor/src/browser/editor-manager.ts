@@ -183,6 +183,10 @@ export class EditorManager extends NavigatableWidgetOpenHandler<EditorWidget> {
     }
 
     canHandle(uri: URI, options?: WidgetOpenerOptions): number {
+        // Set the priority negative if an open handler is called for 'preview' (not for 'edit)
+        if (options && options.openFor === 'preview') {
+            return -100;
+        }
         return 100;
     }
 

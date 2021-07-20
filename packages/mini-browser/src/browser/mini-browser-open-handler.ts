@@ -99,11 +99,15 @@ export class MiniBrowserOpenHandler extends NavigatableWidgetOpenHandler<MiniBro
         });
     }
 
-    canHandle(uri: URI): number {
+    canHandle(uri: URI, options?: WidgetOpenerOptions): number {
         // It does not guard against directories. For instance, a folder with this name: `Hahahah.html`.
         // We could check with the FS, but then, this method would become async again.
         const extension = uri.toString().split('.').pop();
         if (extension) {
+            // Set the priority negative if an open handler is called for 'edit' (not for 'preview')
+            if (options && options.openFor === 'edit') {
+                return -100;
+            }
             return this.supportedExtensions.get(extension.toLocaleLowerCase()) || 0;
         }
         return 0;
@@ -248,7 +252,8 @@ export class MiniBrowserOpenHandler extends NavigatableWidgetOpenHandler<MiniBro
         const uri = this.getSourceUri(ref);
         if (uri) {
             await open(this.openerService, uri, {
-                widgetOptions: { ref, mode: 'open-to-left' }
+                widgetOptions: { ref, mode: 'open-to-left' },
+                openFor: 'edit'
             });
         }
     }
@@ -286,7 +291,8 @@ export class MiniBrowserOpenHandler extends NavigatableWidgetOpenHandler<MiniBro
                 area: 'right'
             },
             resetBackground,
-            iconClass: 'theia-mini-browser-icon'
+            iconClass: 'theia-mini-browser-icon',
+            openFor: 'preview'
         };
     }
 
