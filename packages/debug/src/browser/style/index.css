@@ -53,7 +53,6 @@
 
 .theia-source-breakpoint .path {
     font-size: var(--theia-ui-font-size0);
-    color: var(--theia-descriptionForeground);
 }
 
 .theia-source-breakpoint .line-info {

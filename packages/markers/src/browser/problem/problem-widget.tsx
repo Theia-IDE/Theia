@@ -21,7 +21,7 @@ import { ProblemTreeModel } from './problem-tree-model';
 import { MarkerInfoNode, MarkerNode, MarkerRootNode } from '../marker-tree';
 import {
     TreeWidget, TreeProps, ContextMenuRenderer, TreeNode, NodeProps, TreeModel,
-    ApplicationShell, Navigatable, ExpandableTreeNode, SelectableTreeNode
+    ApplicationShell, Navigatable, ExpandableTreeNode, SelectableTreeNode, TREE_NODE_INFO_CLASS
 } from '@theia/core/lib/browser';
 import { DiagnosticSeverity } from '@theia/core/shared/vscode-languageserver-types';
 import * as React from '@theia/core/shared/react';
@@ -178,14 +178,14 @@ export class ProblemWidget extends TreeWidget {
                 className='markerNode'
                 title={`${problemMarker.data.message} (${problemMarker.data.range.start.line + 1}, ${problemMarker.data.range.start.character + 1})`}>
                 <div>
-                    <i className={severityClass}></i>
+                    <i className={`${severityClass} ${TREE_NODE_INFO_CLASS}`}></i>
                 </div>
                 <div className='message'>{problemMarker.data.message}
-                    <span className='owner'>
+                    <span className={'owner ' + TREE_NODE_INFO_CLASS}>
                         {(problemMarker.data.source || problemMarker.owner)}
                         {problemMarker.data.code ? `(${problemMarker.data.code})` : ''}
                     </span>
-                    <span className='position'>
+                    <span className={'position ' + TREE_NODE_INFO_CLASS}>
                         {'[' + (problemMarker.data.range.start.line + 1) + ', ' + (problemMarker.data.range.start.character + 1) + ']'}
                     </span>
                 </div>
@@ -212,7 +212,7 @@ export class ProblemWidget extends TreeWidget {
         return <div title={path} className='markerFileNode'>
             {icon && <div className={icon + ' file-icon'}></div>}
             <div className='name'>{name}</div>
-            <div className='path'>{description}</div>
+            <div className={'path ' + TREE_NODE_INFO_CLASS}>{description}</div>
             <div className='notification-count-container'>
                 <span className='notification-count'>{node.numberOfMarkers.toString()}</span>
             </div>

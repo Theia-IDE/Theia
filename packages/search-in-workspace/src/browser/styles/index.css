@@ -221,7 +221,6 @@
 }
 
 .t-siw-search-container .result .result-head .file-path {
-    color: var(--theia-descriptionForeground);
     font-size: var(--theia-ui-font-size0);
     margin-left: 3px;
 }

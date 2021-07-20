@@ -47,30 +47,32 @@
 
 .theia-marker-container .markerFileNode .path {
     font-size: var(--theia-ui-font-size0);
-    color: var(--theia-descriptionForeground);
     align-self: flex-end;
     white-space: nowrap;
 }
 
 .theia-marker-container .error {
     color: var(--theia-editorError-foreground);
+    opacity: 1;
 }
 
 .theia-marker-container .warning {
     color: var(--theia-editorWarning-foreground);
+    opacity: 1;
 }
 
 .theia-marker-container .information {
     color: var(--theia-editorInfo-foreground);
+    opacity: 1;
 }
 
 .theia-marker-container .hint {
     color: var(--theia-successBackground);
+    opacity: 1;
 }
 
 .theia-marker-container .markerNode .position,
 .theia-marker-container .markerNode .owner {
-    color: var(--theia-descriptionForeground);
     white-space: nowrap;
     margin-left: 5px;
 }

@@ -28,7 +28,8 @@ import {
     TreeProps,
     TreeExpansionService,
     ApplicationShell,
-    DiffUris
+    DiffUris,
+    TREE_NODE_INFO_CLASS
 } from '@theia/core/lib/browser';
 import { CancellationTokenSource, Emitter, Event } from '@theia/core';
 import {
@@ -908,7 +909,7 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
                             {this.toNodeName(node)}
                         </span>
                         {node.path !== '/' + this.defaultRootName &&
-                            <span className={'file-path'}>
+                            <span className={'file-path ' + TREE_NODE_INFO_CLASS}>
                                 {node.path}
                             </span>
                         }
@@ -933,7 +934,7 @@ export class SearchInWorkspaceResultTreeWidget extends TreeWidget {
                         <span className={'file-name'}>
                             {this.toNodeName(node)}
                         </span>
-                        <span className={'file-path'}>
+                        <span className={'file-path ' + TREE_NODE_INFO_CLASS}>
                             {node.path}
                         </span>
                     </div>
