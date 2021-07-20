@@ -15,7 +15,7 @@
  ********************************************************************************/
 
 import { interfaces } from 'inversify';
-import { bindContributionProvider, DefaultResourceProvider, MessageClient, MessageService, ResourceProvider, ResourceResolver } from '../common';
+import { bindContributionProvider, DefaultResourceProvider, MessageClient, MessageService, MessageServiceFactory, ResourceProvider, ResourceResolver } from '../common';
 import {
     bindPreferenceSchemaProvider, PreferenceProvider,
     PreferenceProviderProvider, PreferenceSchemaProvider, PreferenceScope,
@@ -24,6 +24,7 @@ import {
 
 export function bindMessageService(bind: interfaces.Bind): interfaces.BindingWhenOnSyntax<MessageService> {
     bind(MessageClient).toSelf().inSingletonScope();
+    bind(MessageServiceFactory).toFactory(({ container }) => () => container.get(MessageService));
     return bind(MessageService).toSelf().inSingletonScope();
 }
 

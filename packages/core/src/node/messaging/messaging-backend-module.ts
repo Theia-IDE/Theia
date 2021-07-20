@@ -21,6 +21,7 @@ import { MessagingContribution, MessagingContainer } from './messaging-contribut
 import { ConnectionContainerModule } from './connection-container-module';
 import { MessagingService } from './messaging-service';
 import { MessagingListener, MessagingListenerContribution } from './messaging-listeners';
+import { HttpWebsocketAdapter, HttpWebsocketAdapterFactory } from './http-websocket-adapter';
 
 export const messagingBackendModule = new ContainerModule(bind => {
     bindContributionProvider(bind, ConnectionContainerModule);
@@ -34,4 +35,6 @@ export const messagingBackendModule = new ContainerModule(bind => {
     bind(BackendApplicationContribution).toService(MessagingContribution);
     bind(MessagingListener).toSelf().inSingletonScope();
     bindContributionProvider(bind, MessagingListenerContribution);
+    bind(HttpWebsocketAdapter).toSelf().inRequestScope();
+    bind(HttpWebsocketAdapterFactory).toFactory(({ container }) => () => container.get(HttpWebsocketAdapter));
 });
