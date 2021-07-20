@@ -220,4 +220,12 @@ export class FileNavigatorModel extends FileTreeModel {
                 node1.id.length >= node2.id.length ? node1 : node2
             ) : undefined;
     }
+
+    async collapseAll(raw: CompositeTreeNode): Promise<boolean> {
+        const node = raw || this.selectedNodes[0];
+        if (CompositeTreeNode.is(node)) {
+            return this.expansionService.collapseAll(node);
+        }
+        return false;
+    }
 }
