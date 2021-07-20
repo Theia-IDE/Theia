@@ -21,21 +21,26 @@ import { RPCProtocol, RPCProtocolImpl } from '../../common/rpc-protocol';
 export class PluginWorker {
 
     private worker: Worker;
+
     public readonly rpc: RPCProtocol;
+
     constructor() {
         const emitter = new Emitter<string>();
-        this.worker = new (require('../../hosted/browser/worker/worker-main'));
-        this.worker.onmessage = message => {
-            emitter.fire(message.data);
-        };
+
+        const workerURI = new URL('./plugin-worker.js', location.href);
+        this.worker = new Worker(workerURI);
+
+        this.worker.onmessage = m => emitter.fire(m.data);
         this.worker.onerror = e => console.error(e);
 
         this.rpc = new RPCProtocolImpl({
             onMessage: emitter.event,
             send: (m: string) => {
-                this.worker.postMessage(m);
+                if (this.worker) {
+                    this.worker.postMessage(m);
+                }
             }
         });
-
     }
+
 }

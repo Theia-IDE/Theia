@@ -102,21 +102,17 @@ module.exports = {
     mode,
     plugins,
     devtool: 'source-map',
-    entry: path.resolve(__dirname, 'src-gen/frontend/index.js'),
+    entry: {
+        app: path.resolve(__dirname, 'src-gen/frontend/index.js'),
+        'plugin-worker': '${this.resolve('@theia/plugin-ext', 'lib/hosted/browser/worker/worker-main.js')}'
+    },
     output: {
-        filename: 'bundle.js',
+        filename: '[name].js',
         path: outputPath
     },
     target: '${this.ifBrowser('web', 'electron-renderer')}',
     module: {
         rules: [
-            {
-                test: /worker-main\\.js$/,
-                loader: 'worker-loader',
-                options: {
-                    filename: 'worker-ext.[fullhash].js'
-                }
-            },
             {
                 test: /\\.css$/,
                 exclude: /materialcolors\\.css$|\\.useable\\.css$/,

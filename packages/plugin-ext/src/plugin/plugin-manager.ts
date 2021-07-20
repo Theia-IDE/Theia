@@ -30,7 +30,7 @@ import {
 } from '../common/plugin-api-rpc';
 import { PluginMetadata, PluginJsonValidationContribution } from '../common/plugin-protocol';
 import * as theia from '@theia/plugin';
-import { join } from 'path';
+import { join } from './path';
 import { EnvExtImpl } from './env';
 import { PreferenceRegistryExtImpl } from './preference-registry';
 import { Memento, KeyValueStorageProxy } from './plugin-storage';
