@@ -134,6 +134,12 @@ export class ProblemDecorator implements TreeDecorator {
             fontData: {
                 color,
             },
+            tailDecorations: [
+                {
+                    data: 'allo',
+                    color
+                }
+            ],
             iconOverlay: {
                 position,
                 icon,
