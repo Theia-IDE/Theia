@@ -129,11 +129,10 @@
     left: 0;
     z-index: 10;
     background: var(--theia-editor-background);
-    background-image: var(--theia-preloader);
-    background-size: 60px 60px;
-    background-repeat: no-repeat;
-    background-position: center;
     transition: opacity 0.8s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .theia-mini-browser-load-indicator.theia-fade-out {

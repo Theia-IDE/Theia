@@ -294,6 +294,10 @@ export class MiniBrowserContent extends BaseWidget {
         loadIndicator.classList.add(MiniBrowserContentStyle.PRE_LOAD);
         loadIndicator.style.display = 'none';
 
+        const loadIcon = document.createElement('div');
+        loadIcon.classList.add(MiniBrowserContentStyle.THEIA_LOADER);
+        loadIndicator.appendChild(loadIcon);
+
         const errorBar = this.createErrorBar();
 
         const frame = this.createIFrame();
@@ -371,7 +375,7 @@ export class MiniBrowserContent extends BaseWidget {
 
     protected showLoadIndicator(): void {
         this.loadIndicator.classList.remove(MiniBrowserContentStyle.FADE_OUT);
-        this.loadIndicator.style.display = 'block';
+        this.loadIndicator.style.display = 'flex';
     }
 
     protected hideLoadIndicator(): void {

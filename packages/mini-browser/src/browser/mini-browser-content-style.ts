@@ -18,6 +18,7 @@ export namespace MiniBrowserContentStyle {
     export const TOOLBAR = 'theia-mini-browser-toolbar';
     export const TOOLBAR_READ_ONLY = 'theia-mini-browser-toolbar-read-only';
     export const PRE_LOAD = 'theia-mini-browser-load-indicator';
+    export const THEIA_LOADER = 'theia-loader';
     export const FADE_OUT = 'theia-fade-out';
     export const CONTENT_AREA = 'theia-mini-browser-content-area';
     export const PDF_CONTAINER = 'theia-mini-browser-pdf-container';

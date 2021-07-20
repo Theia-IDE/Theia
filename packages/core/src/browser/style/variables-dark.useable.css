@@ -61,7 +61,7 @@ is not optimized for dense, information rich UIs.
   --theia-icon-arrow-down: url(../icons/arrow-down-dark.svg);
   --theia-sprite-y-offset: -20px;
   --theia-icon-circle: url(../icons/circle-dark.svg);
-  --theia-preloader: url(../icons/spinner.gif);
+  --theia-preloader: url(../icons/spinner.svg);
   --theia-icon-case-sensitive: url(../icons/case-sensitive-dark.svg);
   --theia-icon-regex: url(../icons/regex-dark.svg);
   --theia-icon-whole-word: url(../icons/whole-word-dark.svg);
