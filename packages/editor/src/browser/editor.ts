@@ -17,8 +17,8 @@
 import { Position, Range, Location } from '@theia/core/shared/vscode-languageserver-types';
 import * as lsp from '@theia/core/shared/vscode-languageserver-types';
 import URI from '@theia/core/lib/common/uri';
-import { Event, Disposable, TextDocumentContentChangeDelta } from '@theia/core/lib/common';
-import { Saveable, Navigatable, Widget } from '@theia/core/lib/browser';
+import { Event, Disposable, TextDocumentContentChangeDelta, RecursivePartial } from '@theia/core/lib/common';
+import { Saveable, Navigatable, Widget, WidgetOpenerOptions, NavigatableWidgetOptions } from '@theia/core/lib/browser';
 import { EditorDecoration } from './decorations';
 import { Reference } from '@theia/core/lib/common';
 
@@ -27,7 +27,15 @@ export {
 };
 
 export const TextEditorProvider = Symbol('TextEditorProvider');
-export type TextEditorProvider = (uri: URI) => Promise<TextEditor>;
+export type TextEditorProvider = (uri: URI, options?: EditorFactoryOptions) => Promise<TextEditor>;
+
+export interface EditorOpenerOptions extends WidgetOpenerOptions {
+    selection?: RecursivePartial<Range>;
+    preview?: boolean;
+    counter?: number
+}
+
+export interface EditorFactoryOptions extends EditorOpenerOptions, NavigatableWidgetOptions { counter: number }
 
 export interface TextEditorDocument extends lsp.TextDocument, Saveable, Disposable {
     getLineContent(lineNumber: number): string;

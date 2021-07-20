@@ -14,12 +14,12 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
-import { EditorManager, EditorOpenerOptions, EditorWidget } from '@theia/editor/lib/browser';
+import { EditorManager, EditorOpenerOptions, EditorWidget, EditorFactoryOptions } from '@theia/editor/lib/browser';
 import { inject, injectable, postConstruct } from '@theia/core/shared/inversify';
 import { EditorPreviewPreferences } from './editor-preview-preferences';
-import { DisposableCollection, MaybePromise } from '@theia/core/lib/common';
+import { DisposableCollection } from '@theia/core/lib/common';
 import URI from '@theia/core/lib/common/uri';
-import { EditorPreviewWidgetFactory, EditorPreviewOptions } from './editor-preview-widget-factory';
+import { EditorPreviewWidgetFactory } from './editor-preview-widget-factory';
 import { EditorPreviewWidget } from './editor-preview-widget';
 import { FrontendApplicationStateService } from '@theia/core/lib/browser/frontend-application-state';
 
@@ -98,20 +98,12 @@ export class EditorPreviewManager extends EditorManager {
         this.toDisposeOnPreviewChange.push(widget.onDidDispose(() => this.toDisposeOnPreviewChange.dispose()));
     }
 
-    protected tryGetPendingWidget(uri: URI, options?: EditorOpenerOptions): MaybePromise<EditorWidget> | undefined {
-        return super.tryGetPendingWidget(uri, { ...options, preview: true }) ?? super.tryGetPendingWidget(uri, { ...options, preview: false });
-    }
-
-    protected async getWidget(uri: URI, options?: EditorOpenerOptions): Promise<EditorWidget | undefined> {
-        return (await super.getWidget(uri, { ...options, preview: true })) ?? super.getWidget(uri, { ...options, preview: false });
-    }
-
     protected async getOrCreateWidget(uri: URI, options?: EditorOpenerOptions): Promise<EditorWidget> {
         return this.tryGetPendingWidget(uri, options) ?? super.getOrCreateWidget(uri, options);
     }
 
-    protected createWidgetOptions(uri: URI, options?: EditorOpenerOptions): EditorPreviewOptions {
-        const navigatableOptions = super.createWidgetOptions(uri, options) as EditorPreviewOptions;
+    protected createWidgetOptions(uri: URI, options?: EditorOpenerOptions): EditorFactoryOptions {
+        const navigatableOptions = super.createWidgetOptions(uri, options);
         navigatableOptions.preview = !!(options?.preview && this.preferences['editor.enablePreview']);
         return navigatableOptions;
     }

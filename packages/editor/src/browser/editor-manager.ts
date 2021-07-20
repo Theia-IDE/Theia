@@ -17,21 +17,20 @@
 import { injectable, postConstruct, inject } from '@theia/core/shared/inversify';
 import URI from '@theia/core/lib/common/uri';
 import { RecursivePartial, Emitter, Event, MaybePromise } from '@theia/core/lib/common';
-import { WidgetOpenerOptions, NavigatableWidgetOpenHandler, NavigatableWidgetOptions, Widget } from '@theia/core/lib/browser';
+import { WidgetOpenerOptions, NavigatableWidgetOpenHandler, Widget } from '@theia/core/lib/browser';
 import { EditorWidget } from './editor-widget';
-import { Range, Position, Location } from './editor';
+import { Range, Position, Location, EditorOpenerOptions, EditorFactoryOptions } from './editor';
 import { EditorWidgetFactory } from './editor-widget-factory';
 import { TextEditor } from './editor';
+
+/**
+ * @deprecated import from `editor.ts` instead.
+ */
+export { EditorOpenerOptions };
 
 export interface WidgetId {
     id: number;
     uri: string;
-}
-
-export interface EditorOpenerOptions extends WidgetOpenerOptions {
-    selection?: RecursivePartial<Range>;
-    preview?: boolean;
-    counter?: number
 }
 
 @injectable()
@@ -300,11 +299,17 @@ export class EditorManager extends NavigatableWidgetOpenHandler<EditorWidget> {
         return this.getCounterForUri(uri) ?? this.createCounterForUri(uri);
     }
 
-    protected createWidgetOptions(uri: URI, options?: EditorOpenerOptions): NavigatableWidgetOptions {
-        const navigatableOptions = super.createWidgetOptions(uri, options);
+    protected createWidgetOptions(uri: URI, options?: EditorOpenerOptions): EditorFactoryOptions {
+        const navigatableOptions = super.createWidgetOptions(uri, options) as EditorFactoryOptions;
         navigatableOptions.counter = options?.counter ?? this.getOrCreateCounterForUri(uri);
-        return navigatableOptions;
+        // Adding a `toJSON` method allows us to pass rich options into the factory without changing the identifier used by the WidgetManager
+        return Object.assign({}, options, navigatableOptions, { toJSON: stringifyOptions });
     }
+}
+
+function stringifyOptions(this: EditorFactoryOptions): EditorFactoryOptions {
+    const { kind, uri, counter } = this;
+    return { kind, uri, counter };
 }
 
 /**

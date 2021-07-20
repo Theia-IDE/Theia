@@ -16,7 +16,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import URI from '@theia/core/lib/common/uri';
-import { EditorPreferenceChange, EditorPreferences, TextEditor, DiffNavigator } from '@theia/editor/lib/browser';
+import { EditorPreferenceChange, EditorPreferences, TextEditor, DiffNavigator, EditorFactoryOptions } from '@theia/editor/lib/browser';
 import { DiffUris } from '@theia/core/lib/browser/diff-uris';
 import { inject, injectable, named } from '@theia/core/shared/inversify';
 import { DisposableCollection, deepClone, Disposable, } from '@theia/core/lib/common';
@@ -122,9 +122,9 @@ export class MonacoEditorProvider {
         return reference.object;
     }
 
-    async get(uri: URI): Promise<MonacoEditor> {
+    async get(uri: URI, options?: EditorFactoryOptions): Promise<MonacoEditor> {
         await this.editorPreferences.ready;
-        return this.doCreateEditor(uri, (override, toDispose) => this.createEditor(uri, override, toDispose));
+        return this.doCreateEditor(uri, (override, toDispose) => this.createEditor(uri, override, toDispose, options));
     }
 
     protected async doCreateEditor(uri: URI, factory: (override: IEditorOverrideServices, toDispose: DisposableCollection) => Promise<MonacoEditor>): Promise<MonacoEditor> {
@@ -234,17 +234,17 @@ export class MonacoEditorProvider {
         };
     }
 
-    protected createEditor(uri: URI, override: IEditorOverrideServices, toDispose: DisposableCollection): Promise<MonacoEditor> {
+    protected createEditor(uri: URI, override: IEditorOverrideServices, toDispose: DisposableCollection, options?: EditorFactoryOptions): Promise<MonacoEditor> {
         if (DiffUris.isDiffUri(uri)) {
-            return this.createMonacoDiffEditor(uri, override, toDispose);
+            return this.createMonacoDiffEditor(uri, override, toDispose, options);
         }
-        return this.createMonacoEditor(uri, override, toDispose);
+        return this.createMonacoEditor(uri, override, toDispose, options);
     }
 
     protected get preferencePrefixes(): string[] {
         return ['editor.'];
     }
-    protected async createMonacoEditor(uri: URI, override: IEditorOverrideServices, toDispose: DisposableCollection): Promise<MonacoEditor> {
+    protected async createMonacoEditor(uri: URI, override: IEditorOverrideServices, toDispose: DisposableCollection, factoryOptions?: EditorFactoryOptions): Promise<MonacoEditor> {
         const model = await this.getModel(uri, toDispose);
         const options = this.createMonacoEditorOptions(model);
         const factory = this.factories.getContributions().find(({ scheme }) => uri.scheme === scheme);
@@ -318,12 +318,17 @@ export class MonacoEditorProvider {
     protected get diffPreferencePrefixes(): string[] {
         return [...this.preferencePrefixes, 'diffEditor.'];
     }
-    protected async createMonacoDiffEditor(uri: URI, override: IEditorOverrideServices, toDispose: DisposableCollection): Promise<MonacoDiffEditor> {
+    protected async createMonacoDiffEditor(
+        uri: URI,
+        override: IEditorOverrideServices,
+        toDispose: DisposableCollection,
+        factoryOptions?: EditorFactoryOptions
+    ): Promise<MonacoDiffEditor> {
         const [original, modified] = DiffUris.decode(uri);
 
         const [originalModel, modifiedModel] = await Promise.all([this.getModel(original, toDispose), this.getModel(modified, toDispose)]);
 
-        const options = this.createMonacoDiffEditorOptions(originalModel, modifiedModel);
+        const options = this.createMonacoDiffEditorOptions(originalModel, modifiedModel, factoryOptions);
         const editor = new MonacoDiffEditor(
             uri,
             document.createElement('div'),
@@ -341,10 +346,11 @@ export class MonacoEditorProvider {
         toDispose.push(editor.onLanguageChanged(() => this.updateMonacoDiffEditorOptions(editor)));
         return editor;
     }
-    protected createMonacoDiffEditorOptions(original: MonacoEditorModel, modified: MonacoEditorModel): MonacoDiffEditor.IOptions {
+    protected createMonacoDiffEditorOptions(original: MonacoEditorModel, modified: MonacoEditorModel, factoryOptions?: EditorFactoryOptions): MonacoDiffEditor.IOptions {
         const options = this.createOptions(this.diffPreferencePrefixes, modified.uri, modified.languageId);
         options.originalEditable = !original.readOnly;
         options.readOnly = modified.readOnly;
+        options.alwaysRevealFirst = Boolean(factoryOptions?.selection);
         return options;
     }
     protected updateMonacoDiffEditorOptions(editor: MonacoDiffEditor, event?: EditorPreferenceChange, resourceUri?: string): void {

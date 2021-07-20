@@ -69,7 +69,6 @@ export namespace NavigatableWidget {
 export interface NavigatableWidgetOptions {
     kind: 'navigatable',
     uri: string,
-    counter?: number,
 }
 export namespace NavigatableWidgetOptions {
     export function is(arg: Object | undefined): arg is NavigatableWidgetOptions {

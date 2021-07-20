@@ -114,7 +114,7 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
     bind(MonacoCommandServiceFactory).toAutoFactory(MonacoCommandService);
 
     bind(TextEditorProvider).toProvider(context =>
-        uri => context.container.get(MonacoEditorProvider).get(uri)
+        (uri, options) => context.container.get(MonacoEditorProvider).get(uri, options)
     );
 
     bind(MonacoDiffNavigatorFactory).toSelf().inSingletonScope();
