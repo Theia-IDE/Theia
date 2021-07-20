@@ -698,16 +698,25 @@ export interface FileSystemProvider {
  */
 export interface FileSystemProviderWithAccessCapability extends FileSystemProvider {
     /**
-     * Test if the user has the permission to access the given file in the specified mode.
+     * Tests a user's permissions for the file or directory specified by URI.
      * @param resource The `URI` of the file that should be tested.
-     * @param mode The access mode that should be tested.
+     * @param mode An optional integer that specifies the accessibility checks to be performed.
+     *      Check `FileAccess.Constants` for possible values of mode.
+     *      It is possible to create a mask consisting of the bitwise `OR` of two or more values (e.g. FileAccess.Constants.W_OK | FileAccess.Constants.R_OK).
+     *      If `mode` is not defined, `FileAccess.Constants.F_OK` will be used instead.
      *
      * @returns A promise that resolves if the user has the required permissions, should be rejected otherwise.
      */
     access(resource: URI, mode?: number): Promise<void>;
 
     /**
-     * Derive the platform specific file system path that is represented by the resource.
+     * Returns the path of the given file URI, specific to the backend's operating system.
+     * If the URI is not a file URI, undefined is returned.
+     *
+     * USE WITH CAUTION: You should always prefer URIs to paths if possible, as they are
+     * portable and platform independent. Paths should only be used in cases you directly
+     * interact with the OS, e.g. when running a command on the shell.
+     *
      * @param resource `URI` of the resource to derive the path from.
      *
      * @returns A promise of the corresponding file system path.

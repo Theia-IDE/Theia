@@ -187,9 +187,6 @@ export interface FileSystem {
     getFsPath(uri: string): Promise<string | undefined>
 }
 
-/**
- * @deprecated since 1.4.0 - in order to support VS Code FS API (https://github.com/eclipse-theia/theia/pull/7908), use `FileService.access` instead
- */
 export namespace FileAccess {
 
     export namespace Constants {

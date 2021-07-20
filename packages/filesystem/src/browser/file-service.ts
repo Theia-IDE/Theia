@@ -602,6 +602,11 @@ export class FileService {
 
     /**
      * Tests a user's permissions for the given resource.
+     * @param resource `URI` of the resource which should be tested.
+     * @param mode An optional integer that specifies the accessibility checks to be performed.
+     *      Check `FileAccess.Constants` for possible values of mode.
+     *      It is possible to create a mask consisting of the bitwise `OR` of two or more values (e.g. FileAccess.Constants.W_OK | FileAccess.Constants.R_OK).
+     *      If `mode` is not defined, `FileAccess.Constants.F_OK` will be used instead.
      */
     async access(resource: URI, mode?: number): Promise<boolean> {
         const provider = await this.withProvider(resource);
