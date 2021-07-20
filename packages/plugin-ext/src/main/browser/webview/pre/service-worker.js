@@ -212,7 +212,7 @@ async function processResourceRequest(event, requestUrl, resourceRoot) {
         });
     }
 
-    const parentClient = await getOuterIframeClient(webviewId);
+    const parentClient = await getOuterIframeClient(webviewId, client.id);
     if (!parentClient) {
         console.error('Could not find parent client for request');
         return notFound();
@@ -260,7 +260,7 @@ async function processLocalhostRequest(event, requestUrl) {
         });
     };
 
-    const parentClient = await getOuterIframeClient(webviewId);
+    const parentClient = await getOuterIframeClient(webviewId, client.id);
     if (!parentClient) {
         console.error('Could not find parent client for request');
         return notFound();
@@ -286,9 +286,13 @@ function getWebviewIdForClient(client) {
     return requesterClientUrl.search.match(/\bid=([a-z0-9-]+)/i)[1];
 }
 
-async function getOuterIframeClient(webviewId) {
+async function getOuterIframeClient(webviewId, clientId) {
     const allClients = await self.clients.matchAll({ includeUncontrolled: true });
     return allClients.find(client => {
+        // We need the parent but not the client himself..
+        if (client.id === clientId) {
+            return false;
+        }
         const clientUrl = new URL(client.url);
         return (clientUrl.pathname === `${rootPath}/` || clientUrl.pathname === `${rootPath}/index.html`) && clientUrl.search.match(new RegExp('\\bid=' + webviewId));
     });
