@@ -32,6 +32,7 @@
 
 .theia-tree-view .theia-TreeNodeSegment {
     display: flex;
+    white-space: pre;
 }
 
 .theia-tree-view .theia-TreeNodeContent {
