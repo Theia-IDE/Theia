@@ -32,6 +32,7 @@ import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator
 import { bindProblemPreferences } from './problem-preferences';
 import { MarkerTreeLabelProvider } from '../marker-tree-label-provider';
 import { ProblemWidgetTabBarDecorator } from './problem-widget-tab-bar-decorator';
+import { OpenEditorsTreeDecorator } from '@theia/navigator/lib/browser/open-editors-widget/navigator-open-editors-decorator-service';
 
 export default new ContainerModule(bind => {
     bindProblemPreferences(bind);
@@ -53,6 +54,7 @@ export default new ContainerModule(bind => {
 
     bind(ProblemDecorator).toSelf().inSingletonScope();
     bind(NavigatorTreeDecorator).toService(ProblemDecorator);
+    bind(OpenEditorsTreeDecorator).toService(ProblemDecorator);
     bind(ProblemTabBarDecorator).toSelf().inSingletonScope();
     bind(TabBarDecorator).toService(ProblemTabBarDecorator);
 

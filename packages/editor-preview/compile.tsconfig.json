@@ -14,6 +14,9 @@
     },
     {
       "path": "../editor/compile.tsconfig.json"
+    },
+    {
+      "path": "../navigator/compile.tsconfig.json"
     }
   ]
 }

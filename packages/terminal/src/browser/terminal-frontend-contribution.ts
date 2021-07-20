@@ -61,6 +61,7 @@ export namespace TerminalMenus {
     export const TERMINAL_TASKS_INFO = [...TERMINAL_TASKS, '3_terminal'];
     export const TERMINAL_TASKS_CONFIG = [...TERMINAL_TASKS, '4_terminal'];
     export const TERMINAL_NAVIGATOR_CONTEXT_MENU = ['navigator-context-menu', 'navigation'];
+    export const TERMINAL_OPEN_EDITORS_CONTEXT_MENU = ['open-editors-context-menu', 'navigation'];
 }
 
 export namespace TerminalCommands {
@@ -400,6 +401,10 @@ export class TerminalFrontendContribution implements TerminalService, CommandCon
             order: '1'
         });
         menus.registerMenuAction(TerminalMenus.TERMINAL_NAVIGATOR_CONTEXT_MENU, {
+            commandId: TerminalCommands.TERMINAL_CONTEXT.id,
+            order: 'z'
+        });
+        menus.registerMenuAction(TerminalMenus.TERMINAL_OPEN_EDITORS_CONTEXT_MENU, {
             commandId: TerminalCommands.TERMINAL_CONTEXT.id,
             order: 'z'
         });

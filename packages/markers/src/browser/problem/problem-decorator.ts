@@ -27,12 +27,18 @@ import { Marker } from '../../common/marker';
 import { ProblemManager } from './problem-manager';
 import { ProblemPreferences } from './problem-preferences';
 import { ProblemUtils } from './problem-utils';
+import { OpenEditorNode } from '@theia/navigator/lib/browser/open-editors-widget/navigator-open-editors-tree-model';
+import { LabelProvider } from '@theia/core/lib/browser';
+import { WorkspaceService } from '@theia/workspace/lib/browser';
+import { WidgetDecoration } from '@theia/core/lib/browser/widget-decoration';
 
 @injectable()
 export class ProblemDecorator implements TreeDecorator {
 
     @inject(ProblemPreferences)
     protected problemPreferences: ProblemPreferences;
+    @inject(WorkspaceService) protected readonly workspaceService: WorkspaceService;
+    @inject(LabelProvider) protected readonly labelProvider: LabelProvider;
 
     readonly id = 'theia-problem-decorator';
 
@@ -50,6 +56,12 @@ export class ProblemDecorator implements TreeDecorator {
                 this.fireDidChangeDecorations(tree => this.collectDecorators(tree));
             }
         });
+        this.workspaceService.onWorkspaceChanged(() => {
+            this.fireDidChangeDecorations((tree: Tree) => this.collectDecorators(tree));
+        });
+        this.workspaceService.onWorkspaceLocationChanged(() => {
+            this.fireDidChangeDecorations((tree: Tree) => this.collectDecorators(tree));
+        });
     }
 
     async decorations(tree: Tree): Promise<Map<string, TreeDecoration.Data>> {
@@ -65,24 +77,61 @@ export class ProblemDecorator implements TreeDecorator {
     }
 
     protected collectDecorators(tree: Tree): Map<string, TreeDecoration.Data> {
-
-        const result = new Map();
-
+        const decorations = new Map<string, TreeDecoration.Data>();
         // If the tree root is undefined or the preference for the decorations is disabled, return an empty result map.
         if (tree.root === undefined || !this.problemPreferences['problems.decorations.enabled']) {
-            return result;
+            return decorations;
         }
         const markers = this.appendContainerMarkers(tree, this.collectMarkers(tree));
         for (const node of new DepthFirstTreeIterator(tree.root)) {
             const nodeUri = FileStatNode.getUri(node);
             if (nodeUri) {
                 const marker = markers.get(nodeUri);
+                let decorator: TreeDecoration.Data | undefined;
                 if (marker) {
-                    result.set(node.id, marker);
+                    decorator = this.toDecorator(marker);
+                }
+                if (OpenEditorNode.is(node)) {
+                    decorator = this.appendSuffixDecoration(node.uri, decorator);
+                }
+                if (decorator) {
+                    decorations.set(node.id, decorator);
                 }
             }
         }
-        return new Map(Array.from(result.entries()).map(m => [m[0], this.toDecorator(m[1])] as [string, TreeDecoration.Data]));
+        return decorations;
+    }
+
+    protected appendSuffixDecoration(nodeURI: URI, existingDecorations?: TreeDecoration.Data): TreeDecoration.Data {
+        const workspaceAndPath = this.generateCaptionSuffix(nodeURI);
+        const color = existingDecorations?.fontData?.color;
+        const captionSuffix: WidgetDecoration.CaptionAffix = { data: workspaceAndPath };
+        if (color) {
+            Object.assign(captionSuffix, { fontData: { color } });
+        }
+        const suffixDecorations: TreeDecoration.Data = {
+            captionSuffixes: [captionSuffix]
+        };
+        const decorator = existingDecorations ?? {};
+        return Object.assign(decorator, suffixDecorations);
+    }
+
+    protected generateCaptionSuffix(nodeURI: URI): string {
+        const workspaceRoots = this.workspaceService.tryGetRoots();
+        const parentWorkspace = this.workspaceService.getWorkspaceRootUri(nodeURI);
+        let workspacePrefixString = '';
+        let separator = '';
+        let filePathString = '';
+        const nodeURIDir = nodeURI.parent;
+        if (parentWorkspace) {
+            const relativeDirFromWorkspace = parentWorkspace.relative(nodeURIDir);
+            workspacePrefixString = workspaceRoots.length > 1 ? this.labelProvider.getName(parentWorkspace) : '';
+            filePathString = relativeDirFromWorkspace?.toString() ?? '';
+            separator = filePathString && workspacePrefixString ? ' \u2022 ' : ''; // add a bullet point between workspace and path
+        } else {
+            workspacePrefixString = nodeURIDir.path.toString();
+        }
+        return `${workspacePrefixString}${separator}${filePathString}`;
     }
 
     protected appendContainerMarkers(tree: Tree, markers: Marker<Diagnostic>[]): Map<string, Marker<Diagnostic>> {

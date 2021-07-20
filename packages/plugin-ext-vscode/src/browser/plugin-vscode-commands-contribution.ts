@@ -22,7 +22,10 @@ import {
     open,
     OpenerService,
     QuickInputService,
-    Saveable
+    Saveable,
+    TabBar,
+    Title,
+    Widget
 } from '@theia/core/lib/browser';
 import { ContextKeyService } from '@theia/core/lib/browser/context-key-service';
 import { ApplicationShellMouseTracker } from '@theia/core/lib/browser/shell/application-shell-mouse-tracker';
@@ -301,25 +304,41 @@ export class PluginVscodeCommandsContribution implements CommandContribution {
                 }
             }
         });
-        commands.registerCommand({ id: 'workbench.action.closeEditorsInGroup' }, {
-            execute: (uri?: monaco.Uri) => {
-                let editor = this.editorManager.currentEditor || this.shell.currentWidget;
-                if (uri) {
-                    const uriString = uri.toString();
-                    editor = this.editorManager.all.find(e => {
-                        const resourceUri = e.getResourceUri();
-                        return (resourceUri && resourceUri.toString()) === uriString;
-                    });
-                }
-                if (editor) {
-                    const tabBar = this.shell.getTabBarFor(editor);
-                    if (tabBar) {
-                        this.shell.closeTabs(tabBar,
-                            ({ owner }) => this.codeEditorWidgetUtil.is(owner)
-                        );
-                    }
+
+        const performActionOnGroup = (
+            cb: (
+                tabBarOrArea: TabBar<Widget> | ApplicationShell.Area,
+                filter?: ((title: Title<Widget>, index: number) => boolean) | undefined
+            ) => void,
+            uri?: monaco.Uri
+        ): void => {
+            let editor = this.editorManager.currentEditor || this.shell.currentWidget;
+            if (uri) {
+                const uriString = uri.toString();
+                editor = this.editorManager.all.find(e => {
+                    const resourceUri = e.getResourceUri();
+                    return (resourceUri && resourceUri.toString()) === uriString;
+                });
+            }
+            if (editor) {
+                const tabBar = this.shell.getTabBarFor(editor);
+                if (tabBar) {
+                    cb(tabBar, ({ owner }) => this.codeEditorWidgetUtil.is(owner));
                 }
             }
+        };
+
+        commands.registerCommand({
+            id: 'workbench.action.closeEditorsInGroup',
+            label: 'Close All Editors in Group'
+        }, {
+            execute: (uri?: monaco.Uri) => performActionOnGroup(this.shell.closeTabs, uri)
+        });
+        commands.registerCommand({
+            id: 'workbench.files.saveAllInGroup',
+            label: 'Save All in Group'
+        }, {
+            execute: (uri?: monaco.Uri) => performActionOnGroup(this.shell.saveTabs, uri)
         });
         commands.registerCommand({ id: 'workbench.action.closeEditorsInOtherGroups' }, {
             execute: () => {

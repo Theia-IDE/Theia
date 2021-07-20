@@ -22,6 +22,7 @@ import {
     WidgetManager
 } from '@theia/core/lib/browser';
 import { FILE_NAVIGATOR_ID } from './navigator-widget';
+import { OpenEditorsWidget } from './open-editors-widget/navigator-open-editors-widget';
 
 export const EXPLORER_VIEW_CONTAINER_ID = 'explorer-view-container';
 export const EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS: ViewContainerTitleOptions = {
@@ -37,9 +38,19 @@ export class NavigatorWidgetFactory implements WidgetFactory {
 
     readonly id = NavigatorWidgetFactory.ID;
 
+    protected openEditorsWidgetOptions: ViewContainer.Factory.WidgetOptions = {
+        order: 0,
+        canHide: true,
+        initiallyCollapsed: true,
+        // this property currently has no effect (https://github.com/eclipse-theia/theia/issues/7755)
+        weight: 20
+    };
+
     protected fileNavigatorWidgetOptions: ViewContainer.Factory.WidgetOptions = {
+        order: 1,
         canHide: false,
         initiallyCollapsed: false,
+        weight: 80
     };
 
     @inject(ViewContainer.Factory)
@@ -52,8 +63,10 @@ export class NavigatorWidgetFactory implements WidgetFactory {
             progressLocationId: 'explorer'
         });
         viewContainer.setTitleOptions(EXPLORER_VIEW_CONTAINER_TITLE_OPTIONS);
-        const widget = await this.widgetManager.getOrCreateWidget(FILE_NAVIGATOR_ID);
-        viewContainer.addWidget(widget, this.fileNavigatorWidgetOptions);
+        const openEditorsWidget = await this.widgetManager.getOrCreateWidget(OpenEditorsWidget.ID);
+        const navigatorWidget = await this.widgetManager.getOrCreateWidget(FILE_NAVIGATOR_ID);
+        viewContainer.addWidget(openEditorsWidget, this.openEditorsWidgetOptions);
+        viewContainer.addWidget(navigatorWidget, this.fileNavigatorWidgetOptions);
         return viewContainer;
     }
 }

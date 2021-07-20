@@ -47,6 +47,7 @@ import { LabelProviderContribution } from '@theia/core/lib/browser/label-provide
 import { bindScmPreferences } from './scm-preferences';
 import { ScmTabBarDecorator } from './decorations/scm-tab-bar-decorator';
 import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator';
+import { OpenEditorsTreeDecorator } from '@theia/navigator/lib/browser/open-editors-widget/navigator-open-editors-decorator-service';
 
 export default new ContainerModule(bind => {
     bind(ScmContextKeyService).toSelf().inSingletonScope();
@@ -108,7 +109,9 @@ export default new ContainerModule(bind => {
     bind(TabBarToolbarContribution).toService(ScmContribution);
     bind(ColorContribution).toService(ScmContribution);
 
-    bind(NavigatorTreeDecorator).to(ScmNavigatorDecorator).inSingletonScope();
+    bind(ScmNavigatorDecorator).toSelf().inSingletonScope();
+    bind(NavigatorTreeDecorator).toService(ScmNavigatorDecorator);
+    bind(OpenEditorsTreeDecorator).toService(ScmNavigatorDecorator);
     bind(ScmDecorationsService).toSelf().inSingletonScope();
 
     bind(ScmAvatarService).toSelf().inSingletonScope();

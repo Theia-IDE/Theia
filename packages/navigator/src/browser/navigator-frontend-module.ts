@@ -15,6 +15,7 @@
  ********************************************************************************/
 
 import '../../src/browser/style/index.css';
+import '../../src/browser/open-editors-widget/open-editors.css';
 
 import { ContainerModule } from '@theia/core/shared/inversify';
 import {
@@ -36,6 +37,10 @@ import { NavigatorLayoutVersion3Migration } from './navigator-layout-migrations'
 import { NavigatorTabBarDecorator } from './navigator-tab-bar-decorator';
 import { TabBarDecorator } from '@theia/core/lib/browser/shell/tab-bar-decorator';
 import { NavigatorWidgetFactory } from './navigator-widget-factory';
+import { bindContributionProvider } from '@theia/core/lib/common';
+import { OpenEditorsTreeDecorator } from './open-editors-widget/navigator-open-editors-decorator-service';
+import { OpenEditorsWidget } from './open-editors-widget/navigator-open-editors-widget';
+import { NavigatorTreeDecorator } from './navigator-decorator-service';
 
 export default new ContainerModule(bind => {
     bindFileNavigatorPreferences(bind);
@@ -56,6 +61,14 @@ export default new ContainerModule(bind => {
         id: FILE_NAVIGATOR_ID,
         createWidget: () => container.get(FileNavigatorWidget)
     })).inSingletonScope();
+    bindContributionProvider(bind, NavigatorTreeDecorator);
+    bindContributionProvider(bind, OpenEditorsTreeDecorator);
+
+    bind(WidgetFactory).toDynamicValue(({ container }) => ({
+        id: OpenEditorsWidget.ID,
+        createWidget: () => OpenEditorsWidget.createWidget(container)
+    })).inSingletonScope();
+
     bind(NavigatorWidgetFactory).toSelf().inSingletonScope();
     bind(WidgetFactory).toService(NavigatorWidgetFactory);
     bind(ApplicationShellLayoutMigration).to(NavigatorLayoutVersion3Migration).inSingletonScope();

@@ -4,7 +4,8 @@
   "description": "Theia - Editor Preview Extension",
   "dependencies": {
     "@theia/core": "1.15.0",
-    "@theia/editor": "1.15.0"
+    "@theia/editor": "1.15.0",
+    "@theia/navigator": "1.15.0"
   },
   "publishConfig": {
     "access": "public"

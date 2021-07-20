@@ -1400,6 +1400,29 @@ export class ApplicationShell extends Widget {
         }
     }
 
+    saveTabs(tabBarOrArea: TabBar<Widget> | ApplicationShell.Area,
+        filter?: (title: Title<Widget>, index: number) => boolean): void {
+        if (tabBarOrArea === 'main') {
+            this.mainAreaTabBars.forEach(tb => this.saveTabs(tb, filter));
+        } else if (tabBarOrArea === 'bottom') {
+            this.bottomAreaTabBars.forEach(tb => this.saveTabs(tb, filter));
+        } else if (typeof tabBarOrArea === 'string') {
+            const tabBar = this.getTabBarFor(tabBarOrArea);
+            if (tabBar) {
+                this.saveTabs(tabBar, filter);
+            }
+        } else if (tabBarOrArea) {
+            const titles = toArray(tabBarOrArea.titles);
+            for (let i = 0; i < titles.length; i++) {
+                if (filter === undefined || filter(titles[i], i)) {
+                    const widget = titles[i].owner;
+                    const saveable = Saveable.get(widget);
+                    saveable?.save();
+                }
+            }
+        }
+    }
+
     async closeWidget(id: string, options?: ApplicationShell.CloseOptions): Promise<Widget | undefined> {
         // TODO handle save for composite widgets, i.e. the preference widget has 2 editors
         const stack = this.toTrackedStack(id);
@@ -1809,6 +1832,12 @@ export namespace ApplicationShell {
      */
     export function isSideArea(area?: string): area is 'left' | 'right' | 'bottom' {
         return area === 'left' || area === 'right' || area === 'bottom';
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    export function isValidArea(area?: any): area is ApplicationShell.Area {
+        const areas = ['main', 'top', 'left', 'right', 'bottom'];
+        return (area !== undefined && typeof area === 'string' && areas.includes(area));
     }
 
     /**
