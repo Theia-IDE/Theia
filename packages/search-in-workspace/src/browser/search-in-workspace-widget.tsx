@@ -111,6 +111,7 @@ export class SearchInWorkspaceWidget extends BaseWidget implements StatefulWidge
         this.searchFormContainer = document.createElement('div');
         this.searchFormContainer.classList.add('searchHeader');
         this.contentNode.appendChild(this.searchFormContainer);
+        this.node.tabIndex = 0;
         this.node.appendChild(this.contentNode);
 
         this.matchCaseState = {

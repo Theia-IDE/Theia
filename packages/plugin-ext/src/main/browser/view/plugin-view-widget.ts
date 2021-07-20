@@ -44,6 +44,8 @@ export class PluginViewWidget extends Panel implements StatefulWidget {
     @inject(PluginViewWidgetIdentifier)
     readonly options: PluginViewWidgetIdentifier;
 
+    currentViewContainerId: string | undefined;
+
     constructor() {
         super();
         this.node.tabIndex = -1;
@@ -71,7 +73,8 @@ export class PluginViewWidget extends Panel implements StatefulWidget {
             label: this.title.label,
             message: this.message,
             widgets: this.widgets,
-            suppressUpdateViewVisibility: this._suppressUpdateViewVisibility
+            suppressUpdateViewVisibility: this._suppressUpdateViewVisibility,
+            currentViewContainerId: this.currentViewContainerId
         };
     }
 
@@ -79,6 +82,7 @@ export class PluginViewWidget extends Panel implements StatefulWidget {
         this.title.label = state.label;
         this.message = state.message;
         this.suppressUpdateViewVisibility = state.suppressUpdateViewVisibility;
+        this.currentViewContainerId = state.currentViewContainerId;
         for (const widget of state.widgets) {
             this.addWidget(widget);
         }
@@ -136,6 +140,7 @@ export namespace PluginViewWidget {
         label: string,
         message?: string,
         widgets: ReadonlyArray<Widget>,
-        suppressUpdateViewVisibility: boolean
+        suppressUpdateViewVisibility: boolean;
+        currentViewContainerId: string | undefined;
     }
 }

@@ -145,7 +145,10 @@ export class TabBarRenderer extends TabBar.Renderer {
                 onauxclick: (e: MouseEvent) => {
                     // If user closes the tab using mouse wheel, nothing should be pasted to an active editor
                     e.preventDefault();
-                }
+                },
+                ondragenter: this.handleDragEnterOrLeaveEvent,
+                ondragover: this.handleDragOverEvent,
+                ondragleave: this.handleDragEnterOrLeaveEvent
             },
             h.div(
                 { className: 'theia-tab-icon-label' },
@@ -439,15 +442,73 @@ export class TabBarRenderer extends TabBar.Renderer {
         }
     };
 
+    protected getTitle(id: string): Title<Widget> | undefined {
+        return this.tabBar && this.tabBar.titles.find(t => this.createTabId(t) === id);
+    }
+
     protected handleDblClickEvent = (event: MouseEvent) => {
         if (this.tabBar && event.currentTarget instanceof HTMLElement) {
             const id = event.currentTarget.id;
-            // eslint-disable-next-line no-null/no-null
-            const title = this.tabBar.titles.find(t => this.createTabId(t) === id) || null;
+            const title = this.getTitle(id);
             const area = title && title.owner.parent;
             if (area instanceof TheiaDockPanel && (area.id === BOTTOM_AREA_ID || area.id === MAIN_AREA_ID)) {
                 area.toggleMaximized();
             }
+        }
+    };
+
+    isViewContainerDND(event: DragEvent): boolean {
+        const { dataTransfer } = event;
+        return !!dataTransfer && dataTransfer.types.indexOf('view-container-dnd') > -1;
+    }
+
+    isSidebarDNDEvent(event: DragEvent): boolean {
+        return this.tabBar instanceof SideTabBar && this.isViewContainerDND(event);
+    }
+
+    toCancelViewContainerDND = new DisposableCollection();
+    protected handleDragEnterOrLeaveEvent = (event: DragEvent) => {
+        if (!this.isSidebarDNDEvent(event)) {
+            return;
+        }
+        this.toCancelViewContainerDND.dispose();
+    };
+
+    protected handleDragOverEvent = (event: DragEvent) => {
+        if (!this.toCancelViewContainerDND.disposed) {
+            return;
+        }
+        if (!this.isSidebarDNDEvent(event)) {
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'none';
+            }
+            return;
+        }
+        const { currentTarget, clientX, clientY } = event;
+        if (currentTarget instanceof HTMLElement) {
+            const { top, bottom, left, right, height } = currentTarget.getBoundingClientRect();
+            const mouseOnTop = (clientY - top) < (height / 2);
+            const dropTargetClass = `drop-target-${mouseOnTop ? 'top' : 'bottom'}`;
+            currentTarget.className += ' ' + dropTargetClass;
+            this.toCancelViewContainerDND.push(Disposable.create(() => {
+                if (currentTarget) {
+                    currentTarget.className = currentTarget.className.replace(dropTargetClass, '');
+                }
+            }));
+            const openTabTimer = setTimeout(() => {
+                const title = this.getTitle(currentTarget.id);
+                if (title) {
+                    const mouseStillOnTab = clientX >= left && clientX <= right && clientY >= top && clientY <= bottom;
+                    if (mouseStillOnTab && this.tabBar) {
+                        this.tabBar.currentTitle = title;
+                        this.tabBar.setHidden(false);
+                        this.tabBar.activate();
+                    }
+                }
+            }, 800);
+            this.toCancelViewContainerDND.push(Disposable.create(() => {
+                clearTimeout(openTabTimer);
+            }));
         }
     };
 

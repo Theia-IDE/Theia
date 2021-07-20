@@ -28,6 +28,7 @@ import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/li
 import { EditorManager } from '@theia/editor/lib/browser/editor-manager';
 import { Range } from '@theia/core/shared/vscode-languageserver-types';
 import { FileService } from '@theia/filesystem/lib/browser/file-service';
+import { SEARCH_VIEW_CONTAINER_ID } from './search-in-workspace-factory';
 
 export namespace SearchInWorkspaceCommands {
     const SEARCH_CATEGORY = 'Search';
@@ -91,6 +92,7 @@ export class SearchInWorkspaceFrontendContribution extends AbstractViewContribut
 
     constructor() {
         super({
+            viewContainerId: SEARCH_VIEW_CONTAINER_ID,
             widgetId: SearchInWorkspaceWidget.ID,
             widgetName: SearchInWorkspaceWidget.LABEL,
             defaultWidgetOptions: {
