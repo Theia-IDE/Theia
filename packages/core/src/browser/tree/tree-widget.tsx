@@ -39,6 +39,7 @@ import { TreeWidgetSelection } from './tree-widget-selection';
 import { MaybePromise } from '../../common/types';
 import { LabelProvider } from '../label-provider';
 import { CorePreferences } from '../core-preferences';
+import { createClickEventHandler } from '../widgets/event-utils';
 
 const debounce = require('lodash.debounce');
 
@@ -883,11 +884,17 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
     protected createNodeAttributes(node: TreeNode, props: NodeProps): React.Attributes & React.HTMLAttributes<HTMLElement> {
         const className = this.createNodeClassNames(node, props).join(' ');
         const style = this.createNodeStyle(node, props);
+        const clickListener = createClickEventHandler<React.MouseEvent<HTMLElement>>(
+            event => this.handleClickEvent(node, event),
+            event => this.handleDblClickEvent(node, event),
+            // This component can't use invokeSingle because running the handler causes the tree to refresh, replacing the listener and its closure
+            { timeout: 250, invokeImmediately: false }
+        );
         return {
             className,
             style,
-            onClick: event => this.handleClickEvent(node, event),
-            onDoubleClick: event => this.handleDblClickEvent(node, event),
+            onClick: clickListener,
+            onDoubleClick: clickListener,
             onContextMenu: event => this.handleContextMenuEvent(node, event)
         };
     }
