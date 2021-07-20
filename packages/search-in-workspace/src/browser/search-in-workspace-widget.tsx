@@ -353,21 +353,38 @@ export class SearchInWorkspaceWidget extends BaseWidget implements StatefulWidge
         </div>;
     }
 
+    protected replaceToggleRef: HTMLElement | undefined;
+    protected setReplaceToggleRef = (element: HTMLElement | null) => {
+        if (element) { this.replaceToggleRef = element; }
+    };
+
+    protected replaceToggle = () => {
+        if (this.replaceToggleRef) {
+            this.replaceToggleRef.focus();
+        }
+        this.showReplaceField = !this.showReplaceField;
+        this.resultTreeWidget.showReplaceButtons = this.showReplaceField;
+        this.update();
+    };
+
+    protected handleEnterOrSpace = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            this.replaceToggle();
+        }
+    };
+
     protected renderReplaceFieldToggle(): React.ReactNode {
         const toggle = <span className={`fa fa-caret-${this.showReplaceField ? 'down' : 'right'}`}></span>;
+
         return <div
             title='Toggle Replace'
             className='replace-toggle'
+            ref={this.setReplaceToggleRef}
             tabIndex={0}
-            onClick={e => {
-                const elArr = document.getElementsByClassName('replace-toggle');
-                if (elArr && elArr.length > 0) {
-                    (elArr[0] as HTMLElement).focus();
-                }
-                this.showReplaceField = !this.showReplaceField;
-                this.resultTreeWidget.showReplaceButtons = this.showReplaceField;
-                this.update();
-            }}>
+            onClick={this.replaceToggle}
+            onKeyPress={this.handleEnterOrSpace}
+            role="button"
+        >
             {toggle}
         </div>;
     }
@@ -529,15 +546,28 @@ export class SearchInWorkspaceWidget extends BaseWidget implements StatefulWidge
     protected renderReplaceAllButtonContainer(): React.ReactNode {
         // The `Replace All` button is enabled if there is a search term present with results.
         const enabled: boolean = this.searchTerm !== '' && this.resultNumber > 0;
+
+        const replace = () => {
+            if (enabled) {
+                this.resultTreeWidget.replace(undefined);
+            }
+        };
+
         return <div className='replace-all-button-container'>
             <span
                 title='Replace All'
+                tabIndex={0}
+                role="button"
                 className={`replace-all-button${enabled ? ' ' : ' disabled'}`}
                 onClick={() => {
-                    if (enabled) {
-                        this.resultTreeWidget.replace(undefined);
+                    replace();
+                }}
+                onKeyPress={e => {
+                    if (e.key === 'Enter') {
+                        replace();
                     }
-                }}>
+                }}
+            >
             </span>
         </div>;
     }
