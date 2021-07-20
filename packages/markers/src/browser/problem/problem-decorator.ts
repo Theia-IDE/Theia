@@ -201,6 +201,6 @@ export class ProblemDecorator implements TreeDecorator {
 export namespace ProblemDecorator {
 
     // Highest severities (errors) come first, then the others. Undefined severities treated as the last ones.
-    export const severityCompare = ProblemUtils.severityCompare;
+    export const severityCompare = ProblemUtils.severityCompareMarker;
 
 }
