@@ -492,6 +492,7 @@ export interface PluginModel {
     packagePath: string;
     iconUrl?: string;
     readmeUrl?: string;
+    changelogUrl?: string;
     licenseUrl?: string;
 }
 

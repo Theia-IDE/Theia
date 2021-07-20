@@ -49,10 +49,12 @@ export class VSXExtensionData {
     readonly downloadCount?: number;
     readonly downloadUrl?: string;
     readonly readmeUrl?: string;
+    readonly changelogUrl?: string;
     readonly licenseUrl?: string;
     readonly repository?: string;
     readonly license?: string;
     readonly readme?: string;
+    readonly changelog?: string;
     readonly preview?: boolean;
     readonly namespaceAccess?: VSXExtensionNamespaceAccess;
     readonly publishedBy?: VSXUser;
@@ -67,10 +69,12 @@ export class VSXExtensionData {
         'downloadCount',
         'downloadUrl',
         'readmeUrl',
+        'changelogUrl',
         'licenseUrl',
         'repository',
         'license',
         'readme',
+        'changelog',
         'preview',
         'namespaceAccess',
         'publishedBy'
@@ -207,6 +211,15 @@ export class VSXExtension implements VSXExtensionData, TreeElement {
         return this.data['readmeUrl'];
     }
 
+    get changelogUrl(): string | undefined {
+        const plugin = this.plugin;
+        const changelogUrl = plugin && plugin.metadata.model.changelogUrl;
+        if (changelogUrl) {
+            return new Endpoint({ path: this.changelogUrl }).getRestUrl().toString();
+        }
+        return this.data['changelogUrl'];
+    }
+
     get licenseUrl(): string | undefined {
         let licenseUrl = this.data['licenseUrl'];
         if (licenseUrl) {
@@ -230,6 +243,10 @@ export class VSXExtension implements VSXExtensionData, TreeElement {
 
     get readme(): string | undefined {
         return this.getData('readme');
+    }
+
+    get changelog(): string | undefined {
+        return this.getData('changelog');
     }
 
     get preview(): boolean | undefined {
@@ -416,11 +433,13 @@ export class VSXExtensionEditorComponent extends AbstractVSXExtensionComponent {
     render(): React.ReactNode {
         const {
             builtin, preview, id, iconUrl, publisher, displayName, description, version,
-            averageRating, downloadCount, repository, license, readme
+            averageRating, downloadCount, repository, license, readme, changelog
         } = this.props.extension;
 
         const { baseStyle, scrollStyle } = this.getSubcomponentStyles();
         const sanitizedReadme = !!readme ? DOMPurify.sanitize(readme) : undefined;
+        console.log(sanitizedReadme);
+        const sanitizedChangelog = !!changelog ? DOMPurify.sanitize(changelog) : undefined;
 
         return <React.Fragment>
             <div className='header' style={baseStyle} ref={ref => this.header = (ref || undefined)}>
@@ -450,6 +469,10 @@ export class VSXExtensionEditorComponent extends AbstractVSXExtensionComponent {
                     {this.renderAction()}
                 </div>
             </div>
+            <div className='actions'>
+                {sanitizedReadme && <span className='action-content' onClick={this.openRepository}>Details</span>}
+                {sanitizedChangelog && <span className='action-content' onClick={this.openRepository}>Changelog</span>}
+            </div>
             {
                 sanitizedReadme &&
                 < div className='scroll-container'
@@ -461,6 +484,20 @@ export class VSXExtensionEditorComponent extends AbstractVSXExtensionComponent {
                         style={baseStyle}
                         // eslint-disable-next-line react/no-danger
                         dangerouslySetInnerHTML={{ __html: sanitizedReadme }}
+                    />
+                </div>
+            }
+            {
+                sanitizedChangelog &&
+                < div className='scroll-container'
+                    style={scrollStyle}
+                    ref={ref => this._scrollContainer = (ref || undefined)}>
+                    <div className='body'
+                        ref={ref => this.body = (ref || undefined)}
+                        onClick={this.openLink}
+                        style={baseStyle}
+                        // eslint-disable-next-line react/no-danger
+                        dangerouslySetInnerHTML={{ __html: sanitizedChangelog }}
                     />
                 </div>
             }

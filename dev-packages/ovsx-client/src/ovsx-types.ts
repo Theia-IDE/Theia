@@ -77,6 +77,7 @@ export interface VSXSearchEntry {
     readonly files: {
         download: string
         readme?: string
+        changelog?: string
         license?: string
         icon?: string
     }
@@ -104,6 +105,7 @@ export interface VSXUser {
 export interface VSXExtensionRawFiles {
     download: string
     readme?: string
+    changelog?: string
     license?: string
     icon?: string
 }

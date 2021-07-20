@@ -116,7 +116,7 @@ export class PreferenceTreeGenerator {
                     if (bIsComposite && !aIsComposite) {
                         return -1;
                     }
-                    return a.id.localeCompare(b.id);
+                    return b.id.localeCompare(a.id);
                 });
             }
         }

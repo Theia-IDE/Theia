@@ -183,6 +183,7 @@ export class VSXExtensionsModel {
                     downloadUrl: data.files.download,
                     iconUrl: data.files.icon,
                     readmeUrl: data.files.readme,
+                    changelogUrl: data.files.changelog,
                     licenseUrl: data.files.license,
                     version: extension.version
                 }));
@@ -269,6 +270,17 @@ export class VSXExtensionsModel {
                     }
                 }
             }
+            if (extension.changelogUrl) {
+                try {
+                    const rawChangelog = await this.client.fetchText(extension.changelogUrl);
+                    const changelog = this.compileReadme(rawChangelog);
+                    extension.update({ changelog });
+                } catch (e) {
+                    if (!VSXResponseError.is(e) || e.statusCode !== 404) {
+                        console.error(`[${id}]: failed to compile changelog, reason:`, e);
+                    }
+                }
+            }
             return extension;
         });
     }
@@ -305,6 +317,7 @@ export class VSXExtensionsModel {
                 downloadUrl: data.files.download,
                 iconUrl: data.files.icon,
                 readmeUrl: data.files.readme,
+                changelogUrl: data.files.changelog,
                 licenseUrl: data.files.license,
                 version: data.version
             }));
