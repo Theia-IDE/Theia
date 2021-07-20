@@ -69,6 +69,7 @@ import { ClipboardService } from '@theia/core/lib/browser/clipboard-service';
 import { SelectionService } from '@theia/core/lib/common/selection-service';
 import { UriAwareCommandHandler } from '@theia/core/lib/common/uri-command-handler';
 import URI from '@theia/core/lib/common/uri';
+import { nls } from '@theia/core/lib/browser/nls';
 
 export namespace FileNavigatorCommands {
     export const REVEAL_IN_NAVIGATOR: Command = {
@@ -412,7 +413,7 @@ export class FileNavigatorContribution extends AbstractViewContribution<FileNavi
         });
         registry.registerMenuAction(NavigatorContextMenu.CLIPBOARD, {
             commandId: FileNavigatorCommands.COPY_RELATIVE_FILE_PATH.id,
-            label: 'Copy Relative Path',
+            label: nls.localize('vscode/fileActions.contribution/copyRelativePath', 'Copy Relative Path'),
             order: 'd'
         });
         registry.registerMenuAction(NavigatorContextMenu.CLIPBOARD, {
@@ -451,7 +452,7 @@ export class FileNavigatorContribution extends AbstractViewContribution<FileNavi
         });
         registry.registerMenuAction(NavigatorContextMenu.MODIFICATION, {
             commandId: FileNavigatorCommands.COLLAPSE_ALL.id,
-            label: 'Collapse All',
+            label: nls.localize('vscode/treeView/collapseAll', 'Collapse All'),
             order: 'z2'
         });
 
@@ -501,13 +502,13 @@ export class FileNavigatorContribution extends AbstractViewContribution<FileNavi
         toolbarRegistry.registerItem({
             id: FileNavigatorCommands.REFRESH_NAVIGATOR.id,
             command: FileNavigatorCommands.REFRESH_NAVIGATOR.id,
-            tooltip: 'Refresh Explorer',
+            tooltip: nls.localize('vscode/explorerView/refreshExplorer', 'Refresh Explorer'),
             priority: 0,
         });
         toolbarRegistry.registerItem({
             id: FileNavigatorCommands.COLLAPSE_ALL.id,
             command: FileNavigatorCommands.COLLAPSE_ALL.id,
-            tooltip: 'Collapse All',
+            tooltip: nls.localize('vscode/explorerView/collapseExplorerFolders', 'Collapse All'),
             priority: 1,
         });
         this.registerMoreToolbarItem({

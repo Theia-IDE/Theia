@@ -22,6 +22,7 @@ import { SelectionService } from '@theia/core/lib/common/selection-service';
 import { Command, CommandContribution, CommandRegistry } from '@theia/core/lib/common/command';
 import { UriAwareCommandHandler } from '@theia/core/lib/common/uri-command-handler';
 import { FileDownloadService } from './file-download-service';
+import { nls } from '@theia/core/lib/browser/nls';
 
 @injectable()
 export class FileDownloadCommandContribution implements CommandContribution {
@@ -70,13 +71,13 @@ export namespace FileDownloadCommands {
     export const DOWNLOAD: Command = {
         id: 'file.download',
         category: 'File',
-        label: 'Download'
+        label: nls.localize('file.download', 'Download')
     };
 
     export const COPY_DOWNLOAD_LINK: Command = {
         id: 'file.copyDownloadLink',
         category: 'File',
-        label: 'Copy Download Link'
+        label: nls.localize('file.copyDownloadLink', 'Copy Download Link')
     };
 
 }

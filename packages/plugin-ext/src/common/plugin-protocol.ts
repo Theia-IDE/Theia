@@ -89,6 +89,20 @@ export interface PluginPackageContribution {
     problemPatterns?: PluginProblemPatternContribution[];
     jsonValidation?: PluginJsonValidationContribution[];
     resourceLabelFormatters?: ResourceLabelFormatter[];
+    localizations?: PluginPackageLocalization[];
+}
+
+export interface PluginPackageLocalization {
+    languageId: string;
+    languageName?: string;
+    localizedLanguageName?: string;
+    translations: PluginPackageTranslation[];
+    minimalTranslations?: { [key: string]: string };
+}
+
+export interface PluginPackageTranslation {
+    id: string;
+    path: string;
 }
 
 export interface PluginPackageCustomEditor {
@@ -129,6 +143,7 @@ export interface PluginPackageViewWelcome {
 export interface PluginPackageCommand {
     command: string;
     title: string;
+    original?: string;
     category?: string;
     icon?: string | { light: string; dark: string; };
     enablement?: string;
@@ -513,7 +528,7 @@ export interface PluginContribution {
     viewsContainers?: { [location: string]: ViewContainer[] };
     views?: { [location: string]: View[] };
     viewsWelcome?: ViewWelcome[];
-    commands?: PluginCommand[]
+    commands?: PluginCommand[];
     menus?: { [location: string]: Menu[] };
     submenus?: Submenu[];
     keybindings?: Keybinding[];
@@ -526,6 +541,21 @@ export interface PluginContribution {
     problemMatchers?: ProblemMatcherContribution[];
     problemPatterns?: ProblemPatternContribution[];
     resourceLabelFormatters?: ResourceLabelFormatter[];
+    localizations?: Localization[];
+}
+
+export interface Localization {
+    languageId: string;
+    languageName?: string;
+    localizedLanguageName?: string;
+    translations: Translation[];
+    minimalTranslations?: { [key: string]: string };
+}
+
+export interface Translation {
+    id: string;
+    version: string;
+    contents: { [scope: string]: { [key: string]: string } }
 }
 
 export interface SnippetContribution {
@@ -674,6 +704,7 @@ export interface ViewWelcome {
 export interface PluginCommand {
     command: string;
     title: string;
+    originalTitle?: string;
     category?: string;
     iconUrl?: IconUrl;
     themeIcon?: string;

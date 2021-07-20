@@ -21,6 +21,8 @@ import { ContributionProvider } from '@theia/core';
 import { ExtPluginApiProvider, ExtPluginApi } from '../../common/plugin-ext-api-contribution';
 import { HostedPluginDeployerHandler } from './hosted-plugin-deployer-handler';
 import { PluginDeployerImpl } from '../../main/node/plugin-deployer-impl';
+import { LocalizationProvider } from '@theia/core/lib/node/i18n/localization-provider';
+import { loadManifest } from './plugin-manifest-loader';
 
 @injectable()
 export class HostedPluginServerImpl implements HostedPluginServer {
@@ -32,6 +34,9 @@ export class HostedPluginServerImpl implements HostedPluginServer {
 
     @inject(PluginDeployer)
     protected readonly pluginDeployer: PluginDeployerImpl;
+
+    @inject(LocalizationProvider)
+    protected readonly localizationProvider: LocalizationProvider;
 
     @inject(ContributionProvider)
     @named(Symbol.for(ExtPluginApiProvider))
@@ -85,6 +90,7 @@ export class HostedPluginServerImpl implements HostedPluginServer {
         if (!pluginIds.length) {
             return [];
         }
+        const locale = this.localizationProvider.getCurrentLanguage();
         const plugins = [];
         let extraDeployedPlugins: Map<string, DeployedPlugin> | undefined;
         for (const pluginId of pluginIds) {
@@ -99,7 +105,7 @@ export class HostedPluginServerImpl implements HostedPluginServer {
                 plugin = extraDeployedPlugins.get(pluginId);
             }
             if (plugin) {
-                plugins.push(plugin);
+                plugins.push(await this.localizePlugin(plugin, locale));
             }
         }
         return plugins;
@@ -112,5 +118,36 @@ export class HostedPluginServerImpl implements HostedPluginServer {
 
     getExtPluginAPI(): Promise<ExtPluginApi[]> {
         return Promise.resolve(this.extPluginAPIContributions.getContributions().map(p => p.provideApi()));
+    }
+
+    protected async localizePlugin(plugin: DeployedPlugin, locale: string): Promise<DeployedPlugin> {
+        plugin = { ...plugin };
+        const packagePath = plugin.metadata.model.packagePath;
+        const translatedManifest = await loadManifest(packagePath, locale);
+        this.mergeContributes(plugin.contributes, translatedManifest.contributes);
+        return plugin;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected mergeContributes(main: any, other: any): void {
+        if (main && other) {
+            if (Array.isArray(main) && Array.isArray(other)) {
+                for (let i = 0; i < main.length && i < other.length; i++) {
+                    if (typeof main[i] === 'object' && typeof other[i] === 'object') {
+                        this.mergeContributes(main[i], other[i]);
+                    }
+                }
+            } else {
+                for (const [key, value] of Object.entries(main)) {
+                    if (key in other) {
+                        if (typeof value === 'string') {
+                            main[key] = other[key];
+                        } else if (typeof value === 'object' && typeof other[key] === 'object') {
+                            this.mergeContributes(main[key], other[key]);
+                        }
+                    }
+                }
+            }
+        }
     }
 }

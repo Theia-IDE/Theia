@@ -49,7 +49,7 @@ export class MonacoQuickCommandService extends QuickCommandService implements mo
 
     getPicks(filter: string, token: monaco.CancellationToken): monaco.quickInput.Picks<monaco.quickInput.IAnythingQuickPickItem> {
         const items: Array<monaco.quickInput.IAnythingQuickPickItem> = [];
-            this.reset();
+        this.reset();
         const recentItems = filterItems(this.recentItems.slice(), filter);
         const otherItems = filterItems(this.otherItems.slice(), filter);
 
@@ -68,8 +68,16 @@ export class MonacoQuickCommandService extends QuickCommandService implements mo
         const iconClasses = this.getItemIconClasses(command);
         const activeElement = window.document.activeElement as HTMLElement;
 
+        const originalLabel = command.originalLabel || command.label!;
+        const originalCategory = command.originalCategory || command.category;
+        let detail: string | undefined = originalCategory ? `${originalCategory}: ${originalLabel}` : originalLabel;
+        if (label === detail) {
+            detail = undefined;
+        }
+
         return {
             label,
+            detail,
             iconClasses,
             alwaysShow: !!this.commandRegistry.getActiveHandler(command.id),
             keybinding: this.getKeybinding(command),
