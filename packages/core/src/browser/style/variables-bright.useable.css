@@ -79,6 +79,8 @@ is not optimized for dense, information rich UIs.
   --theia-icon-open-change: url(../icons/open-change-bright.svg);
   --theia-icon-preview: url(../icons/preview-bright.svg);
   --theia-icon-open-json: url(../icons/edit-json.svg);
+  --theia-icon-pinned: url(../icons/pinned-light.svg);
+  --theia-icon-pinned-dirty: url(../icons/pinned-dirty-light.svg);
   --theia-icon-size: 16px;
 
   /* Scrollbars */

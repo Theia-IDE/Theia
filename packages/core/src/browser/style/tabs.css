@@ -211,7 +211,8 @@ body.theia-editor-highlightModifiedTabs
     height: inherit;
 }
 
-.p-TabBar.theia-app-centers .p-TabBar-tab.p-mod-closable > .p-TabBar-tabCloseIcon {
+.p-TabBar.theia-app-centers .p-TabBar-tab.p-mod-closable > .p-TabBar-tabCloseIcon,
+.p-TabBar.theia-app-centers .p-TabBar-tab.theia-mod-pinned > .p-TabBar-tabCloseIcon {
   padding-left: 10px;
   height: var(--theia-icon-size);
   width: var(--theia-icon-size);
@@ -220,10 +221,10 @@ body.theia-editor-highlightModifiedTabs
   background-repeat: no-repeat;
 }
 
-.p-TabBar.theia-app-centers .p-TabBar-tab.p-mod-closable {
+.p-TabBar.theia-app-centers .p-TabBar-tab.p-mod-closable,
+.p-TabBar.theia-app-centers .p-TabBar-tab.theia-mod-pinned {
   padding-right: 2px;
 }
-
 
 .p-TabBar.theia-app-centers .p-TabBar-tab.p-mod-closable:hover > .p-TabBar-tabCloseIcon,
 .p-TabBar.theia-app-centers .p-TabBar-tab.p-mod-current > .p-TabBar-tabCloseIcon {
@@ -238,6 +239,14 @@ body.theia-editor-highlightModifiedTabs
 .p-TabBar.theia-app-centers .p-TabBar-tab.p-mod-closable.theia-mod-dirty > .p-TabBar-tabCloseIcon:hover {
   background-size: 13px;
   background-image: var(--theia-icon-close);
+}
+
+.p-TabBar.theia-app-centers .p-TabBar-tab.theia-mod-pinned > .p-TabBar-tabCloseIcon {
+  background-image: var(--theia-icon-pinned); /* TODO: replace with codicons after Monaco update #9154 */
+}
+
+.p-TabBar.theia-app-centers .p-TabBar-tab.theia-mod-pinned.theia-mod-dirty > .p-TabBar-tabCloseIcon {
+  background-image: var(--theia-icon-pinned-dirty); /* TODO: replace with codicons after Monaco update #9154 */
 }
 
 .p-TabBar-tabIcon.no-icon {

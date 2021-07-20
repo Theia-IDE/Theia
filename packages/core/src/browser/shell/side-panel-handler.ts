@@ -253,7 +253,8 @@ export class SidePanelHandler {
         const items = toArray(map(this.tabBar.titles, title => <SidePanel.WidgetItem>{
             widget: title.owner,
             rank: SidePanelHandler.rankProperty.get(title.owner),
-            expanded: title === currentTitle
+            expanded: title === currentTitle,
+            pinned: title.className.indexOf('theia-mod-pinned') >= 0
         }));
         // eslint-disable-next-line no-null/no-null
         const size = currentTitle !== null ? this.getPanelSize() : this.state.lastPanelSize;
@@ -269,13 +270,17 @@ export class SidePanelHandler {
 
         let currentTitle: Title<Widget> | undefined;
         if (layoutData.items) {
-            for (const { widget, rank, expanded } of layoutData.items) {
+            for (const { widget, rank, expanded, pinned } of layoutData.items) {
                 if (widget) {
                     if (rank) {
                         SidePanelHandler.rankProperty.set(widget, rank);
                     }
                     if (expanded) {
                         currentTitle = widget.title;
+                    }
+                    if (currentTitle && pinned) {
+                        currentTitle.className += ' theia-mod-pinned';
+                        currentTitle.closable = false;
                     }
                     // Add the widgets directly to the tab bar in the same order as they are stored
                     this.tabBar.addTab(widget.title);
@@ -676,6 +681,7 @@ export namespace SidePanel {
         /** Can be undefined in case the widget could not be restored. */
         widget?: Widget;
         expanded?: boolean;
+        pinned?: boolean;
     }
 
     export interface State {

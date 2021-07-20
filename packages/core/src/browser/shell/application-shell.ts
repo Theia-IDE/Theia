@@ -564,8 +564,10 @@ export class ApplicationShell extends Widget {
         return {
             version: applicationShellLayoutVersion,
             mainPanel: this.mainPanel.saveLayout(),
+            mainPanelPinned: this.getPinnedMainWidgets(),
             bottomPanel: {
                 config: this.bottomPanel.saveLayout(),
+                pinned: this.getPinnedBottomWidgets(),
                 size: this.bottomPanel.isVisible ? this.getBottomPanelSize() : this.bottomPanelState.lastPanelSize,
                 expanded: this.isExpanded('bottom')
             },
@@ -573,6 +575,28 @@ export class ApplicationShell extends Widget {
             rightPanel: this.rightPanelHandler.getLayoutData(),
             activeWidgetId: this.activeWidget ? this.activeWidget.id : undefined
         };
+    }
+
+    // Get an array corresponding to main panel widgets' pinned state.
+    getPinnedMainWidgets(): boolean[] {
+        const pinned: boolean[] = [];
+
+        toArray(this.mainPanel.widgets()).forEach((a, i) => {
+            pinned[i] = a.title.className.indexOf('theia-mod-pinned') >= 0;
+        });
+
+        return pinned;
+    }
+
+    // Get an array corresponding to bottom panel widgets' pinned state.
+    getPinnedBottomWidgets(): boolean[] {
+        const pinned: boolean[] = [];
+
+        toArray(this.bottomPanel.widgets()).forEach((a, i) => {
+            pinned[i] = a.title.className.indexOf('theia-mod-pinned') >= 0;
+        });
+
+        return pinned;
     }
 
     /**
@@ -607,7 +631,7 @@ export class ApplicationShell extends Widget {
      * Apply a shell layout that has been previously created with `getLayoutData`.
      */
     async setLayoutData(layoutData: ApplicationShell.LayoutData): Promise<void> {
-        const { mainPanel, bottomPanel, leftPanel, rightPanel, activeWidgetId } = layoutData;
+        const { mainPanel, mainPanelPinned, bottomPanel, leftPanel, rightPanel, activeWidgetId } = layoutData;
         if (leftPanel) {
             this.leftPanelHandler.setLayoutData(leftPanel);
             this.registerWithFocusTracker(leftPanel);
@@ -631,6 +655,15 @@ export class ApplicationShell extends Widget {
             } else {
                 this.collapseBottomPanel();
             }
+            const widgets = toArray(this.bottomPanel.widgets());
+            if (bottomPanel.pinned && bottomPanel.pinned.length === widgets.length) {
+                widgets.forEach((a, i) => {
+                    if (bottomPanel.pinned![i]) {
+                        a.title.className += ' theia-mod-pinned';
+                        a.title.closable = false;
+                    }
+                });
+            }
             this.refreshBottomPanelToggleButton();
         }
         // Proceed with the main panel once all others are set up
@@ -638,6 +671,15 @@ export class ApplicationShell extends Widget {
         if (mainPanel) {
             this.mainPanel.restoreLayout(mainPanel);
             this.registerWithFocusTracker(mainPanel.main);
+            const widgets = toArray(this.mainPanel.widgets());
+            if (mainPanelPinned && mainPanelPinned.length === widgets.length) {
+                widgets.forEach((a, i) => {
+                    if (mainPanelPinned[i]) {
+                        a.title.className += ' theia-mod-pinned';
+                        a.title.closable = false;
+                    }
+                });
+            }
         }
         if (activeWidgetId) {
             this.activateWidget(activeWidgetId);
@@ -1895,6 +1937,7 @@ export namespace ApplicationShell {
     export interface LayoutData {
         version?: string | ApplicationShellLayoutVersion,
         mainPanel?: DockPanel.ILayoutConfig;
+        mainPanelPinned?: boolean[];
         bottomPanel?: BottomPanelLayoutData;
         leftPanel?: SidePanel.LayoutData;
         rightPanel?: SidePanel.LayoutData;
@@ -1908,6 +1951,7 @@ export namespace ApplicationShell {
         config?: DockPanel.ILayoutConfig;
         size?: number;
         expanded?: boolean;
+        pinned?: boolean[];
     }
 
     /**

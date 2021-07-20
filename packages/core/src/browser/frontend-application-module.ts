@@ -144,21 +144,6 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
         return container.get(TabBarToolbar);
     });
 
-    bind(DockPanelRendererFactory).toFactory(context => () => {
-        const { container } = context;
-        const tabBarToolbarRegistry = container.get(TabBarToolbarRegistry);
-        const tabBarRendererFactory: () => TabBarRenderer = container.get(TabBarRendererFactory);
-        const tabBarToolbarFactory: () => TabBarToolbar = container.get(TabBarToolbarFactory);
-        return new DockPanelRenderer(tabBarRendererFactory, tabBarToolbarRegistry, tabBarToolbarFactory);
-    });
-    bind(DockPanelRenderer).toSelf();
-    bind(TabBarRendererFactory).toFactory(context => () => {
-        const contextMenuRenderer = context.container.get<ContextMenuRenderer>(ContextMenuRenderer);
-        const decoratorService = context.container.get<TabBarDecoratorService>(TabBarDecoratorService);
-        const iconThemeService = context.container.get<IconThemeService>(IconThemeService);
-        return new TabBarRenderer(contextMenuRenderer, decoratorService, iconThemeService);
-    });
-
     bindContributionProvider(bind, TabBarDecorator);
     bind(TabBarDecoratorService).toSelf().inSingletonScope();
     bind(FrontendApplicationContribution).toService(TabBarDecoratorService);
@@ -346,6 +331,23 @@ export const frontendApplicationModule = new ContainerModule((bind, unbind, isBo
     }).inSingletonScope();
 
     bind(CredentialsService).to(CredentialsServiceImpl);
+
+    bind(TabBarRendererFactory).toFactory(context => () => {
+        const contextMenuRenderer = context.container.get<ContextMenuRenderer>(ContextMenuRenderer);
+        const decoratorService = context.container.get<TabBarDecoratorService>(TabBarDecoratorService);
+        const iconThemeService = context.container.get<IconThemeService>(IconThemeService);
+        const commandService = context.container.get<CommandService>(CommandService);
+        return new TabBarRenderer(contextMenuRenderer, decoratorService, iconThemeService, commandService);
+    });
+
+    bind(DockPanelRendererFactory).toFactory(context => () => {
+        const { container } = context;
+        const tabBarToolbarRegistry = container.get(TabBarToolbarRegistry);
+        const tabBarRendererFactory: () => TabBarRenderer = container.get(TabBarRendererFactory);
+        const tabBarToolbarFactory: () => TabBarToolbar = container.get(TabBarToolbarFactory);
+        return new DockPanelRenderer(tabBarRendererFactory, tabBarToolbarRegistry, tabBarToolbarFactory);
+    });
+    bind(DockPanelRenderer).toSelf();
 
     bind(ContributionFilterRegistry).to(ContributionFilterRegistryImpl).inSingletonScope();
 });
