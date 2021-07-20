@@ -20,7 +20,7 @@ import path = require('path');
 export function rebuild(target: 'electron' | 'browser', modules: string[] | undefined): void {
     const nodeModulesPath = path.join(process.cwd(), 'node_modules');
     const browserModulesPath = path.join(process.cwd(), '.browser_modules');
-    const modulesToProcess = modules || ['@theia/node-pty', 'nsfw', 'native-keymap', 'find-git-repositories', 'drivelist'];
+    const modulesToProcess = modules || ['@theia/node-pty', 'nsfw', 'native-keymap', 'find-git-repositories', 'drivelist', 'keytar'];
 
     if (target === 'electron' && !fs.existsSync(browserModulesPath)) {
         const dependencies: {

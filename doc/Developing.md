@@ -48,6 +48,7 @@ For Windows instructions [click here](#building-on-windows).
      - [Linux](#linux)
      - [Windows](#windows)
      - [macOS](#macos)
+     - [node-keytar](#keytar)
      - [Root privileges errors](#root-privileges-errors)
 
 ## Prerequisites
@@ -64,10 +65,13 @@ Some additional tools and libraries are needed depending on your platform:
   - [gcc](https://gcc.gnu.org/) (or another compiling toolchain)
   - [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/)
   - build-essential: `sudo apt-get install build-essential`
-  - Dependencies for `native-keymap` node native extension:
-    - Debian-based: `sudo apt-get install libx11-dev libxkbfile-dev`
-    - Red Hat-based: `sudo yum install libX11-devel.x86_64 libxkbfile-devel.x86_64 # or .i686`
-    - FreeBSD: `sudo pkg install libX11`
+  - Dependencies for node native extensions:
+    - `native-keymap`:
+      - Debian-based: `sudo apt-get install libx11-dev libxkbfile-dev`
+      - Red Hat-based: `sudo yum install libX11-devel.x86_64 libxkbfile-devel.x86_64 # or .i686`
+      - FreeBSD: `sudo pkg install libX11`
+    - `node-keytar`:
+      - Debian-based: `sudo apt-get install libsecret-1-dev`
 
 - Linux/MacOS
   - [nvm](https://github.com/nvm-sh/nvm) is recommended to easily switch between Node.js versions.
@@ -75,6 +79,19 @@ Some additional tools and libraries are needed depending on your platform:
 - Windows
   - We recommend using [`scoop`](https://scoop.sh/). The detailed steps are [here](#building-on-windows).
 
+- Alternative Linux Distributions (e.g. RHEL7)
+  - [node-keytar](https://github.com/atom/node-keytar) uses [`prebuild-install`](https://github.com/prebuild/prebuild-install) to download prebuilt binaries.
+    This can cause some issues on RHEL for instance where some shared libraries are missing from the system it was original built upon.
+    To fix that issue, you can tell `prebuild-install` to build the native extension locally by setting the following environment variable before doing `yarn`:
+
+    ```sh
+    # either:
+    export npm_config_build_from_source=true
+    yarn
+
+    # or:
+    npm_config_build_from_source=true yarn
+    ```
 ## Quick Start
 
 To build and run the browser example:
@@ -469,6 +486,20 @@ You need to have the Xcode command line tools installed in order to build and ru
 If you already have Xcode installed, but you see the `xcode-select: error: tool 'xcodebuild' requires Xcode, but active developer directory '/Library/Developer/CommandLineTools' is a command line tools instance` error, you need to run the following command to fix it: `sudo xcode-select --switch /Library/Developer/CommandLineTools`.
 
 The solution is the same if you have updated to `10.14` (Mojave) and you can see the `gyp: No Xcode or CLT version detected!` error. More details [here](https://github.com/nodejs/node-gyp#on-macos).
+
+### Keytar
+
+See prerequisites for [`node-keytar`](#prerequisites)
+
+On some distributions (e.g. RHEL7, CentOS7) the prebuilt binaries for `node-keytar` might crash at runtime because of some missing shared libraries (e.g. some glibc version).
+
+To address that issue you can force `node-keytar` to build on install rather than pulling incompatible prebuilt binaries by setting the following environment variable:
+
+```sh
+export npm_config_build_from_source=true
+```
+
+And then running `yarn` to install dependencies and have them build themselves locally.
 
 ### Root privileges errors
 When trying to install with root privileges, you might encounter errors such as
