@@ -103,13 +103,12 @@ describe('RawProcess', function (): void {
             rawProcess.onError(error => {
                 reject();
             });
-
             rawProcess.onExit(event => {
                 if (event.code === undefined) {
-                    reject();
+                    reject(new Error('exit code is undefined'));
+                } else {
+                    resolve(event.code);
                 }
-
-                resolve(event.code);
             });
         });
 

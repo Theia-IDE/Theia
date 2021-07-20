@@ -161,7 +161,7 @@ export class AuthenticationServiceImpl implements AuthenticationService {
             }
         });
         this.commands.registerCommand(this.noAccountsCommand, {
-            execute: () => {},
+            execute: () => { },
             isEnabled: () => false
         });
     }
@@ -265,11 +265,10 @@ export class AuthenticationServiceImpl implements AuthenticationService {
             // Activate has already been called for the authentication provider, but it cannot block on registering itself
             // since this is sync and returns a disposable. So, wait for registration event to fire that indicates the
             // provider is now in the map.
-            await new Promise((resolve, _) => {
+            provider = await new Promise(resolve => {
                 this.onDidRegisterAuthenticationProvider(e => {
                     if (e.id === providerId) {
-                        provider = this.authenticationProviders.get(providerId);
-                        resolve();
+                        resolve(this.authenticationProviders.get(providerId));
                     }
                 });
             });

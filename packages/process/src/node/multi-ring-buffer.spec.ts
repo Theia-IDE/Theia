@@ -329,7 +329,7 @@ describe('MultiRingBuffer', function (): void {
         const buffer = 'abc';
 
         const astream = ringBuffer.getStream();
-        const p = new Promise(resolve => {
+        const p = new Promise<void>(resolve => {
             astream.on('data', (chunk: string) => {
                 expect(chunk).to.be.equal(buffer);
                 resolve();
@@ -347,7 +347,7 @@ describe('MultiRingBuffer', function (): void {
         ringBuffer.enq(buffer);
 
         const astream = ringBuffer.getStream();
-        const p = new Promise(resolve => {
+        const p = new Promise<void>(resolve => {
             astream.on('data', (chunk: string) => {
                 expect(chunk).to.be.equal(buffer);
                 resolve();
@@ -403,7 +403,7 @@ describe('MultiRingBuffer', function (): void {
         ringBuffer.enq(buffer);
 
         const astream = ringBuffer.getStream('hex');
-        const p = new Promise(resolve => {
+        const p = new Promise<void>(resolve => {
             astream.on('data', (chunk: string) => {
                 expect(chunk).to.be.equal('74657374');
                 resolve();

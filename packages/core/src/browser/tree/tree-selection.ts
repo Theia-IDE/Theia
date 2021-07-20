@@ -122,23 +122,24 @@ export interface SelectableTreeNode extends TreeNode {
 
 export namespace SelectableTreeNode {
 
-    export function is(node: TreeNode | undefined): node is SelectableTreeNode {
-        return !!node && 'selected' in node;
+    export function is(node?: TreeNode): node is SelectableTreeNode {
+        // eslint-disable-next-line no-null/no-null
+        return typeof node === 'object' && node !== null && 'selected' in node;
     }
 
-    export function isSelected(node: TreeNode | undefined): node is SelectableTreeNode {
+    export function isSelected(node?: TreeNode): node is SelectableTreeNode {
         return is(node) && node.selected;
     }
 
-    export function hasFocus(node: TreeNode | undefined): boolean {
+    export function hasFocus(node?: TreeNode): boolean {
         return is(node) && node.focus === true;
     }
 
-    export function isVisible(node: TreeNode | undefined): node is SelectableTreeNode {
+    export function isVisible(node?: TreeNode): node is SelectableTreeNode {
         return is(node) && TreeNode.isVisible(node);
     }
 
-    export function getVisibleParent(node: TreeNode | undefined): SelectableTreeNode | undefined {
+    export function getVisibleParent(node?: TreeNode): SelectableTreeNode | undefined {
         if (node) {
             if (isVisible(node.parent)) {
                 return node.parent;

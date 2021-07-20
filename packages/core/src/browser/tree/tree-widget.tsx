@@ -989,7 +989,7 @@ export class TreeWidget extends ReactWidget implements StatefulWidget {
             decorations.push(node.decorationData);
         }
         if (this.decorations.has(node.id)) {
-            decorations.push(...this.decorations.get(node.id));
+            decorations.push(...this.decorations.get(node.id)!);
         }
         return decorations.sort(TreeDecoration.Data.comparePriority);
     }

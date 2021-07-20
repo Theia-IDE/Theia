@@ -44,7 +44,7 @@ describe('Terminal Backend Contribution', function (): void {
 
     it('is data received from the terminal ws server', async () => {
         const terminalId = await shellTerminalServer.create({});
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             const channel = new TestWebSocketChannel({ server, path: `${terminalsPath}/${terminalId}` });
             channel.onError(reject);
             channel.onClose((code, reason) => reject(new Error(`channel is closed with '${code}' code and '${reason}' reason`)));

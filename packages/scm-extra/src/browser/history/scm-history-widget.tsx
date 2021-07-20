@@ -399,7 +399,7 @@ export class ScmHistoryWidget extends ScmNavigableListWidget<ScmHistoryListNode>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected doLoadMoreRows(params: IndexRange): Promise<any> {
         let resolver: () => void;
-        const promise = new Promise(resolve => resolver = resolve);
+        const promise = new Promise<void>(resolve => resolver = resolve);
         const lastRow = this.scmNodes[params.stopIndex - 1];
         if (ScmCommitNode.is(lastRow)) {
             const toRevision = lastRow.commitDetails.id;

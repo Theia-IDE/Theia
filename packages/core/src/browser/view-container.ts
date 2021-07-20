@@ -1030,6 +1030,7 @@ export class ViewContainerLayout extends SplitLayout {
         return map(this.items, item => item.widget);
     }
 
+    // @ts-expect-error (TS2611)
     get widgets(): ViewContainerPart[] {
         return toArray(this.iter());
     }

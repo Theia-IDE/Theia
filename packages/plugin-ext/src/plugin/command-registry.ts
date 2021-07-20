@@ -102,7 +102,7 @@ export class CommandRegistryImpl implements CommandRegistryExt {
             // Using the KnownCommand exclusions, convert the commands manually
             return KnownCommands.map(id, args, (mappedId: string, mappedArgs: any[] | undefined, mappedResult: KnownCommands.ConversionFunction) => {
                 const mr: KnownCommands.ConversionFunction = mappedResult;
-                return this.proxy.$executeCommand(mappedId, ...mappedArgs).then((result: any) => {
+                return this.proxy.$executeCommand(mappedId, ...mappedArgs ?? []).then((result: any) => {
                     if (!result) {
                         return undefined;
                     }

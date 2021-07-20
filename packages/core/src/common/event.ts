@@ -311,26 +311,24 @@ export namespace WaitUntilEvent {
      *
      * Use `AsyncEmitter.fire` to fire listeners async one after another.
      */
-    export async function fire<T extends WaitUntilEvent>(
-        emitter: Emitter<T>,
+    export async function fire<T>(
+        emitter: Emitter<T & WaitUntilEvent>,
         event: Omit<T, 'waitUntil'>,
         timeout: number | undefined = undefined
     ): Promise<void> {
         const waitables: Promise<void>[] = [];
-        const asyncEvent = Object.assign(event, {
-            waitUntil: (thenable: Promise<any>) => {
-                if (Object.isFrozen(waitables)) {
-                    throw new Error('waitUntil cannot be called asynchronously.');
-                }
-                waitables.push(thenable);
+        (event as any as WaitUntilEvent).waitUntil = thenable => {
+            if (Object.isFrozen(waitables)) {
+                throw new Error('waitUntil cannot be called asynchronously.');
             }
-        }) as T;
+            waitables.push(thenable);
+        };
         try {
-            emitter.fire(asyncEvent);
+            emitter.fire(event as T & WaitUntilEvent);
             // Asynchronous calls to `waitUntil` should fail.
             Object.freeze(waitables);
         } finally {
-            delete asyncEvent['waitUntil'];
+            delete (event as Partial<WaitUntilEvent>).waitUntil;
         }
         if (!waitables.length) {
             return;
@@ -345,18 +343,21 @@ export namespace WaitUntilEvent {
 
 import { CancellationToken } from './cancellation';
 
-export class AsyncEmitter<T extends WaitUntilEvent> extends Emitter<T> {
+export class AsyncEmitter<T> extends Emitter<T & WaitUntilEvent> {
 
-    protected deliveryQueue: Promise<void> | undefined;
+    protected deliveryQueue?: Promise<void>;
 
     /**
      * Fire listeners async one after another.
      */
-    fire(event: Omit<T, 'waitUntil'>, token: CancellationToken = CancellationToken.None,
-        promiseJoin?: (p: Promise<any>, listener: Function) => Promise<any>): Promise<void> {
+    async fire(
+        event: Omit<T, 'waitUntil'>,
+        token: CancellationToken = CancellationToken.None,
+        promiseJoin?: (p: Promise<any>, listener: Function) => Promise<any>
+    ): Promise<void> {
         const callbacks = this._callbacks;
         if (!callbacks) {
-            return Promise.resolve();
+            return;
         }
         const listeners = [...callbacks];
         if (this.deliveryQueue) {
@@ -365,32 +366,32 @@ export class AsyncEmitter<T extends WaitUntilEvent> extends Emitter<T> {
         return this.deliveryQueue = this.deliver(listeners, event, token, promiseJoin);
     }
 
-    protected async deliver(listeners: Callback[], event: Omit<T, 'waitUntil'>, token: CancellationToken,
-        promiseJoin?: (p: Promise<any>, listener: Function) => Promise<any>): Promise<void> {
+    protected async deliver(
+        listeners: Callback[],
+        event: Omit<T, 'waitUntil'>,
+        token: CancellationToken,
+        promiseJoin?: (p: Promise<any>, listener: Function) => Promise<any>
+    ): Promise<void> {
         for (const listener of listeners) {
             if (token.isCancellationRequested) {
                 return;
             }
             const waitables: Promise<void>[] = [];
-            const asyncEvent = Object.assign(event, {
-                waitUntil: (thenable: Promise<any>) => {
-                    if (Object.isFrozen(waitables)) {
-                        throw new Error('waitUntil cannot be called asynchronously.');
-                    }
-                    if (promiseJoin) {
-                        thenable = promiseJoin(thenable, listener);
-                    }
-                    waitables.push(thenable);
+            (event as any as WaitUntilEvent).waitUntil = thenable => {
+                if (Object.isFrozen(waitables)) {
+                    throw new Error('waitUntil cannot be called asynchronously.');
                 }
-            }) as T;
+                if (promiseJoin) {
+                    thenable = promiseJoin(thenable, listener);
+                }
+                waitables.push(thenable);
+            };
             try {
                 listener(event);
                 // Asynchronous calls to `waitUntil` should fail.
                 Object.freeze(waitables);
-            } catch (e) {
-                console.error(e);
             } finally {
-                delete asyncEvent['waitUntil'];
+                delete (event as Partial<WaitUntilEvent>).waitUntil;
             }
             if (!waitables.length) {
                 return;

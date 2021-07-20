@@ -41,7 +41,7 @@
     "tslint": "^5.12.0",
     "typedoc": "^0.17.7",
     "typedoc-plugin-external-module-map": "^1.2.1",
-    "typescript": "^3.9.2",
+    "typescript": "latest",
     "uuid": "^8.0.0"
   },
   "scripts": {

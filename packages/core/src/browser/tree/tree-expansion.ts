@@ -14,6 +14,8 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { injectable, inject, postConstruct } from 'inversify';
 import { Emitter, Event, Disposable } from '../../common';
 import { CompositeTreeNode, TreeNode, Tree } from './tree';
@@ -65,15 +67,16 @@ export interface ExpandableTreeNode extends CompositeTreeNode {
 }
 
 export namespace ExpandableTreeNode {
-    export function is(node: Object | undefined): node is ExpandableTreeNode {
-        return !!node && CompositeTreeNode.is(node) && 'expanded' in node;
+    export function is(node?: any): node is ExpandableTreeNode {
+        // eslint-disable-next-line no-null/no-null
+        return typeof node === 'object' && node !== null && CompositeTreeNode.is(node) && 'expanded' in node;
     }
 
-    export function isExpanded(node: Object | undefined): node is ExpandableTreeNode {
+    export function isExpanded(node?: any): node is ExpandableTreeNode {
         return ExpandableTreeNode.is(node) && node.expanded;
     }
 
-    export function isCollapsed(node: Object | undefined): node is ExpandableTreeNode {
+    export function isCollapsed(node?: any): node is ExpandableTreeNode {
         return ExpandableTreeNode.is(node) && !node.expanded;
     }
 }

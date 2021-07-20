@@ -58,7 +58,8 @@ export class HostedPluginReader implements BackendApplicationContribution {
                         // the request was already closed
                         return;
                     }
-                    if ('code' in e && e['code'] === 'ENOENT') {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    if ((e as any).code === 'ENOENT') {
                         res.status(404).send(`No such file found in '${escape_html(pluginId)}' plugin.`);
                     } else {
                         res.status(500).send(`Failed to transfer a file from '${escape_html(pluginId)}' plugin.`);

@@ -274,7 +274,8 @@ export class DebugSessionConnection implements Disposable {
                 this.onDidCustomEventEmitter.fire(event);
             }
         } else {
-            this.fire('exited', event);
+            // This branch is most likely the result of an error:
+            this.fire('exited', event as any);
         }
     }
 

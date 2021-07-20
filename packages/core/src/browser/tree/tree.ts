@@ -14,6 +14,8 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { injectable } from 'inversify';
 import { Event, Emitter, WaitUntilEvent } from '../../common/event';
 import { Disposable, DisposableCollection } from '../../common/disposable';
@@ -147,8 +149,9 @@ export interface CompositeTreeNode extends TreeNode {
 }
 
 export namespace CompositeTreeNode {
-    export function is(node: Object | undefined): node is CompositeTreeNode {
-        return !!node && 'children' in node;
+    export function is(node?: any): node is CompositeTreeNode {
+        // eslint-disable-next-line no-null/no-null
+        return typeof node === 'object' && node !== null && 'children' in node;
     }
 
     export function getFirstChild(parent: CompositeTreeNode): TreeNode | undefined {

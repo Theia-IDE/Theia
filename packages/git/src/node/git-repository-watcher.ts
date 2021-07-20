@@ -95,7 +95,7 @@ export class GitRepositoryWatcher implements Disposable {
                 this.skipNextIdle = false;
             } else {
                 const idleTimeout = this.watching ? 5000 : /* super long */ 1000 * 60 * 60 * 24;
-                await new Promise(resolve => {
+                await new Promise<void>(resolve => {
                     const id = setTimeout(resolve, idleTimeout);
                     this.interruptIdle = () => { clearTimeout(id); resolve(); };
                 }).then(() => {

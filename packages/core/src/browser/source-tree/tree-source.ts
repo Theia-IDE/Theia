@@ -22,6 +22,8 @@ import { Emitter, Event } from '../../common/event';
 import { MaybePromise } from '../../common/types';
 import { Disposable, DisposableCollection } from '../../common/disposable';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export interface TreeElement {
     /** default: parent id + position among siblings */
     readonly id?: number | string | undefined
@@ -37,12 +39,12 @@ export interface CompositeTreeElement extends TreeElement {
     getElements(): MaybePromise<IterableIterator<TreeElement>>
 }
 export namespace CompositeTreeElement {
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    export function is(element: CompositeTreeElement | any): element is CompositeTreeElement {
-        return !!element && 'getElements' in element;
+    export function is(element?: any): element is CompositeTreeElement {
+        // eslint-disable-next-line no-null/no-null
+        return typeof element === 'object' && element !== null && 'getElements' in element;
     }
-    export function hasElements(element: CompositeTreeElement | any): element is CompositeTreeElement {
-        return is(element) && element.hasElements !== false;
+    export function hasElements(element?: any): element is CompositeTreeElement {
+        return is(element) && (element.hasElements === undefined || element.hasElements);
     }
 }
 

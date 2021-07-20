@@ -209,7 +209,7 @@ export class MonacoEditorProvider {
         let keydownListener: monaco.IDisposable | undefined;
         const keybindingService = editor.getControl()._standaloneKeybindingService;
         for (const listener of keybindingService._store._toDispose) {
-            if ('_type' in listener && listener['_type'] === 'keydown') {
+            if ((listener as any)._type === 'keydown') {
                 keydownListener = listener;
                 break;
             }

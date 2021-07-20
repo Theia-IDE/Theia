@@ -32,7 +32,7 @@ export class ViewColumnService {
     ) {
         let oldColumnValues = new Map<string, number>();
         const update = async () => {
-            await new Promise((resolve => setTimeout(() => resolve())));
+            await new Promise<void>((resolve => setTimeout(() => resolve())));
             this.updateViewColumns();
             this.viewColumnIds.forEach((ids: string[], viewColumn: number) => {
                 ids.forEach((id: string) => {

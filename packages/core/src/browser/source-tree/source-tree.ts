@@ -41,50 +41,56 @@ export class SourceTree extends TreeImpl {
         return parent.element.getElements();
     }
 
-    protected toNode(element: TreeElement, index: number, parent: TreeElementNodeParent): TreeElementNode {
-        const id = element.id ? String(element.id) : (parent.id + ':' + index);
-        const name = id;
-        const existing = this.getNode(id);
-        const updated = existing && <TreeElementNode>Object.assign(existing, { element, parent });
+    /**
+     * Convert a parent's elements into `TreeElementNode` or `CompositeTreeElementNode`.
+     *
+     * If a node already exists in this tree, we'll mutate it rather than create a new updated one.
+     */
+    protected toNode(element: TreeElement, index: number, parent: TreeElementNodeParent): TreeElementNode | CompositeTreeElementNode {
+        const id: string = element.id === undefined ? `${parent.id}:${index}` : String(element.id);
+        // The base `TreeImpl` class expects to store simple `TreeNode` instances,
+        // but we know for a fact that we handle `TreeElementNode` in this `SourceTree` class.
+        // TODO: `Tree` should be generic and require something like `T extends TreeNode`?
+        const existing = this.getNode(id) as TreeElementNode | CompositeTreeElementNode | undefined;
+        if (existing) {
+            existing.element = element;
+            existing.parent = parent;
+        }
         if (CompositeTreeElement.hasElements(element)) {
-            if (updated) {
-                if (!ExpandableTreeNode.is(updated)) {
-                    Object.assign(updated, { expanded: false });
+            if (existing) {
+                if (!ExpandableTreeNode.is(existing)) {
+                    (existing as Partial<ExpandableTreeNode>).expanded = false;
                 }
-                if (!CompositeTreeNode.is(updated)) {
-                    Object.assign(updated, { children: [] });
+                if (!CompositeTreeNode.is(existing)) {
+                    (existing as Partial<CompositeTreeNode>).children = [];
                 }
-                return updated;
+                return existing;
             }
             return {
                 element,
                 parent,
                 id,
-                name,
+                name: id,
                 selected: false,
                 expanded: false,
                 children: []
-            } as TreeElementNode;
+            };
         }
-        if (CompositeTreeElementNode.is(updated)) {
-            delete updated.expanded;
-            delete updated.children;
-        }
-        if (updated) {
-            if (ExpandableTreeNode.is(updated)) {
-                delete updated.expanded;
+        if (existing) {
+            if (ExpandableTreeNode.is(existing)) {
+                delete (existing as Partial<ExpandableTreeNode>).expanded;
             }
-            if (CompositeTreeNode.is(updated)) {
-                delete updated.children;
+            if (CompositeTreeNode.is(existing)) {
+                delete (existing as Partial<CompositeTreeNode>).children;
             }
-            return updated;
+            return existing;
         }
         return {
             element,
             parent,
             id,
-            name,
-            selected: false
+            name: id,
+            selected: false,
         };
     }
 
@@ -97,7 +103,7 @@ export interface TreeElementNode extends TreeNode, SelectableTreeNode {
     parent: TreeElementNodeParent
 }
 export namespace TreeElementNode {
-    export function is(node: TreeNode | undefined): node is TreeElementNode {
+    export function is(node?: TreeNode): node is TreeElementNode {
         return SelectableTreeNode.is(node) && 'element' in node;
     }
 }
@@ -108,7 +114,7 @@ export interface CompositeTreeElementNode extends TreeElementNode, CompositeTree
     parent: TreeElementNodeParent
 }
 export namespace CompositeTreeElementNode {
-    export function is(node: TreeNode | undefined): node is CompositeTreeElementNode {
+    export function is(node?: TreeNode): node is CompositeTreeElementNode {
         return TreeElementNode.is(node) && CompositeTreeNode.is(node) && ExpandableTreeNode.is(node) && !!node.visible;
     }
 }
@@ -120,15 +126,15 @@ export interface TreeSourceNode extends CompositeTreeNode, SelectableTreeNode {
     source: TreeSource
 }
 export namespace TreeSourceNode {
-    export function is(node: TreeNode | undefined): node is TreeSourceNode {
+    export function is(node?: TreeNode): node is TreeSourceNode {
         return CompositeTreeNode.is(node) && !node.visible && 'source' in node;
     }
     export function to(source: undefined): undefined;
     export function to(source: TreeSource): TreeSourceNode;
-    export function to(source: TreeSource | undefined): TreeSourceNode | undefined;
-    export function to(source: TreeSource | undefined): TreeSourceNode | undefined {
+    export function to(source?: TreeSource): TreeSourceNode | undefined;
+    export function to(source?: TreeSource): TreeSourceNode | undefined {
         if (!source) {
-            return source;
+            return;
         }
         const id = source.id || '__source__';
         return {

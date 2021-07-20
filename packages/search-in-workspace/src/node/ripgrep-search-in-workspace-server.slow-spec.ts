@@ -907,10 +907,14 @@ describe('ripgrep-search-in-workspace-server', function (): void {
 
             rgServer.setClient({
                 onResult: (searchId: number, result: SearchInWorkspaceResult): void => {
-                    reject();
+                    reject(new Error('unexpected result'));
                 },
                 onDone: (searchId: number, error?: string): void => {
-                    resolve(error);
+                    if (error) {
+                        resolve(error);
+                    } else {
+                        reject(new Error('error is not defined'));
+                    }
                 },
             });
             rgServer.search('pattern', [rootDirA]);
@@ -934,7 +938,11 @@ describe('ripgrep-search-in-workspace-server', function (): void {
                     reject();
                 },
                 onDone: (searchId: number, error?: string): void => {
-                    resolve(error);
+                    if (error) {
+                        resolve(error);
+                    } else {
+                        reject(new Error('error is not defined'));
+                    }
                 },
             });
             rgServer.search('pattern', [rootDirA]);

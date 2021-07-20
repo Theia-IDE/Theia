@@ -212,46 +212,39 @@ export class JsonRpcProxyFactory<T extends object> implements ProxyHandler<T> {
      * `fooProxy.bar()` will call the `bar` method on the remote Foo object.
      *
      * @param target - unused.
-     * @param p - The property accessed on the Proxy object.
+     * @param property - The property accessed on the Proxy object.
      * @param receiver - unused.
      * @returns A callable that executes the JSON-RPC call.
      */
-    get(target: T, p: PropertyKey, receiver: any): any {
-        if (p === 'setClient') {
+    get(target: T, property: PropertyKey, receiver: any): any {
+        if (property === 'setClient') {
             return (client: any) => {
                 this.target = client;
             };
         }
-        if (p === 'getClient') {
+        if (property === 'getClient') {
             return () => this.target;
         }
-        if (p === 'onDidOpenConnection') {
+        if (property === 'onDidOpenConnection') {
             return this.onDidOpenConnectionEmitter.event;
         }
-        if (p === 'onDidCloseConnection') {
+        if (property === 'onDidCloseConnection') {
             return this.onDidCloseConnectionEmitter.event;
         }
-        const isNotify = this.isNotification(p);
-        return (...args: any[]) => {
-            const method = p.toString();
+        const isNotify = this.isNotification(property);
+        return async (...args: any[]) => {
+            const method = property.toString();
             const capturedError = new Error(`Request '${method}' failed`);
-            return this.connectionPromise.then(connection =>
-                new Promise((resolve, reject) => {
-                    try {
-                        if (isNotify) {
-                            connection.sendNotification(method, ...args);
-                            resolve();
-                        } else {
-                            const resultPromise = connection.sendRequest(method, ...args) as Promise<any>;
-                            resultPromise
-                                .catch((err: any) => reject(this.deserializeError(capturedError, err)))
-                                .then((result: any) => resolve(result));
-                        }
-                    } catch (err) {
-                        reject(err);
-                    }
-                })
-            );
+            const connection = await this.connectionPromise;
+            if (isNotify) {
+                connection.sendNotification(method, ...args);
+            } else {
+                try {
+                    return await connection.sendRequest(method, ...args);
+                } catch (caught) {
+                    throw this.deserializeError(capturedError, caught);
+                }
+            };
         };
     }
 

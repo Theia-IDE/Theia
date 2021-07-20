@@ -21,7 +21,7 @@ import { CancellationToken, cancelled } from './cancellation';
  * An object that exposes a promise and functions to resolve and reject it.
  */
 export class Deferred<T> {
-    resolve: (value?: T) => void;
+    resolve: (value?: T | PromiseLike<T>) => void;
     reject: (err?: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
 
     promise = new Promise<T>((resolve, reject) => {

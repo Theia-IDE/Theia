@@ -300,7 +300,7 @@ export class PluginContributionHandler {
         }
 
         if (contributions.colors) {
-            pushContribution('colors', () => this.colors.register(...contributions.colors));
+            pushContribution('colors', () => this.colors.register(...contributions.colors!));
         }
 
         if (contributions.taskDefinitions) {

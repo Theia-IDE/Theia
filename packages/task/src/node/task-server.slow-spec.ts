@@ -105,7 +105,7 @@ describe('Task server / back-end', function (): void {
         const messages: string[] = [];
 
         // hook-up to terminal's ws and confirm that it outputs expected tasks' output
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             const channel = new TestWebSocketChannel({ server, path: `${terminalsPath}/${terminalId}` });
             channel.onError(reject);
             channel.onClose((code, reason) => reject(new Error(`channel is closed with '${code}' code and '${reason}' reason`)));
@@ -137,7 +137,7 @@ describe('Task server / back-end', function (): void {
         // create task using raw process
         const taskInfo: TaskInfo = await taskServer.run(createProcessTaskConfig('process', executable, [someString]), wsRoot);
 
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
             const toDispose = taskWatcher.onTaskExit((event: TaskExitedEvent) => {
                 if (event.taskId === taskInfo.taskId && event.code === 0) {
                     if (typeof taskInfo.terminalId === 'number') {
@@ -242,8 +242,9 @@ describe('Task server / back-end', function (): void {
             taskWatcher.onTaskExit((event: TaskExitedEvent) => {
                 if (event.taskId !== taskInfo.taskId || event.code === undefined) {
                     reject(new Error(JSON.stringify(event)));
+                } else {
+                    resolve(event.code);
                 }
-                resolve(event.code);
             });
         });
         // node-pty reports different things on Linux/macOS vs Windows when
@@ -422,8 +423,8 @@ function createTaskConfigTaskLongRunning(processType: ProcessType): TaskConfigur
     };
 }
 
-function checkSuccessfulProcessExit(taskInfo: TaskInfo, taskWatcher: TaskWatcher): Promise<object> {
-    return new Promise<object>((resolve, reject) => {
+function checkSuccessfulProcessExit(taskInfo: TaskInfo, taskWatcher: TaskWatcher): Promise<void> {
+    return new Promise<void>(resolve => {
         const toDispose = taskWatcher.onTaskExit((event: TaskExitedEvent) => {
             if (event.taskId === taskInfo.taskId && event.code === 0) {
                 toDispose.dispose();
