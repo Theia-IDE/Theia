@@ -653,7 +653,8 @@ export class HostedPluginSupport {
                     const result = await this.fileSearchService.find('', {
                         rootUris: this.workspaceService.tryGetRoots().map(r => r.resource.toString()),
                         includePatterns,
-                        limit: 1
+                        limit: 1,
+                        useGitIgnore: false
                     }, tokenSource.token);
                     return result.length > 0;
                 } catch (e) {
