@@ -472,6 +472,14 @@ declare module monaco.editor {
         read(): string | null;
     }
 
+    // https://github.com/microsoft/vscode/blob/b4c1bd0a9b03c749ea011b06c6d2676c8091a70c/src/vs/editor/common/model.ts#L493
+    export interface IFoundBracket {
+        range: Range;
+        open: string[];
+        close: string[];
+        isOpen: boolean;
+    }
+
     export interface ITextModel {
         /**
          * Get the tokens for the line `lineNumber`.
@@ -498,6 +506,19 @@ declare module monaco.editor {
         // https://github.com/theia-ide/vscode/blob/standalone/0.19.x/src/vs/editor/common/model.ts#L833-L837
         getLanguageIdentifier(): monaco.services.LanguageIdentifier;
 
+        /**
+         * Find the first bracket in the model before `position`.
+         * @internal
+         * https://github.com/microsoft/vscode/blob/b4c1bd0a9b03c749ea011b06c6d2676c8091a70c/src/vs/editor/common/model.ts#L950
+         */
+        findPrevBracket(position: IPosition): IFoundBracket | null;
+
+        /**
+         * Find the first bracket in the model after `position`.
+         * @internal
+         * https://github.com/microsoft/vscode/blob/b4c1bd0a9b03c749ea011b06c6d2676c8091a70c/src/vs/editor/common/model.ts#L958
+         */
+        findNextBracket(position: IPosition): IFoundBracket | null;
     }
 
 }
