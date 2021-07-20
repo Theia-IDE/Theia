@@ -57,7 +57,7 @@ before(() => {
     testContainer.bind(WorkspaceVariableContribution).toSelf().inSingletonScope();
     testContainer.bind(ApplicationShell).toConstantValue({
         currentChanged: new Signal({}),
-        widgets: () => []
+        widgets: []
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     testContainer.bind(WidgetManager).toConstantValue({

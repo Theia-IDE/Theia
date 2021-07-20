@@ -299,8 +299,9 @@ export class PluginContributionHandler {
             }
         }
 
-        if (contributions.colors) {
-            pushContribution('colors', () => this.colors.register(...contributions.colors));
+        const colors = contributions.colors;
+        if (colors) {
+            pushContribution('colors', () => this.colors.register(...colors));
         }
 
         if (contributions.taskDefinitions) {

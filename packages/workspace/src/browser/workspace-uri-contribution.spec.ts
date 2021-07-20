@@ -46,7 +46,7 @@ beforeEach(() => {
     container = new Container();
     container.bind(ApplicationShell).toConstantValue({
         currentChanged: new Signal({}),
-        widgets: () => []
+        widgets: []
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
     container.bind(WidgetManager).toConstantValue({

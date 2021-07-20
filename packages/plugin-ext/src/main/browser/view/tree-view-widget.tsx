@@ -283,7 +283,7 @@ export class TreeViewWidget extends TreeViewWelcomeWidget {
         });
 
         const children = this.getCaption(node);
-        return React.createElement('div', attrs, ...children);
+        return React.createElement('div', attrs, children);
     }
 
     protected getCaption(node: TreeNode): React.ReactNode {
