@@ -21,6 +21,9 @@
       "path": "../callhierarchy/compile.tsconfig.json"
     },
     {
+      "path": "../console/compile.tsconfig.json"
+    },
+    {
       "path": "../core/compile.tsconfig.json"
     },
     {

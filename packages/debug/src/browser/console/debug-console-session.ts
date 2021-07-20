@@ -15,40 +15,44 @@
  ********************************************************************************/
 
 import throttle = require('@theia/core/shared/lodash.throttle');
-import { injectable, inject, postConstruct } from '@theia/core/shared/inversify';
 import { DebugProtocol } from 'vscode-debugprotocol/lib/debugProtocol';
 import { ConsoleSession, ConsoleItem } from '@theia/console/lib/browser/console-session';
 import { AnsiConsoleItem } from '@theia/console/lib/browser/ansi-console-item';
 import { DebugSession } from '../debug-session';
-import { DebugSessionManager } from '../debug-session-manager';
 import URI from '@theia/core/lib/common/uri';
 import { ExpressionContainer, ExpressionItem } from './debug-console-items';
 import { Severity } from '@theia/core/lib/common/severity';
+import { injectable, postConstruct } from '@theia/core/shared/inversify';
+
+export const DebugConsoleSessionFactory = Symbol('DebugConsoleSessionFactory');
+
+export type DebugConsoleSessionFactory = (debugSession: DebugSession) => DebugConsoleSession;
 
 @injectable()
 export class DebugConsoleSession extends ConsoleSession {
 
     static uri = new URI().withScheme('debugconsole');
 
-    readonly id = 'debug';
     protected items: ConsoleItem[] = [];
+
+    protected _debugSession: DebugSession;
 
     // content buffer for [append](#append) method
     protected uncompletedItemContent: string | undefined;
 
-    @inject(DebugSessionManager)
-    protected readonly manager: DebugSessionManager;
-
     protected readonly completionKinds = new Map<DebugProtocol.CompletionItemType | undefined, monaco.languages.CompletionItemKind>();
+
+    get debugSession(): DebugSession {
+        return this._debugSession;
+    }
+
+    set debugSession(value: DebugSession) {
+        this._debugSession = value;
+        this.id = value.id;
+    }
 
     @postConstruct()
     init(): void {
-        this.toDispose.push(this.manager.onDidCreateDebugSession(session => {
-            if (this.manager.sessions.length === 1) {
-                this.clear();
-            }
-            session.on('output', event => this.logOutput(session, event));
-        }));
         this.completionKinds.set('method', monaco.languages.CompletionItemKind.Method);
         this.completionKinds.set('function', monaco.languages.CompletionItemKind.Function);
         this.completionKinds.set('constructor', monaco.languages.CompletionItemKind.Constructor);
@@ -82,7 +86,7 @@ export class DebugConsoleSession extends ConsoleSession {
     }
 
     protected async completions(model: monaco.editor.ITextModel, position: monaco.Position): Promise<monaco.languages.CompletionList | undefined> {
-        const session = this.manager.currentSession;
+        const session = this.debugSession;
         if (session && session.capabilities.supportsCompletionsRequest) {
             const column = position.column;
             const lineNumber = position.lineNumber;
@@ -108,7 +112,7 @@ export class DebugConsoleSession extends ConsoleSession {
     }
 
     async execute(value: string): Promise<void> {
-        const expression = new ExpressionItem(value, () => this.manager.currentSession);
+        const expression = new ExpressionItem(value, () => this.debugSession);
         this.items.push(expression);
         await expression.evaluate();
         this.fireDidChange();
@@ -141,7 +145,7 @@ export class DebugConsoleSession extends ConsoleSession {
         this.fireDidChange();
     }
 
-    protected async logOutput(session: DebugSession, event: DebugProtocol.OutputEvent): Promise<void> {
+    async logOutput(session: DebugSession, event: DebugProtocol.OutputEvent): Promise<void> {
         const body = event.body;
         const { category, variablesReference } = body;
         if (category === 'telemetry') {

@@ -37,6 +37,12 @@ export interface DebugConfiguration {
      */
     [key: string]: any;
 
+    parentSession?: { id: string };
+
+    consoleMode?: DebugConsoleMode;
+
+    compact?: boolean;
+
     /**
      * The request type of the debug adapter session.
      */
@@ -73,4 +79,16 @@ export namespace DebugConfiguration {
     export function is(arg: DebugConfiguration | any): arg is DebugConfiguration {
         return !!arg && typeof arg === 'object' && 'type' in arg && 'name' in arg && 'request' in arg;
     }
+}
+
+export interface DebugSessionOptions {
+    parentSession?: { id: string };
+    consoleMode?: DebugConsoleMode;
+    noDebug?: boolean;
+    compact?: boolean;
+}
+
+export enum DebugConsoleMode {
+    Separate = 0,
+    MergeWithParent = 1
 }

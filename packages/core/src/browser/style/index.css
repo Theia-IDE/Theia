@@ -205,6 +205,7 @@ button.secondary[disabled], .theia-button.secondary[disabled] {
     border: 1px solid var(--theia-dropdown-border);
     background: var(--theia-dropdown-background);
     outline: none;
+    margin-left: var(--theia-ui-padding);
 }
 
 .theia-select option {

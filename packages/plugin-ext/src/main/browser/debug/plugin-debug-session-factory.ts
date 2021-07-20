@@ -36,6 +36,7 @@ export class PluginDebugSession extends DebugSession {
     constructor(
         readonly id: string,
         readonly options: DebugSessionOptions,
+        readonly parentSession: DebugSession | undefined,
         protected readonly connection: DebugSessionConnection,
         protected readonly terminalServer: TerminalService,
         protected readonly editorManager: EditorManager,
@@ -45,7 +46,7 @@ export class PluginDebugSession extends DebugSession {
         protected readonly fileService: FileService,
         protected readonly terminalOptionsExt: TerminalOptionsExt | undefined,
         protected readonly debugContributionProvider: ContributionProvider<DebugContribution>) {
-        super(id, options, connection, terminalServer, editorManager, breakpoints, labelProvider, messages, fileService, debugContributionProvider);
+        super(id, options, parentSession, connection, terminalServer, editorManager, breakpoints, labelProvider, messages, fileService, debugContributionProvider);
     }
 
     protected async doCreateTerminal(terminalWidgetOptions: TerminalWidgetOptions): Promise<TerminalWidget> {
@@ -75,7 +76,7 @@ export class PluginDebugSessionFactory extends DefaultDebugSessionFactory {
         super();
     }
 
-    get(sessionId: string, options: DebugSessionOptions): DebugSession {
+    get(sessionId: string, options: DebugSessionOptions, parentSession?: DebugSession): DebugSession {
         const connection = new DebugSessionConnection(
             sessionId,
             this.connectionFactory,
@@ -84,6 +85,7 @@ export class PluginDebugSessionFactory extends DefaultDebugSessionFactory {
         return new PluginDebugSession(
             sessionId,
             options,
+            parentSession,
             connection,
             this.terminalService,
             this.editorManager,

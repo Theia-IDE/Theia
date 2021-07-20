@@ -773,8 +773,9 @@ export function createAPIFactory(
             registerDebugAdapterTrackerFactory(debugType: string, factory: theia.DebugAdapterTrackerFactory): Disposable {
                 return debugExt.registerDebugAdapterTrackerFactory(debugType, factory);
             },
-            startDebugging(folder: theia.WorkspaceFolder | undefined, nameOrConfiguration: string | theia.DebugConfiguration): Thenable<boolean> {
-                return debugExt.startDebugging(folder, nameOrConfiguration);
+            startDebugging(folder: theia.WorkspaceFolder | undefined, nameOrConfiguration: string | theia.DebugConfiguration, options: theia.DebugSessionOptions):
+                Thenable<boolean> {
+                return debugExt.startDebugging(folder, nameOrConfiguration, options);
             },
             addBreakpoints(breakpoints: theia.Breakpoint[]): void {
                 debugExt.addBreakpoints(breakpoints);

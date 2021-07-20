@@ -67,6 +67,14 @@ export class DebugAdapterSessionManager implements MessagingService.Contribution
         const sessionFactory = registry.debugAdapterSessionFactory(config.type) || this.debugAdapterSessionFactory;
         const session = sessionFactory.get(sessionId, communicationProvider);
         this.sessions.set(sessionId, session);
+
+        if (config.parentSession) {
+            const parentSession = this.sessions.get(config.parentSession.id);
+            if (parentSession) {
+                session.parentSession = parentSession;
+            }
+        }
+
         return session;
     }
 

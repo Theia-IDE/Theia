@@ -41,6 +41,7 @@ export const DebugAdapterSession = Symbol('DebugAdapterSession');
  */
 export interface DebugAdapterSession {
     id: string;
+    parentSession?: DebugAdapterSession;
     start(channel: WebSocketChannel): Promise<void>
     stop(): Promise<void>
 }

@@ -62,11 +62,14 @@ export class DebugSession implements CompositeTreeElement {
         this.onDidChangeBreakpointsEmitter.fire(uri);
     }
 
+    protected readonly childSessions = new Map<string, DebugSession>();
+
     protected readonly toDispose = new DisposableCollection();
 
     constructor(
         readonly id: string,
         readonly options: DebugSessionOptions,
+        readonly parentSession: DebugSession | undefined,
         protected readonly connection: DebugSessionConnection,
         protected readonly terminalServer: TerminalService,
         protected readonly editorManager: EditorManager,
@@ -79,6 +82,12 @@ export class DebugSession implements CompositeTreeElement {
         this.connection.onRequest('runInTerminal', (request: DebugProtocol.RunInTerminalRequest) => this.runInTerminal(request));
         this.registerDebugContributions(options.configuration.type, this.connection);
 
+        if (parentSession) {
+            parentSession.childSessions.set(id, this);
+            this.toDispose.push(Disposable.create(() => {
+                this.parentSession?.childSessions?.delete(id);
+            }));
+        }
         this.toDispose.pushAll([
             this.onDidChangeEmitter,
             this.onDidChangeBreakpointsEmitter,
@@ -752,14 +761,34 @@ export class DebugSession implements CompositeTreeElement {
     }
 
     render(): React.ReactNode {
+        let label = '';
+        const child = this.getSingleChildSession();
+        if (child && child.configuration.compact) {
+            // Inlines the name of the child debug session
+            label = `: ${child.label}`;
+        }
         return <div className='theia-debug-session' title='Session'>
-            <span className='label'>{this.label}</span>
+            <span className='label'>{this.label + label}</span>
             <span className='status'>{this.state === DebugState.Stopped ? 'Paused' : 'Running'}</span>
         </div>;
     }
 
-    getElements(): IterableIterator<DebugThread> {
-        return this.threads;
+    *getElements(): IterableIterator<DebugThread | DebugSession> {
+        const child = this.getSingleChildSession();
+        if (child && child.configuration.compact) {
+            // Inlines the elements of the child debug session
+            return yield* child.getElements();
+        }
+        yield* this.threads;
+        yield* this.childSessions.values();
+    }
+
+    protected getSingleChildSession(): DebugSession | undefined {
+        if (this._threads.size === 0 && this.childSessions.size === 1) {
+            const child = this.childSessions.values().next().value as DebugSession;
+            return child;
+        }
+        return undefined;
     }
 
     protected async handleContinued({ body: { allThreadsContinued, threadId } }: DebugProtocol.ContinuedEvent): Promise<void> {

@@ -14,15 +14,19 @@
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  ********************************************************************************/
 
+import { ConsoleSessionManager } from '@theia/console/lib/browser/console-session-manager';
 import { ConsoleOptions, ConsoleWidget } from '@theia/console/lib/browser/console-widget';
 import { AbstractViewContribution, bindViewContribution, Widget, WidgetFactory } from '@theia/core/lib/browser';
 import { ContextKey, ContextKeyService } from '@theia/core/lib/browser/context-key-service';
 import { TabBarToolbarContribution, TabBarToolbarRegistry } from '@theia/core/lib/browser/shell/tab-bar-toolbar';
 import { Command, CommandRegistry } from '@theia/core/lib/common/command';
 import { Severity } from '@theia/core/lib/common/severity';
-import { inject, injectable, interfaces } from '@theia/core/shared/inversify';
+import { inject, injectable, interfaces, postConstruct } from '@theia/core/shared/inversify';
 import * as React from '@theia/core/shared/react';
-import { DebugConsoleSession } from './debug-console-session';
+import { DebugConsoleMode } from '../../common/debug-configuration';
+import { DebugSession } from '../debug-session';
+import { DebugSessionManager } from '../debug-session-manager';
+import { DebugConsoleSession, DebugConsoleSessionFactory } from './debug-console-session';
 
 export type InDebugReplContextKey = ContextKey<boolean>;
 export const InDebugReplContextKey = Symbol('inDebugReplContextKey');
@@ -40,8 +44,14 @@ export namespace DebugConsoleCommands {
 @injectable()
 export class DebugConsoleContribution extends AbstractViewContribution<ConsoleWidget> implements TabBarToolbarContribution {
 
-    @inject(DebugConsoleSession)
-    protected debugConsoleSession: DebugConsoleSession;
+    @inject(ConsoleSessionManager)
+    protected consoleSessionManager: ConsoleSessionManager;
+
+    @inject(DebugConsoleSessionFactory)
+    protected debugConsoleSessionFactory: DebugConsoleSessionFactory;
+
+    @inject(DebugSessionManager)
+    protected debugSessionManager: DebugSessionManager;
 
     constructor() {
         super({
@@ -53,6 +63,37 @@ export class DebugConsoleContribution extends AbstractViewContribution<ConsoleWi
             toggleCommandId: 'debug:console:toggle',
             toggleKeybinding: 'ctrlcmd+shift+y'
         });
+    }
+
+    @postConstruct()
+    protected init(): void {
+        this.debugSessionManager.onDidCreateDebugSession(session => {
+            const topParent = this.findParentSession(session);
+            if (topParent) {
+                const parentConsoleSession = this.consoleSessionManager.get(topParent.id);
+                if (parentConsoleSession instanceof DebugConsoleSession) {
+                    session.on('output', event => parentConsoleSession.logOutput(parentConsoleSession.debugSession, event));
+                }
+            } else {
+                const consoleSession = this.debugConsoleSessionFactory(session);
+                this.consoleSessionManager.add(consoleSession);
+                session.on('output', event => consoleSession.logOutput(session, event));
+            }
+        });
+        this.debugSessionManager.onDidDestroyDebugSession(session => {
+            this.consoleSessionManager.delete(session.id);
+        });
+    }
+
+    protected findParentSession(session: DebugSession): DebugSession | undefined {
+        if (session.configuration.consoleMode !== DebugConsoleMode.MergeWithParent) {
+            return undefined;
+        }
+        let debugSession: DebugSession | undefined = session;
+        do {
+            debugSession = debugSession.parentSession;
+        } while (debugSession?.parentSession && debugSession.configuration.consoleMode === DebugConsoleMode.MergeWithParent);
+        return debugSession;
     }
 
     registerCommands(commands: CommandRegistry): void {
@@ -71,7 +112,13 @@ export class DebugConsoleContribution extends AbstractViewContribution<ConsoleWi
             id: 'debug-console-severity',
             render: widget => this.renderSeveritySelector(widget),
             isVisible: widget => this.withWidget(widget, () => true),
-            onDidChange: this.debugConsoleSession.onSelectionChange
+            onDidChange: this.consoleSessionManager.onDidChangeSeverity
+        });
+
+        toolbarRegistry.registerItem({
+            id: 'debug-console-session-selector',
+            render: widget => this.renderDebugConsoleSelector(widget),
+            isVisible: widget => this.withWidget(widget, () => this.consoleSessionManager.all.length > 1)
         });
 
         toolbarRegistry.registerItem({
@@ -105,7 +152,6 @@ export class DebugConsoleContribution extends AbstractViewContribution<ConsoleWi
             inputFocusContextKey
         });
         const widget = child.get(ConsoleWidget);
-        widget.session = child.get(DebugConsoleSession);
         return widget;
     }
 
@@ -113,12 +159,14 @@ export class DebugConsoleContribution extends AbstractViewContribution<ConsoleWi
         bind(InDebugReplContextKey).toDynamicValue(({ container }) =>
             container.get(ContextKeyService).createKey('inDebugRepl', false)
         ).inSingletonScope();
-        bind(DebugConsoleSession).toSelf().inSingletonScope();
-        bindViewContribution(bind, DebugConsoleContribution).onActivation((context, _) => {
-            // eagerly initialize the debug console session
-            context.container.get(DebugConsoleSession);
-            return _;
+        bind(DebugConsoleSession).toSelf().inRequestScope();
+        bind(DebugConsoleSessionFactory).toFactory(context => (session: DebugSession) => {
+            const consoleSession = context.container.get(DebugConsoleSession);
+            consoleSession.debugSession = session;
+            return consoleSession;
         });
+        bind(ConsoleSessionManager).toSelf().inSingletonScope();
+        bindViewContribution(bind, DebugConsoleContribution);
         bind(TabBarToolbarContribution).toService(DebugConsoleContribution);
         bind(WidgetFactory).toDynamicValue(({ container }) => ({
             id: DebugConsoleContribution.options.id,
@@ -129,7 +177,7 @@ export class DebugConsoleContribution extends AbstractViewContribution<ConsoleWi
     protected renderSeveritySelector(widget: Widget | undefined): React.ReactNode {
         const severityElements: React.ReactNode[] = [];
         Severity.toArray().forEach(s => severityElements.push(<option value={s} key={s}>{s}</option>));
-        const selectedValue = Severity.toString(this.debugConsoleSession.severity || Severity.Ignore);
+        const selectedValue = Severity.toString(this.consoleSessionManager.severity || Severity.Ignore);
 
         return <select
             className='theia-select'
@@ -142,8 +190,32 @@ export class DebugConsoleContribution extends AbstractViewContribution<ConsoleWi
         </select>;
     }
 
+    protected renderDebugConsoleSelector(widget: Widget | undefined): React.ReactNode {
+        const availableConsoles: React.ReactNode[] = [];
+        this.consoleSessionManager.all.forEach(e => {
+            if (e instanceof DebugConsoleSession) {
+                availableConsoles.push(<option value={e.id} key={e.id}>{e.debugSession.label}</option>);
+            }
+        });
+        return <select
+            className='theia-select'
+            id='debugConsoleSelector'
+            key='debugConsoleSelector'
+            value={undefined}
+            onChange={this.changeDebugConsole}
+        >
+            {availableConsoles}
+        </select>;
+    }
+
+    protected changeDebugConsole = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const id = event.target.value;
+        const session = this.consoleSessionManager.get(id);
+        this.consoleSessionManager.selectedSession = session;
+    };
+
     protected changeSeverity = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        this.debugConsoleSession.severity = Severity.fromValue(event.target.value);
+        this.consoleSessionManager.severity = Severity.fromValue(event.target.value);
     };
 
     protected withWidget<T>(widget: Widget | undefined = this.tryGetWidget(), fn: (widget: ConsoleWidget) => T): T | false {

@@ -159,8 +159,8 @@ export class DebugExtImpl implements DebugExt {
         }
     }
 
-    startDebugging(folder: theia.WorkspaceFolder | undefined, nameOrConfiguration: string | theia.DebugConfiguration): PromiseLike<boolean> {
-        return this.proxy.$startDebugging(folder, nameOrConfiguration);
+    startDebugging(folder: theia.WorkspaceFolder | undefined, nameOrConfiguration: string | theia.DebugConfiguration, options: theia.DebugSessionOptions): PromiseLike<boolean> {
+        return this.proxy.$startDebugging(folder, nameOrConfiguration, options);
     }
 
     registerDebugAdapterDescriptorFactory(debugType: string, factory: theia.DebugAdapterDescriptorFactory): Disposable {

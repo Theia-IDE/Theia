@@ -39,6 +39,7 @@ export abstract class ConsoleSession extends TreeSource {
     protected selectedSeverity?: Severity;
     protected readonly selectionEmitter: Emitter<void> = new Emitter<void>();
     readonly onSelectionChange = this.selectionEmitter.event;
+    id: string;
 
     get severity(): Severity | undefined {
         return this.selectedSeverity;

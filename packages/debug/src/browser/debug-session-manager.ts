@@ -254,9 +254,10 @@ export class DebugSessionManager {
     }
 
     protected async doStart(sessionId: string, options: DebugSessionOptions): Promise<DebugSession> {
+        const parentSession = options.configuration.parentSession && this._sessions.get(options.configuration.parentSession.id);
         const contrib = this.sessionContributionRegistry.get(options.configuration.type);
         const sessionFactory = contrib ? contrib.debugSessionFactory() : this.debugSessionFactory;
-        const session = sessionFactory.get(sessionId, options);
+        const session = sessionFactory.get(sessionId, options, parentSession);
         this._sessions.set(sessionId, session);
 
         this.debugTypeKey.set(session.configuration.type);
