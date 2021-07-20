@@ -28,12 +28,6 @@ import { ACCOUNTS_MENU, ACCOUNTS_SUBMENU, MenuModelRegistry } from '../common/me
 import { Command, CommandRegistry } from '../common/command';
 import { DisposableCollection } from '../common/disposable';
 
-export interface AuthenticationSessionsChangeEvent {
-    added: ReadonlyArray<string>;
-    removed: ReadonlyArray<string>;
-    changed: ReadonlyArray<string>;
-}
-
 export interface AuthenticationSession {
     id: string;
     accessToken: string;
@@ -47,6 +41,26 @@ export interface AuthenticationSession {
 export interface AuthenticationProviderInformation {
     id: string;
     label: string;
+}
+
+/**
+ * An [event](#Event) which fires when an [AuthenticationSession](#AuthenticationSession) is added, removed, or changed.
+ */
+export interface AuthenticationProviderAuthenticationSessionsChangeEvent {
+    /**
+     * The [AuthenticationSession](#AuthenticationSession)s of the [AuthenticationProvider](#AuthentiationProvider) that have been added.
+     */
+    readonly added: ReadonlyArray<AuthenticationSession>;
+
+    /**
+     * The [AuthenticationSession](#AuthenticationSession)s of the [AuthenticationProvider](#AuthentiationProvider) that have been removed.
+     */
+    readonly removed: ReadonlyArray<AuthenticationSession>;
+
+    /**
+     * The [AuthenticationSession](#AuthenticationSession)s of the [AuthenticationProvider](#AuthentiationProvider) that have been changed.
+     */
+    readonly changed: ReadonlyArray<AuthenticationSession>;
 }
 
 export interface SessionRequest {
@@ -71,11 +85,38 @@ export interface AuthenticationProvider {
 
     getSessions(): Promise<ReadonlyArray<AuthenticationSession>>;
 
-    updateSessionItems(event: AuthenticationSessionsChangeEvent): Promise<void>;
+    updateSessionItems(event: AuthenticationProviderAuthenticationSessionsChangeEvent): Promise<void>;
 
     login(scopes: string[]): Promise<AuthenticationSession>;
 
     logout(sessionId: string): Promise<void>;
+
+    /**
+     * An [event](#Event) which fires when the array of sessions has changed, or data
+     * within a session has changed.
+     */
+    readonly onDidChangeSessions: Omit<Event<AuthenticationProviderAuthenticationSessionsChangeEvent>, 'maxListeners'>;
+
+    /**
+     * Get a list of sessions.
+     * @param scopes An optional list of scopes. If provided, the sessions returned should match
+     * these permissions, otherwise all sessions should be returned.
+     * @returns A promise that resolves to an array of authentication sessions.
+     */
+    getSessions(scopes?: string[]): Thenable<ReadonlyArray<AuthenticationSession>>;
+
+    /**
+     * Prompts a user to login.
+     * @param scopes A list of scopes, permissions, that the new session should be created with.
+     * @returns A promise that resolves to an authentication session.
+     */
+    createSession(scopes: string[]): Thenable<AuthenticationSession>;
+
+    /**
+     * Removes the session corresponding to session id.
+     * @param sessionId The id of the session to remove.
+     */
+    removeSession(sessionId: string): Thenable<void>;
 }
 export const AuthenticationService = Symbol('AuthenticationService');
 
@@ -85,12 +126,12 @@ export interface AuthenticationService {
     registerAuthenticationProvider(id: string, provider: AuthenticationProvider): void;
     unregisterAuthenticationProvider(id: string): void;
     requestNewSession(id: string, scopes: string[], extensionId: string, extensionName: string): void;
-    updateSessions(providerId: string, event: AuthenticationSessionsChangeEvent): void;
+    updateSessions(providerId: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent): void;
 
     readonly onDidRegisterAuthenticationProvider: Event<AuthenticationProviderInformation>;
     readonly onDidUnregisterAuthenticationProvider: Event<AuthenticationProviderInformation>;
 
-    readonly onDidChangeSessions: Event<{ providerId: string, label: string, event: AuthenticationSessionsChangeEvent }>;
+    readonly onDidChangeSessions: Event<{ providerId: string, label: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent }>;
     getSessions(providerId: string): Promise<ReadonlyArray<AuthenticationSession>>;
     getLabel(providerId: string): string;
     supportsMultipleAccounts(providerId: string): boolean;
@@ -114,9 +155,10 @@ export class AuthenticationServiceImpl implements AuthenticationService {
     private onDidUnregisterAuthenticationProviderEmitter: Emitter<AuthenticationProviderInformation> = new Emitter<AuthenticationProviderInformation>();
     readonly onDidUnregisterAuthenticationProvider: Event<AuthenticationProviderInformation> = this.onDidUnregisterAuthenticationProviderEmitter.event;
 
-    private onDidChangeSessionsEmitter: Emitter<{ providerId: string, label: string, event: AuthenticationSessionsChangeEvent }> =
-        new Emitter<{ providerId: string, label: string, event: AuthenticationSessionsChangeEvent }>();
-    readonly onDidChangeSessions: Event<{ providerId: string, label: string, event: AuthenticationSessionsChangeEvent }> = this.onDidChangeSessionsEmitter.event;
+    private onDidChangeSessionsEmitter: Emitter<{ providerId: string, label: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent }> =
+        new Emitter<{ providerId: string, label: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent }>();
+    readonly onDidChangeSessions: Event<{ providerId: string, label: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent }> =
+        this.onDidChangeSessionsEmitter.event;
 
     @inject(MenuModelRegistry) protected readonly menus: MenuModelRegistry;
     @inject(CommandRegistry) protected readonly commands: CommandRegistry;
@@ -152,10 +194,10 @@ export class AuthenticationServiceImpl implements AuthenticationService {
             }
             if (e.event.removed.length > 0) {
                 e.event.removed.forEach(removed => {
-                    const toDispose = disposableMap.get(removed);
+                    const toDispose = disposableMap.get(removed.id);
                     if (toDispose) {
                         toDispose.dispose();
-                        disposableMap.delete(removed);
+                        disposableMap.delete(removed.id);
                     }
                 });
             }
@@ -220,7 +262,7 @@ export class AuthenticationServiceImpl implements AuthenticationService {
         }
     }
 
-    async updateSessions(id: string, event: AuthenticationSessionsChangeEvent): Promise<void> {
+    async updateSessions(id: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent): Promise<void> {
         const provider = this.authenticationProviders.get(id);
         if (provider) {
             await provider.updateSessionItems(event);

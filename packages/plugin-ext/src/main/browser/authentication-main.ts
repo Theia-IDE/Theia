@@ -21,7 +21,7 @@
 // code copied and modified from https://github.com/microsoft/vscode/blob/1.47.3/src/vs/workbench/api/browser/mainThreadAuthentication.ts
 
 import { interfaces } from '@theia/core/shared/inversify';
-import { AuthenticationExt, AuthenticationMain, MAIN_RPC_CONTEXT } from '../../common/plugin-api-rpc';
+import {AuthenticationExt, AuthenticationMain, PluginManagerExt, MAIN_RPC_CONTEXT} from '../../common/plugin-api-rpc';
 import { RPCProtocol } from '../../common/rpc-protocol';
 import { MessageService } from '@theia/core/lib/common/message-service';
 import { StorageService } from '@theia/core/lib/browser';
@@ -32,10 +32,12 @@ import {
 } from '@theia/core/lib/browser/authentication-service';
 import { QuickPickService } from '@theia/core/lib/common/quick-pick-service';
 import {
-    AuthenticationSession,
-    AuthenticationSessionsChangeEvent
+    AuthenticationSession
 } from '../../common/plugin-api-rpc-model';
+import {AuthenticationProviderAuthenticationSessionsChangeEvent, Event} from '@theia/plugin';
 import { QuickPickValue } from '@theia/core/lib/browser/quick-input/quick-input-service';
+
+export function getAuthenticationProviderActivationEvent(id: string): string { return `onAuthenticationRequest:${id}`; }
 
 export class AuthenticationMainImpl implements AuthenticationMain {
     private readonly proxy: AuthenticationExt;
@@ -43,15 +45,17 @@ export class AuthenticationMainImpl implements AuthenticationMain {
     private readonly storageService: StorageService;
     private readonly authenticationService: AuthenticationService;
     private readonly quickPickService: QuickPickService;
+    private readonly extensionService: PluginManagerExt;
     constructor(rpc: RPCProtocol, container: interfaces.Container) {
         this.proxy = rpc.getProxy(MAIN_RPC_CONTEXT.AUTHENTICATION_EXT);
         this.messageService = container.get(MessageService);
         this.storageService = container.get(StorageService);
         this.authenticationService = container.get(AuthenticationService);
         this.quickPickService = container.get(QuickPickService);
+        this.extensionService = rpc.getProxy(MAIN_RPC_CONTEXT.HOSTED_PLUGIN_MANAGER_EXT);
 
         this.authenticationService.onDidChangeSessions(e => {
-            this.proxy.$onDidChangeAuthenticationSessions(e.providerId, e.label, e.event);
+            this.proxy.$onDidChangeAuthenticationSessions(e.providerId, e.label);
         });
         this.authenticationService.onDidRegisterAuthenticationProvider(info => {
             this.proxy.$onDidChangeAuthenticationProviders([info], []);
@@ -73,7 +77,7 @@ export class AuthenticationMainImpl implements AuthenticationMain {
         this.authenticationService.unregisterAuthenticationProvider(id);
     }
 
-    async $updateSessions(id: string, event: AuthenticationSessionsChangeEvent): Promise<void> {
+    async $updateSessions(id: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent): Promise<void> {
         this.authenticationService.updateSessions(id, event);
     }
 
@@ -210,6 +214,18 @@ export class AuthenticationMainImpl implements AuthenticationMain {
 
         this.storageService.setData(`authentication-session-${extensionName}-${providerId}`, sessionId);
     }
+
+    $ensureProvider(id: string): Promise<void> {
+        return this.extensionService.$activateByEvent(getAuthenticationProviderActivationEvent(id));
+    }
+
+    $removeSession(providerId: string, sessionId: string): Promise<void> {
+        return this.authenticationService.logout(providerId, sessionId);
+    }
+
+    $sendDidChangeSessions(providerId: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent): void {
+        this.authenticationService.updateSessions(providerId, event);
+    }
 }
 
 async function addAccountUsage(storageService: StorageService, providerId: string, accountName: string, extensionId: string, extensionName: string): Promise<void> {
@@ -285,12 +301,13 @@ export class AuthenticationProviderImpl implements AuthenticationProvider {
         return this.proxy.$getSessions(this.id);
     }
 
-    async updateSessionItems(event: AuthenticationSessionsChangeEvent): Promise<void> {
+    async updateSessionItems(event: AuthenticationProviderAuthenticationSessionsChangeEvent): Promise<void> {
         const { added, removed } = event;
         const session = await this.proxy.$getSessions(this.id);
-        const addedSessions = session.filter(s => added.some(id => id === s.id));
+        const addedSessions = session.filter(s => added.some(addedSession => addedSession.id === s.id));
 
-        removed.forEach(sessionId => {
+        removed.forEach(removedSession => {
+            const sessionId = removedSession.id;
             const accountName = this.sessions.get(sessionId);
             if (accountName) {
                 this.sessions.delete(sessionId);
@@ -308,12 +325,22 @@ export class AuthenticationProviderImpl implements AuthenticationProvider {
     }
 
     login(scopes: string[]): Promise<AuthenticationSession> {
-        return this.proxy.$login(this.id, scopes);
+        return this.proxy.$createSession(this.id, scopes);
     }
 
     async logout(sessionId: string): Promise<void> {
-        await this.proxy.$logout(this.id, sessionId);
+        await this.proxy.$removeSession(this.id, sessionId);
         this.messageService.info('Successfully signed out.');
+    }
+
+    readonly onDidChangeSessions:  Event<AuthenticationProviderAuthenticationSessionsChangeEvent>;
+
+    createSession(scopes: string[]): Thenable<AuthenticationSession> {
+        return this.login(scopes);
+    }
+
+    removeSession(sessionId: string): Thenable<void> {
+        return this.logout(sessionId);
     }
 }
 

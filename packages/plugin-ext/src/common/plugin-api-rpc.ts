@@ -66,7 +66,6 @@ import {
     CallHierarchyReference,
     SearchInWorkspaceResult,
     AuthenticationSession,
-    AuthenticationSessionsChangeEvent,
     AuthenticationProviderInformation,
     Comment,
     CommentOptions,
@@ -76,7 +75,12 @@ import {
 } from './plugin-api-rpc-model';
 import { ExtPluginApi } from './plugin-ext-api-contribution';
 import { KeysToAnyValues, KeysToKeysToAnyValue } from './types';
-import { CancellationToken, Progress, ProgressOptions } from '@theia/plugin';
+import {
+    AuthenticationProviderAuthenticationSessionsChangeEvent,
+    CancellationToken,
+    Progress,
+    ProgressOptions,
+} from '@theia/plugin';
 import { DebuggerDescription } from '@theia/debug/lib/common/debug-service';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { SymbolInformation } from '@theia/core/shared/vscode-languageserver-types';
@@ -1791,21 +1795,22 @@ export interface TasksMain {
 }
 
 export interface AuthenticationExt {
-    $getSessions(id: string): Promise<ReadonlyArray<AuthenticationSession>>;
-    $login(id: string, scopes: string[]): Promise<AuthenticationSession>;
-    $logout(id: string, sessionId: string): Promise<void>;
-    $onDidChangeAuthenticationSessions(id: string, label: string, event: AuthenticationSessionsChangeEvent): Promise<void>;
+    $getSessions(id: string, scopes?: string[]): Promise<ReadonlyArray<AuthenticationSession>>;
+    $createSession(id: string, scopes: string[]): Promise<AuthenticationSession>;
+    $removeSession(id: string, sessionId: string): Promise<void>;
+    $onDidChangeAuthenticationSessions(id: string, label: string): Promise<void>;
     $onDidChangeAuthenticationProviders(added: AuthenticationProviderInformation[], removed: AuthenticationProviderInformation[]): Promise<void>;
+    $setProviders(providers: AuthenticationProviderInformation[]): Promise<void>;
 }
 
 export interface AuthenticationMain {
     $registerAuthenticationProvider(id: string, label: string, supportsMultipleAccounts: boolean): void;
     $unregisterAuthenticationProvider(id: string): void;
-    $getProviderIds(): Promise<string[]>;
-    $updateSessions(providerId: string, event: AuthenticationSessionsChangeEvent): void;
+    $ensureProvider(id: string): Promise<void>;
+    $sendDidChangeSessions(providerId: string, event: AuthenticationProviderAuthenticationSessionsChangeEvent): void;
     $getSession(providerId: string, scopes: string[], extensionId: string, extensionName: string,
-        options: { createIfNone?: boolean, clearSessionPreference?: boolean }): Promise<theia.AuthenticationSession | undefined>;
-    $logout(providerId: string, sessionId: string): Promise<void>;
+                options: { createIfNone?: boolean, clearSessionPreference?: boolean }): Promise<AuthenticationSession | undefined>;
+    $removeSession(providerId: string, sessionId: string): Promise<void>;
 }
 
 export interface RawColorInfo {
