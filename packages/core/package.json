@@ -46,7 +46,7 @@
     "iconv-lite": "^0.6.0",
     "inversify": "^5.0.1",
     "jschardet": "^2.1.1",
-    "keytar": "7.7.0",
+    "keytar": "7.2.0",
     "lodash.debounce": "^4.0.8",
     "lodash.throttle": "^4.1.1",
     "nsfw": "^2.1.2",
